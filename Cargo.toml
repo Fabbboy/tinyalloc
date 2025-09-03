@@ -9,7 +9,11 @@ tinyalloc-sys = { workspace = true }
 
 [workspace]
 resolver = "3"
-members = ["crates/tinyalloc-core", "crates/tinyalloc-sys"]
+members = [
+  "crates/tinyalloc-alloc",
+  "crates/tinyalloc-core",
+  "crates/tinyalloc-sys",
+]
 
 [workspace.dependencies]
 enumset = "1.1.10"
@@ -20,3 +24,4 @@ windows-sys = "0.60.2"
 
 tinyalloc-core = { path = "crates/tinyalloc-core" }
 tinyalloc-sys = { path = "crates/tinyalloc-sys" }
+tinyalloc-alloc = { path = "crates/tinyalloc-alloc" }
