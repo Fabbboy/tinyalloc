@@ -3,7 +3,10 @@ use std::ptr::NonNull;
 #[derive(Debug)]
 pub struct MapError;
 
-pub trait Mapper {
+pub trait Mapper
+where
+  Self: Sync + Send + 'static,
+{
   fn map(&self, size: usize) -> Result<NonNull<[u8]>, MapError> {
     _ = size;
     return Err(MapError);
