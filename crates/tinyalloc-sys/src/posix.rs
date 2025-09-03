@@ -11,6 +11,42 @@ use tinyalloc_core::{
   },
 };
 
+#[cfg(unix)]
+mod inner {
+  use libc::{
+    MAP_PRIVATE,
+    PROT_NONE,
+    PROT_READ,
+    PROT_WRITE,
+  };
+
+  #[cfg(not(target_os = "macos"))]
+  use libc::{
+    MADV_DONTNEED,
+    MAP_ANONYMOUS,
+  };
+
+  #[cfg(target_os = "macos")]
+  use libc::{
+    MADV_FREE,
+    MAP_ANON,
+  };
+
+  #[cfg(not(target_os = "macos"))]
+  pub const MAP_FLAGS: i32 = MAP_PRIVATE | MAP_ANONYMOUS;
+  #[cfg(target_os = "macos")]
+  pub const MAP_FLAGS: i32 = MAP_PRIVATE | MAP_ANON;
+
+  #[cfg(not(target_os = "macos"))]
+  pub const DECOMMIT_FLAG: i32 = MADV_DONTNEED;
+  #[cfg(target_os = "macos")]
+  pub const DECOMMIT_FLAG: i32 = MADV_FREE;
+
+  pub const PERMISSIONS_RW: i32 = PROT_READ | PROT_WRITE;
+  pub const PERMISSIONS_NONE: i32 = PROT_NONE;
+  pub const TRASH_FD: i32 = -1;
+}
+
 pub struct PosixMapper;
 
 impl PosixMapper {
