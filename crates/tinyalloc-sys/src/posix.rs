@@ -1,9 +1,3 @@
-use libc::{
-  MAP_PRIVATE,
-  PROT_NONE,
-  PROT_READ,
-  PROT_WRITE,
-};
 use std::{
   ptr,
   ptr::NonNull,
@@ -44,7 +38,12 @@ impl Mapper for PosixMapper {
       )
     };
 
-    check_map(result, size)
+    if result == libc::MAP_FAILED {
+      return Err(MapError);
+    }
+
+    let slice = unsafe { slice::from_raw_parts_mut(result as *mut u8, size) };
+    Ok(NonNull::new(slice).unwrap())
   }
 
   fn unmap(&self, ptr: NonNull<[u8]>) {
