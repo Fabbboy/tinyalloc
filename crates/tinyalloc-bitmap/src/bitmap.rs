@@ -27,6 +27,10 @@ where
     (fields + T::BITS - 1) / T::BITS
   }
 
+  pub const fn available(store: &'slice [T]) -> usize {
+    store.len() * T::BITS
+  }
+
   pub const fn within(store: &'slice mut [T], fields: usize) -> Result<Self, BitmapError> {
     let total_bits = store.len() * T::BITS;
     if fields > total_bits {
@@ -83,5 +87,32 @@ where
   pub fn get(&self, index: usize) -> Result<bool, BitmapError> {
     let (word_index, bit_index) = self.position(index)?;
     Ok(self.store[word_index].get(bit_index))
+  }
+
+  pub fn first_set(&self) -> Option<usize> {
+    for (word_index, &word) in self.store.iter().enumerate() {
+      if word != T::zero() {
+        let bit_index = word.trailing_zeros() as usize;
+        let absolute_index = word_index * T::BITS + bit_index;
+        if absolute_index < self.total_bits {
+          return Some(absolute_index);
+        }
+      }
+    }
+    None
+  }
+
+  pub fn first_unset(&self) -> Option<usize> {
+    for (word_index, &word) in self.store.iter().enumerate() {
+      if word != T::max() {
+        let inverted_word = word ^ T::max();
+        let bit_index = inverted_word.trailing_zeros() as usize;
+        let absolute_index = word_index * T::BITS + bit_index;
+        if absolute_index < self.total_bits {
+          return Some(absolute_index);
+        }
+      }
+    }
+    None
   }
 }

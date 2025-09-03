@@ -1,6 +1,8 @@
+use core::ops::BitXor;
+
 pub trait BitsRequire
 where
-  Self: Sized + Copy + PartialEq + Eq,
+  Self: Sized + Copy + PartialEq + Eq + BitXor<Output = Self>,
 {
 }
 
@@ -13,7 +15,6 @@ where
   fn zero() -> Self;
   fn max() -> Self;
 
-  fn leading_zeros(self) -> u32;
   fn trailing_zeros(self) -> u32;
 
   fn set(self, bit: usize) -> Self;
@@ -35,10 +36,6 @@ macro_rules! impl_bits {
 
                 fn max() -> Self {
                     <$t>::MAX
-                }
-
-                fn leading_zeros(self) -> u32 {
-                    <$t>::leading_zeros(self)
                 }
 
                 fn trailing_zeros(self) -> u32 {
