@@ -53,7 +53,7 @@ fn test_errors() {
   ));
 
   // Out of bounds
-  let mut bitmap = Bitmap::within(&mut store, 20).unwrap();
+  let bitmap = Bitmap::within(&mut store, 20).unwrap();
   assert!(matches!(
     bitmap.get(32),
     Err(BitmapError::OutOfBounds { .. })
