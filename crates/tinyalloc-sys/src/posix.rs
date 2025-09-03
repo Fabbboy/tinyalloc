@@ -116,5 +116,17 @@ mod tests {
     let mapper = PosixMapper;
     let page = Page::new(&mapper, page_size());
     assert!(page.is_ok());
+    assert!(page.unwrap().is_mapped());
+  }
+
+  #[test]
+  fn experiment() {
+    let mapper = PosixMapper;
+    let mut page = Page::new(&mapper, page_size()).unwrap();
+    page.decommit().unwrap();
+    page.protect().unwrap();
+    if !page.is_protected() && page.is_committed() {
+      page.as_mut()[0] = 42;
+    }
   }
 }

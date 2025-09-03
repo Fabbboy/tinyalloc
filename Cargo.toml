@@ -12,6 +12,7 @@ resolver = "3"
 members = ["crates/tinyalloc-core", "crates/tinyalloc-sys"]
 
 [workspace.dependencies]
+enumset = "1.1.10"
 getset = "0.1.6"
 libc = "0.2.175"
 page_size = "0.6.0"
