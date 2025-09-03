@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 getset = { workspace = true }
+page_size = { workspace = true }

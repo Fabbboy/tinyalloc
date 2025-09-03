@@ -4,10 +4,17 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+tinyalloc-core = { workspace = true }
+tinyalloc-sys = { workspace = true }
 
 [workspace]
 resolver = "3"
-members = ["crates/tinyalloc-core"]
+members = ["crates/tinyalloc-core", "crates/tinyalloc-sys"]
 
 [workspace.dependencies]
 getset = "0.1.6"
+libc = "0.2.175"
+page_size = "0.6.0"
+
+tinyalloc-core = { path = "crates/tinyalloc-core" }
+tinyalloc-sys = { path = "crates/tinyalloc-sys" }
