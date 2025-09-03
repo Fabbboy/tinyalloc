@@ -101,3 +101,20 @@ impl Mapper for PosixMapper {
     self.check_syscall(result)
   }
 }
+
+#[cfg(all(unix, test))]
+mod tests {
+  use tinyalloc_core::{
+    page::Page,
+    size::page_size,
+  };
+
+  use super::*;
+
+  #[test]
+  fn test_map() {
+    let mapper = PosixMapper;
+    let page = Page::new(&mapper, page_size());
+    assert!(page.is_ok());
+  }
+}

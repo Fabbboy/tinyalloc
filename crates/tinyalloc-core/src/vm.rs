@@ -1,5 +1,6 @@
 use std::ptr::NonNull;
 
+#[derive(Debug)]
 pub struct MapError;
 
 pub trait Mapper {

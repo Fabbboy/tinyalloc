@@ -32,3 +32,9 @@ impl<'mapper> Page<'mapper> {
     self.mapper.protect(self.ptr)
   }
 }
+
+impl<'mapper> Drop for Page<'mapper> {
+  fn drop(&mut self) {
+    self.mapper.unmap(self.ptr);
+  }
+}
