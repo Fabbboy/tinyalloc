@@ -61,4 +61,27 @@ where
     let bit_index = index % T::BITS;
     Ok((word_index, bit_index))
   }
+
+  pub fn set(&mut self, index: usize) -> Result<(), BitmapError> {
+    let (word_index, bit_index) = self.position(index)?;
+    self.store[word_index] = self.store[word_index].set(bit_index);
+    Ok(())
+  }
+
+  pub fn clear(&mut self, index: usize) -> Result<(), BitmapError> {
+    let (word_index, bit_index) = self.position(index)?;
+    self.store[word_index] = self.store[word_index].clear(bit_index);
+    Ok(())
+  }
+
+  pub fn flip(&mut self, index: usize) -> Result<(), BitmapError> {
+    let (word_index, bit_index) = self.position(index)?;
+    self.store[word_index] = self.store[word_index].flip(bit_index);
+    Ok(())
+  }
+
+  pub fn get(&self, index: usize) -> Result<bool, BitmapError> {
+    let (word_index, bit_index) = self.position(index)?;
+    Ok(self.store[word_index].get(bit_index))
+  }
 }

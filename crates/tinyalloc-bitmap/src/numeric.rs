@@ -34,7 +34,7 @@ macro_rules! impl_bits {
                 }
 
                 fn max() -> Self {
-                    1
+                    <$t>::MAX
                 }
 
                 fn leading_zeros(self) -> u32 {
