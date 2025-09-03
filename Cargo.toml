@@ -10,7 +10,7 @@ tinyalloc-sys = { workspace = true }
 [workspace]
 resolver = "3"
 members = [
-  "crates/tinyalloc-alloc",
+  "crates/tinyalloc-alloc", "crates/tinyalloc-bitmap",
   "crates/tinyalloc-core",
   "crates/tinyalloc-sys",
 ]
@@ -25,3 +25,4 @@ windows-sys = "0.60.2"
 tinyalloc-core = { path = "crates/tinyalloc-core" }
 tinyalloc-sys = { path = "crates/tinyalloc-sys" }
 tinyalloc-alloc = { path = "crates/tinyalloc-alloc" }
+tinyalloc-bitmap = { path = "crates/tinyalloc-bitmap" }
