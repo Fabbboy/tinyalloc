@@ -49,4 +49,16 @@ where
       *word = T::max();
     }
   }
+
+  fn position(&self, index: usize) -> Result<(usize, usize), BitmapError> {
+    if index >= self.total_bits {
+      return Err(BitmapError::OutOfBounds {
+        index,
+        size: self.total_bits,
+      });
+    }
+    let word_index = index / T::BITS;
+    let bit_index = index % T::BITS;
+    Ok((word_index, bit_index))
+  }
 }

@@ -12,6 +12,14 @@ where
 
   fn zero() -> Self;
   fn max() -> Self;
+
+  fn leading_zeros(self) -> u32;
+  fn trailing_zeros(self) -> u32;
+
+  fn set(self, bit: usize) -> Self;
+  fn clear(self, bit: usize) -> Self;
+  fn flip(self, bit: usize) -> Self;
+  fn get(self, bit: usize) -> bool;
 }
 
 macro_rules! impl_bits {
@@ -27,6 +35,30 @@ macro_rules! impl_bits {
 
                 fn max() -> Self {
                     1
+                }
+
+                fn leading_zeros(self) -> u32 {
+                    <$t>::leading_zeros(self)
+                }
+
+                fn trailing_zeros(self) -> u32 {
+                    <$t>::trailing_zeros(self)
+                }
+
+                fn set(self, bit: usize) -> Self {
+                    self | (1 << bit)
+                }
+
+                fn clear(self, bit: usize) -> Self {
+                    self & !(1 << bit)
+                }
+
+                fn flip(self, bit: usize) -> Self {
+                    self ^ (1 << bit)
+                }
+
+                fn get(self, bit: usize) -> bool {
+                    (self & (1 << bit)) != 0
                 }
             }
         )*
