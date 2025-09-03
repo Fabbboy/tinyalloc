@@ -1,6 +1,13 @@
+use libc::{
+  MAP_PRIVATE,
+  PROT_NONE,
+  PROT_READ,
+  PROT_WRITE,
+};
 use std::{
   ptr,
   ptr::NonNull,
+  slice,
 };
 use tinyalloc_core::{
   size::page_align,
@@ -10,54 +17,17 @@ use tinyalloc_core::{
   },
 };
 
-mod mapper {
-  use std::{
-    ptr::NonNull,
-    slice,
-  };
+pub struct PosixMapper;
 
-  #[cfg(all(unix, not(target_os = "macos")))]
-  use libc::MADV_DONTNEED;
-  #[cfg(all(unix, target_os = "macos"))]
-  use libc::{
-    MADV_FREE,
-    MAP_ANON,
-  };
-  use libc::{
-    MAP_ANONYMOUS,
-    MAP_PRIVATE,
-    PROT_READ,
-    PROT_WRITE,
-  };
-
-  pub static PERMISSIONS: i32 = PROT_READ | PROT_WRITE;
-  #[cfg(all(unix, not(target_os = "macos")))]
-  pub static FLAGS: i32 = MAP_ANONYMOUS | MAP_PRIVATE;
-  #[cfg(all(unix, target_os = "macos"))]
-  pub static FLAGS: i32 = MAP_ANON | MAP_PRIVATE;
-
-  #[cfg(all(unix, not(target_os = "macos")))]
-  pub static UNINTERESTED: i32 = MADV_DONTNEED;
-  #[cfg(all(unix, target_os = "macos"))]
-  pub static UNINTERESTED: i32 = MADV_FREE;
-
-  pub static TRASH_FD: i32 = -1;
-
-  pub fn check_map(result: *mut libc::c_void) -> Result<super::NonNull<[u8]>, super::MapError> {
-    if result == libc::MAP_FAILED {
-      Err(super::MapError)
-    } else {
-      let slice = unsafe { slice::from_raw_parts_mut(result as *mut u8, 0) };
-      Ok(unsafe { NonNull::new_unchecked(slice) })
-    }
+impl PosixMapper {
+  fn check_syscall(&self, result: libc::c_int) -> Result<(), MapError> {
+    if result == 0 { Ok(()) } else { Err(MapError) }
   }
 
-  pub const fn cptr(slice: &NonNull<[u8]>) -> *mut libc::c_void {
-    unsafe { slice.as_ref().as_ptr() as *mut libc::c_void }
+  fn cptr(&self, ptr: NonNull<[u8]>) -> *mut libc::c_void {
+    ptr.as_ptr() as *mut libc::c_void
   }
 }
-
-pub struct PosixMapper;
 
 #[cfg(unix)]
 impl Mapper for PosixMapper {
@@ -67,32 +37,32 @@ impl Mapper for PosixMapper {
       libc::mmap(
         ptr::null_mut(),
         size,
-        mapper::PERMISSIONS,
-        mapper::FLAGS,
-        mapper::TRASH_FD,
+        inner::PERMISSIONS_RW,
+        inner::MAP_FLAGS,
+        inner::TRASH_FD,
         0,
       )
     };
 
-    mapper::check_map(result)
+    check_map(result, size)
   }
+
   fn unmap(&self, ptr: NonNull<[u8]>) {
-    let _ = unsafe { libc::munmap(mapper::cptr(&ptr), ptr.len()) };
+    unsafe { libc::munmap(self.cptr(ptr), ptr.len()) };
   }
+
   fn commit(&self, ptr: NonNull<[u8]>) -> Result<(), MapError> {
-    _ = ptr;
-    return Err(MapError);
+    let result = unsafe { libc::mprotect(self.cptr(ptr), ptr.len(), inner::PERMISSIONS_RW) };
+    self.check_syscall(result)
   }
+
   fn decommit(&self, ptr: NonNull<[u8]>) -> Result<(), MapError> {
-    _ = ptr;
-    return Err(MapError);
+    let result = unsafe { libc::madvise(self.cptr(ptr), ptr.len(), inner::DECOMMIT_FLAG) };
+    self.check_syscall(result)
   }
+
   fn protect(&self, ptr: NonNull<[u8]>) -> Result<(), MapError> {
-    _ = ptr;
-    return Err(MapError);
-  }
-  fn unprotect(&self, ptr: NonNull<[u8]>) -> Result<(), MapError> {
-    _ = ptr;
-    return Err(MapError);
+    let result = unsafe { libc::mprotect(self.cptr(ptr), ptr.len(), inner::PERMISSIONS_NONE) };
+    self.check_syscall(result)
   }
 }

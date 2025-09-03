@@ -31,8 +31,4 @@ impl<'mapper> Page<'mapper> {
   pub fn protect(&mut self) -> Result<(), MapError> {
     self.mapper.protect(self.ptr)
   }
-
-  pub fn unprotect(&mut self) -> Result<(), MapError> {
-    self.mapper.unprotect(self.ptr)
-  }
 }
