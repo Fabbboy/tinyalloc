@@ -1,14 +1,15 @@
+#[cfg(unix)]
 use std::{
   ptr,
   ptr::NonNull,
   slice,
 };
+
+use tinyalloc_core::vm::Mapper;
+#[cfg(unix)]
 use tinyalloc_core::{
   size::page_align,
-  vm::{
-    MapError,
-    Mapper,
-  },
+  vm::MapError,
 };
 
 #[cfg(unix)]
@@ -49,6 +50,10 @@ mod inner {
 
 pub struct PosixMapper;
 
+#[cfg(not(unix))]
+impl Mapper for PosixMapper {}
+
+#[cfg(unix)]
 impl PosixMapper {
   fn check_syscall(&self, result: libc::c_int) -> Result<(), MapError> {
     if result == 0 { Ok(()) } else { Err(MapError) }

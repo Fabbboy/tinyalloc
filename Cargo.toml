@@ -16,6 +16,7 @@ enumset = "1.1.10"
 getset = "0.1.6"
 libc = "0.2.175"
 page_size = "0.6.0"
+windows-sys = "0.60.2"
 
 tinyalloc-core = { path = "crates/tinyalloc-core" }
 tinyalloc-sys = { path = "crates/tinyalloc-sys" }
