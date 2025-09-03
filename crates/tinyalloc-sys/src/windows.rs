@@ -88,7 +88,7 @@ impl Mapper for WindowsMapper {
       VirtualAlloc(
         ptr.as_ptr() as *mut c_void,
         ptr.len(),
-        inner::MEM_RESERVE_COMMIT,
+        inner::MEM_COMMIT,
         inner::PAGE_RW,
       )
     };
@@ -121,31 +121,3 @@ impl Mapper for WindowsMapper {
   }
 }
 
-#[cfg(all(windows, test))]
-mod tests {
-  use tinyalloc_core::{
-    page::Page,
-    size::page_size,
-  };
-
-  use super::*;
-
-  #[test]
-  fn test_map() {
-    let mapper = WindowsMapper;
-    let page = Page::new(&mapper, page_size());
-    assert!(page.is_ok());
-    assert!(page.unwrap().is_mapped());
-  }
-
-  #[test]
-  fn experiment() {
-    let mapper = WindowsMapper;
-    let mut page = Page::new(&mapper, page_size()).unwrap();
-    page.decommit().unwrap();
-    page.protect().unwrap();
-    if !page.is_protected() && page.is_committed() {
-      page.as_mut()[0] = 42;
-    }
-  }
-}

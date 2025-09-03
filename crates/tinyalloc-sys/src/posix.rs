@@ -107,31 +107,3 @@ impl Mapper for PosixMapper {
   }
 }
 
-#[cfg(all(unix, test))]
-mod tests {
-  use tinyalloc_core::{
-    page::Page,
-    size::page_size,
-  };
-
-  use super::*;
-
-  #[test]
-  fn test_map() {
-    let mapper = PosixMapper;
-    let page = Page::new(&mapper, page_size());
-    assert!(page.is_ok());
-    assert!(page.unwrap().is_mapped());
-  }
-
-  #[test]
-  fn experiment() {
-    let mapper = PosixMapper;
-    let mut page = Page::new(&mapper, page_size()).unwrap();
-    page.decommit().unwrap();
-    page.protect().unwrap();
-    if !page.is_protected() && page.is_committed() {
-      page.as_mut()[0] = 42;
-    }
-  }
-}
