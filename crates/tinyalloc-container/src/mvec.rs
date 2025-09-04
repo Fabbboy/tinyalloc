@@ -211,7 +211,7 @@ impl<'mapper, T, const N: usize, const Q: usize>
       let data_ptr = self.data.unwrap().as_ptr();
       let value = ptr::read(data_ptr.add(self.len));
 
-      self.maybe_shrink().ok(); // Ignore shrink errors for now
+      self.maybe_shrink().ok();
 
       Some(value)
     }
@@ -399,10 +399,9 @@ mod tests {
     }
     for _ in 0..10000 {
       mvec.pop();
-    } // This triggers decommit
+    }
     assert_eq!(mvec.len(), 0);
 
-    // This MUST work without segfault:
     for i in 0..10000 {
       mvec.push(i).unwrap();
     }
@@ -410,43 +409,39 @@ mod tests {
 
   #[test]
   fn test_large_objects_push_pop_push() {
-    // Test with 20k large objects (4kb sized)
     #[repr(align(4096))]
     struct LargeObject {
-      data: [u8; 4096],
+      _data: [u8; 4096],
     }
 
     let mut mvec: MappedVector<LargeObject, 1> = MappedVector::new(MAPPER);
 
-    // Push 20k large objects
     for i in 0..20000 {
       let obj = LargeObject {
-        data: [i as u8; 4096],
+        _data: [i as u8; 4096],
       };
       mvec.push(obj).unwrap();
     }
 
     assert_eq!(mvec.len(), 20000);
 
-    // Pop ALL objects (triggers shrinking)
     for _ in 0..20000 {
       mvec.pop().unwrap();
     }
 
     assert_eq!(mvec.len(), 0);
 
-    // Push again 20k objects - this should reuse old memory and be reasonably fast
     let start = std::time::Instant::now();
     for i in 0..20000 {
       let obj = LargeObject {
-        data: [i as u8; 4096],
+        _data: [i as u8; 4096],
       };
       mvec.push(obj).unwrap();
     }
     let duration = start.elapsed();
 
     assert_eq!(mvec.len(), 20000);
-    // Should complete in reasonable time (less than 5 seconds on modern hardware)
+
     assert!(
       duration.as_secs() < 5,
       "Push operation took too long: {:?}",
