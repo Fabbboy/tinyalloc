@@ -5,6 +5,8 @@ pub fn page_size() -> usize {
   get()
 }
 
+pub const SUPPORTS_PARTIAL_FREE: bool = cfg!(any(unix, windows));
+
 #[inline]
 pub fn page_align(size: usize) -> usize {
   let page_size = page_size();

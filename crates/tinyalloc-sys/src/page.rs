@@ -6,9 +6,12 @@ use enumset::{
 };
 use getset::Getters;
 
-use crate::vm::{
-  MapError,
-  Mapper,
+use crate::{
+  size::SUPPORTS_PARTIAL_FREE,
+  vm::{
+    MapError,
+    Mapper,
+  },
 };
 
 #[derive(EnumSetType, Debug)]
@@ -25,6 +28,8 @@ pub struct Page<'mapper> {
   ptr: NonNull<[u8]>,
   #[getset(get = "pub")]
   flags: EnumSet<PageFlag>,
+  #[getset(get = "pub")]
+  usable: usize,
 }
 
 impl<'mapper> Page<'mapper> {
@@ -37,6 +42,7 @@ impl<'mapper> Page<'mapper> {
       mapper,
       ptr,
       flags: PageFlag::Mapped | PageFlag::Committed,
+      usable: size,
     })
   }
 
@@ -56,6 +62,15 @@ impl<'mapper> Page<'mapper> {
   pub fn protect(&mut self) -> Result<(), MapError> {
     self.mapper.protect(self.ptr)?;
     self.flags |= PageFlag::Protected;
+    Ok(())
+  }
+
+  pub fn truncate(&mut self, ptr: NonNull<[u8]>) -> Result<(), MapError> {
+    if !SUPPORTS_PARTIAL_FREE {
+      return Err(MapError);
+    }
+
+    self.mapper.decommit(ptr)?;
     Ok(())
   }
 
