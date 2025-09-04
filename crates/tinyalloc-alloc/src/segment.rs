@@ -40,7 +40,16 @@ impl<'mapper> Segment<'mapper> {
   pub fn new(mapper: &'mapper dyn Mapper) -> Result<NonNull<Self>, MapError> {
     let page_size = page_size();
     let capacity = SEGMENT_SIZE / page_size;
-    let mut internal = Page::new(mapper, SEGMENT_SIZE)?;
+    let mut internal = Page::new(mapper, SEGMENT_SIZE, false)?;
+    let page_sz = page_size;
+    let first_page_ptr = unsafe {
+      NonNull::new_unchecked(ptr::slice_from_raw_parts_mut(
+        internal.as_mut().as_ptr() as *mut u8,
+        page_sz,
+      ))
+    };
+    internal.mapper().commit(first_page_ptr)?;
+
     let segment_ptr = internal.as_mut().as_ptr() as *mut Segment;
     let user_size = SEGMENT_SIZE - std::mem::size_of::<Segment>();
     let user_ptr = unsafe {
@@ -53,7 +62,7 @@ impl<'mapper> Segment<'mapper> {
         page: internal,
         capacity,
         used: 1,
-        mapped: capacity,
+        mapped: 1,
         user: NonNull::new_unchecked(user_ptr),
       });
       Ok(NonNull::new_unchecked(segment_ptr))
@@ -110,10 +119,13 @@ impl<'mapper> Segment<'mapper> {
     Ok(())
   }
 
-  pub fn collect(&mut self) -> Result<(), MapError> {
+  pub fn manage(&mut self) -> Result<(), MapError> {
     if self.used < self.mapped {
       let pages_to_free = self.mapped - self.used;
       self.truncate(pages_to_free)?;
+    } else if self.used > self.mapped {
+      let pages_to_add = self.used - self.mapped;
+      self.expand(pages_to_add)?;
     }
     Ok(())
   }
@@ -256,6 +268,11 @@ mod tests {
       "Used count should be mutable"
     );
 
+    // Expand to commit all pages for testing
+    segment_ref
+      .expand(segment_ref.capacity() - 1)
+      .expect("Failed to expand for test");
+
     let user_data = segment_ref.as_mut();
     let original_len = user_data.len();
 
@@ -294,12 +311,13 @@ mod tests {
 
     let initial_mapped = *segment_ref.mapped();
     assert_eq!(*segment_ref.used(), 1);
+    assert_eq!(initial_mapped, 1); // lazy mapping starts with 1 page
 
-    segment_ref.truncate(1).expect("Failed to truncate");
-    assert_eq!(*segment_ref.mapped(), initial_mapped - 1);
+    segment_ref.expand(5).expect("Failed to expand");
+    assert_eq!(*segment_ref.mapped(), initial_mapped + 5);
 
-    segment_ref.expand(1).expect("Failed to expand");
-    assert_eq!(*segment_ref.mapped(), initial_mapped);
+    segment_ref.truncate(3).expect("Failed to truncate");
+    assert_eq!(*segment_ref.mapped(), initial_mapped + 2);
 
     Segment::drop(segment, false);
   }
@@ -309,12 +327,15 @@ mod tests {
     let mut segment = Segment::new(MAPPER).expect("Failed to create segment");
     let segment_ref = unsafe { segment.as_mut() };
 
+    // Test expanding: used=2, mapped=1 -> should expand to 2
     *segment_ref.used_mut() = 2;
-    let initial_mapped = *segment_ref.mapped();
-
-    segment_ref.collect().expect("Failed to collect");
+    segment_ref.manage().expect("Failed to collect");
     assert_eq!(*segment_ref.mapped(), 2);
-    assert!(*segment_ref.mapped() < initial_mapped);
+
+    // Test truncating: used=1, mapped=2 -> should truncate to 1
+    *segment_ref.used_mut() = 1;
+    segment_ref.manage().expect("Failed to collect");
+    assert_eq!(*segment_ref.mapped(), 1);
 
     Segment::drop(segment, false);
   }

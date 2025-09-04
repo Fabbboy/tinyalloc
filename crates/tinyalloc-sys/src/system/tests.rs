@@ -19,7 +19,7 @@ static MAPPER: &dyn Mapper = &BACKING_MAPPER;
 #[test]
 fn test_map_single_page() {
   let size = page_size();
-  let result = MAPPER.map(size);
+  let result = MAPPER.map(size, true);
   assert!(result.is_ok());
 
   let ptr = result.unwrap();
@@ -31,7 +31,7 @@ fn test_map_single_page() {
 #[test]
 fn test_map_multiple_pages() {
   let size = page_size() * 4;
-  let result = MAPPER.map(size);
+  let result = MAPPER.map(size, true);
   assert!(result.is_ok());
 
   let ptr = result.unwrap();
@@ -43,7 +43,7 @@ fn test_map_multiple_pages() {
 #[test]
 fn test_map_write_read() {
   let size = page_size();
-  let ptr = MAPPER.map(size).unwrap();
+  let ptr = MAPPER.map(size, true).unwrap();
 
   unsafe {
     let slice =
@@ -61,7 +61,7 @@ fn test_map_write_read() {
 #[test]
 fn test_commit_after_decommit() {
   let size = page_size();
-  let ptr = MAPPER.map(size).unwrap();
+  let ptr = MAPPER.map(size, true).unwrap();
 
   MAPPER.decommit(ptr).unwrap();
 
@@ -81,7 +81,7 @@ fn test_commit_after_decommit() {
 #[test]
 fn test_decommit() {
   let size = page_size();
-  let ptr = MAPPER.map(size).unwrap();
+  let ptr = MAPPER.map(size, true).unwrap();
 
   let result = MAPPER.decommit(ptr);
   assert!(result.is_ok());
@@ -92,7 +92,7 @@ fn test_decommit() {
 #[test]
 fn test_protect() {
   let size = page_size();
-  let ptr = MAPPER.map(size).unwrap();
+  let ptr = MAPPER.map(size, true).unwrap();
 
   let result = MAPPER.protect(ptr);
   assert!(result.is_ok());

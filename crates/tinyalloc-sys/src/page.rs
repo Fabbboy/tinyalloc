@@ -113,14 +113,14 @@ mod tests {
 
   #[test]
   fn test_page_raii_basic() {
-    let page = Page::new(MAPPER, page_size());
+    let page = Page::new(MAPPER, page_size(), true);
     assert!(page.is_ok());
     assert!(page.unwrap().is_mapped());
   }
 
   #[test]
   fn test_page_raii_operations() {
-    let mut page = Page::new(MAPPER, page_size()).unwrap();
+    let mut page = Page::new(MAPPER, page_size(), true).unwrap();
 
     assert!(page.is_mapped());
 
@@ -136,7 +136,7 @@ mod tests {
 
   #[test]
   fn test_page_raii_write_after_commit() {
-    let mut page = Page::new(MAPPER, page_size()).unwrap();
+    let mut page = Page::new(MAPPER, page_size(), true).unwrap();
 
     page.decommit().unwrap();
     assert!(!page.is_committed());
