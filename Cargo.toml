@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 tinyalloc-sys = { workspace = true }
+tinyalloc-alloc = { workspace = true }
 
 [workspace]
 resolver = "3"
