@@ -25,3 +25,4 @@ windows-sys = "0.60.2"
 tinyalloc-sys = { path = "crates/tinyalloc-sys" }
 tinyalloc-alloc = { path = "crates/tinyalloc-alloc" }
 tinyalloc-bitmap = { path = "crates/tinyalloc-bitmap" }
+tinyalloc-vector = { path = "crates/tinyalloc-vector" }
