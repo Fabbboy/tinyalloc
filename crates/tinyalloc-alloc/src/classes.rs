@@ -81,7 +81,7 @@ pub const SIZE_CLASSES: &[SizeClass] = size_classes![
   // step 4096
   20480, 24576, 28672, 32768,
   // step 8192
-  40960, 49152, 57344, 65536,
+  40960, 49152, 57344, // cant have the last one as it is EXACT CUT_OFF which prevents from having a header in the span
 ];
 
 #[inline]
