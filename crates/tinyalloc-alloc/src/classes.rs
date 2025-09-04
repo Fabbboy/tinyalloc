@@ -1,11 +1,11 @@
 use std::mem;
 
-use crate::slab::SLAB_SIZE;
+use crate::{
+  CUT_OFF,
+  QUANTUM,
+  SPAN_SIZE,
+};
 use getset::Getters;
-
-const QUANTUM: usize = 16;
-const ONE_KB: usize = 1024;
-const CUT_OFF: usize = 64 * ONE_KB;
 
 #[derive(Getters)]
 pub struct SizeClass {
@@ -37,7 +37,7 @@ macro_rules! size_classes {
             $(
                 {
                     const SIZE: usize = $size;
-                    const ELEMS: usize = SLAB_SIZE / SIZE;
+                    const ELEMS: usize = SPAN_SIZE / SIZE;
 
                     const POW2: usize = next_pow2(SIZE);
                     const ALIGN: usize =
