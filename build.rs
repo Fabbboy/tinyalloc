@@ -1,3 +1,5 @@
+extern crate cbindgen;
+
 fn main() {
   let crate_path = env!("CARGO_MANIFEST_DIR");
 
