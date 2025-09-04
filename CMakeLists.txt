@@ -19,7 +19,8 @@ add_custom_target(cargo_build ALL
     BYPRODUCTS 
         ${CARGO_TARGET_DIR}/libtinyalloc.a
         ${CARGO_TARGET_DIR}/libtinyalloc.so
-        tinyalloc.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/tinyalloc.h
+    COMMENT "Building Rust library with cargo"
 )
 
 add_library(tinyalloc_static STATIC IMPORTED GLOBAL)
