@@ -6,7 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Structure
 
-DO NOT USE VEC OR BOX THIS IS AN INDEPENDENT MEMORY ALLOCATOR THAT DOES **NOT** RELY ON MALLOC/FREE
+DO NOT USE VEC OR BOX THIS IS AN INDEPENDENT MEMORY ALLOCATOR THAT DOES **NOT** RELY ON MALLOC/FREE. We use Rust edition 2024 this is fix and does **NOT** change.
+Yes #[no_mangle] is now #[unsafe(no_mangle)]
 
 This is a Rust workspace implementing a tiny memory allocator with the following architecture:
 

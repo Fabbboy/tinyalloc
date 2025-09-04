@@ -2,9 +2,13 @@
 name = "tinyalloc"
 version = "0.1.0"
 edition = "2024"
+build = "build.rs"
 
 [lib]
 crate-type = ["rlib", "dylib", "staticlib"]
+
+[build-dependencies]
+cbindgen = "0.29.0"
 
 [dependencies]
 tinyalloc-sys = { workspace = true }
