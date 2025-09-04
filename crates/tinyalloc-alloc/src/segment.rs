@@ -54,6 +54,12 @@ impl<'mapper> Segment<'mapper> {
     }
   }
 
+  fn expand(&mut self, pages: usize) -> Result<(), MapError> {
+    todo!()
+  }
+  // collect renamend to truncate
+  fn truncate(&mut self) {}
+
   pub fn drop(segment: NonNull<Self>, recursive: bool) {
     unsafe {
       let segment_ref = segment.as_ref();
@@ -101,46 +107,81 @@ mod tests {
   fn test_segment_creation_and_layout() {
     let segment = Segment::new(MAPPER).expect("Failed to create segment");
     let segment_ref = unsafe { segment.as_ref() };
-    
+
     let expected_capacity = SEGMENT_SIZE / page_size();
     let expected_user_size = SEGMENT_SIZE - mem::size_of::<Segment>();
-    
-    assert_eq!(*segment_ref.capacity(), expected_capacity, "Capacity should match segment size divided by page size");
+
+    assert_eq!(
+      *segment_ref.capacity(),
+      expected_capacity,
+      "Capacity should match segment size divided by page size"
+    );
     assert_eq!(*segment_ref.used(), 1, "Used should be initialized to 1");
-    assert!(segment_ref.next().is_none(), "Next pointer should be None for new segment");
-    assert_eq!(segment_ref.as_ref().len(), expected_user_size, "User area size should be segment size minus struct size");
-    
+    assert!(
+      segment_ref.next().is_none(),
+      "Next pointer should be None for new segment"
+    );
+    assert_eq!(
+      segment_ref.as_ref().len(),
+      expected_user_size,
+      "User area size should be segment size minus struct size"
+    );
+
     let user_data = segment_ref.as_ref();
     assert!(!user_data.is_empty(), "User data area should not be empty");
-    assert!(user_data.as_ptr() as usize > segment.as_ptr() as usize, "User data should be after segment struct");
-    
+    assert!(
+      user_data.as_ptr() as usize > segment.as_ptr() as usize,
+      "User data should be after segment struct"
+    );
+
     let segment_end = segment.as_ptr() as usize + SEGMENT_SIZE;
     let user_end = user_data.as_ptr() as usize + user_data.len();
-    assert_eq!(user_end, segment_end, "User data should extend to end of segment");
-    
+    assert_eq!(
+      user_end, segment_end,
+      "User data should extend to end of segment"
+    );
+
     Segment::drop(segment, false);
   }
 
   #[test]
   fn test_segment_chain_management() {
-    let mut segment1 = Segment::new(MAPPER).expect("Failed to create first segment");
-    let mut segment2 = Segment::new(MAPPER).expect("Failed to create second segment");
-    let segment3 = Segment::new(MAPPER).expect("Failed to create third segment");
-    
+    let mut segment1 =
+      Segment::new(MAPPER).expect("Failed to create first segment");
+    let mut segment2 =
+      Segment::new(MAPPER).expect("Failed to create second segment");
+    let segment3 =
+      Segment::new(MAPPER).expect("Failed to create third segment");
+
     let segment1_ref = unsafe { segment1.as_mut() };
     segment1_ref.next_mut().replace(segment2);
-    assert!(segment1_ref.next().is_some(), "First segment should link to second");
-    
+    assert!(
+      segment1_ref.next().is_some(),
+      "First segment should link to second"
+    );
+
     let segment2_ref = unsafe { segment2.as_mut() };
     segment2_ref.next_mut().replace(segment3);
-    assert!(segment2_ref.next().is_some(), "Second segment should link to third");
-    
+    assert!(
+      segment2_ref.next().is_some(),
+      "Second segment should link to third"
+    );
+
     let segment3_ref = unsafe { segment3.as_ref() };
-    assert!(segment3_ref.next().is_none(), "Third segment should not link to anything");
-    
-    assert_ne!(segment1, segment2, "Segments should have different addresses");
-    assert_ne!(segment2, segment3, "Segments should have different addresses");
-    
+    assert!(
+      segment3_ref.next().is_none(),
+      "Third segment should not link to anything"
+    );
+
+    assert_ne!(
+      segment1, segment2,
+      "Segments should have different addresses"
+    );
+    assert_ne!(
+      segment2, segment3,
+      "Segments should have different addresses"
+    );
+
     Segment::drop(segment1, true);
   }
 
@@ -148,28 +189,43 @@ mod tests {
   fn test_segment_memory_access_and_mutations() {
     let mut segment = Segment::new(MAPPER).expect("Failed to create segment");
     let segment_ref = unsafe { segment.as_mut() };
-    
+
     let initial_used = *segment_ref.used();
     *segment_ref.used_mut() = initial_used + 5;
-    assert_eq!(*segment_ref.used(), initial_used + 5, "Used count should be mutable");
-    
+    assert_eq!(
+      *segment_ref.used(),
+      initial_used + 5,
+      "Used count should be mutable"
+    );
+
     let user_data = segment_ref.as_mut();
     let original_len = user_data.len();
-    
+
     user_data.fill(0xAA);
-    assert!(user_data.iter().all(|&b| b == 0xAA), "All bytes should be set to 0xAA");
-    
+    assert!(
+      user_data.iter().all(|&b| b == 0xAA),
+      "All bytes should be set to 0xAA"
+    );
+
     user_data[0] = 0xFF;
     user_data[original_len - 1] = 0xFF;
     assert_eq!(user_data[0], 0xFF, "First byte should be writable");
-    assert_eq!(user_data[original_len - 1], 0xFF, "Last byte should be writable");
-    
+    assert_eq!(
+      user_data[original_len - 1],
+      0xFF,
+      "Last byte should be writable"
+    );
+
     let pattern = b"TinyAlloc Test Pattern";
     if user_data.len() >= pattern.len() {
       user_data[..pattern.len()].copy_from_slice(pattern);
-      assert_eq!(&user_data[..pattern.len()], pattern, "Pattern should be written correctly");
+      assert_eq!(
+        &user_data[..pattern.len()],
+        pattern,
+        "Pattern should be written correctly"
+      );
     }
-    
+
     Segment::drop(segment, false);
   }
 }
