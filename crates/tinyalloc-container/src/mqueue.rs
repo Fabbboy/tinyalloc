@@ -29,7 +29,7 @@ impl<T> Node<T> {
   }
 }
 
-pub struct Queue<'mapper, T> {
+pub struct MappedQueue<'mapper, T> {
   head: Option<NonNull<Node<T>>>,
   tail: Option<NonNull<Node<T>>>,
   len: usize,
@@ -38,7 +38,7 @@ pub struct Queue<'mapper, T> {
   system: &'mapper dyn Mapper,
 }
 
-impl<'mapper, T> Queue<'mapper, T> {
+impl<'mapper, T> MappedQueue<'mapper, T> {
   pub fn new(system: &'mapper dyn Mapper) -> Self {
     Self {
       head: None,
@@ -144,14 +144,14 @@ mod tests {
 
   #[test]
   fn test_new() {
-    let queue: Queue<i32> = Queue::new(MAPPER);
+    let queue: MappedQueue<i32> = MappedQueue::new(MAPPER);
     assert_eq!(queue.len(), 0);
     assert!(queue.is_empty());
   }
 
   #[test]
   fn test_push_pop() {
-    let mut queue = Queue::new(MAPPER);
+    let mut queue = MappedQueue::new(MAPPER);
 
     queue.push(1).unwrap();
     queue.push(2).unwrap();
@@ -164,7 +164,7 @@ mod tests {
 
   #[test]
   fn test_fifo_order() {
-    let mut queue = Queue::new(MAPPER);
+    let mut queue = MappedQueue::new(MAPPER);
 
     for i in 0..10 {
       queue.push(i).unwrap();
