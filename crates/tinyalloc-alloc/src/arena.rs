@@ -1,9 +1,12 @@
 use std::ptr::NonNull;
 
+use getset::{Getters, MutGetters};
 use tinyalloc_sys::{page::Page, vm::{MapError, Mapper}};
 
+#[derive(Getters, MutGetters)]
 pub struct Arena<'mapper> {
   page: Page<'mapper>,
+  #[getset(get = "pub", get_mut = "pub")]
   next: Option<NonNull<Arena<'mapper>>>,
 }
 
