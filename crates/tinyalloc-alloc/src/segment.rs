@@ -267,7 +267,6 @@ mod tests {
       "Used count should be mutable"
     );
 
-    // Expand to commit all pages for testing
     segment_ref
       .expand(segment_ref.capacity() - 1)
       .expect("Failed to expand for test");
@@ -310,7 +309,7 @@ mod tests {
 
     let initial_mapped = *segment_ref.mapped();
     assert_eq!(*segment_ref.used(), 1);
-    assert_eq!(initial_mapped, 1); // lazy mapping starts with 1 page
+    assert_eq!(initial_mapped, 1);
 
     segment_ref.expand(5).expect("Failed to expand");
     assert_eq!(*segment_ref.mapped(), initial_mapped + 5);
