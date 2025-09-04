@@ -5,8 +5,7 @@ use getset::Getters;
 const QUANTUM: usize = 16;
 const ONE_KB: usize = 1024;
 const CUT_OFF: usize = 64 * ONE_KB;
-const HEADER_SIZE: usize = mem::size_of::<u8>(); // TODO: placeholder for real header size
-const SLAB_SIZE: usize = CUT_OFF;
+pub const SPACE_SIZE: usize = CUT_OFF;
 
 #[derive(Getters)]
 pub struct SizeClass {
@@ -38,8 +37,7 @@ macro_rules! size_classes {
             $(
                 {
                     const SIZE: usize = $size;
-                    const USABLE: usize = SLAB_SIZE - HEADER_SIZE;
-                    const ELEMS: usize = USABLE / SIZE;
+                    const ELEMS: usize = SPACE_SIZE / SIZE;
 
                     const POW2: usize = next_pow2(SIZE);
                     const ALIGN: usize =
