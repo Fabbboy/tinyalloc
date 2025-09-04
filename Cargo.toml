@@ -12,7 +12,7 @@ resolver = "3"
 members = [
   "crates/tinyalloc-alloc",
   "crates/tinyalloc-bitmap",
-  "crates/tinyalloc-sys",
+  "crates/tinyalloc-sys", "crates/tinyalloc-vector",
 ]
 
 [workspace.dependencies]
