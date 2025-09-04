@@ -152,7 +152,6 @@ dependencies = [
 name = "tinyalloc"
 version = "0.1.0"
 dependencies = [
- "tinyalloc-core",
  "tinyalloc-sys",
 ]
 
@@ -168,20 +167,13 @@ dependencies = [
 ]
 
 [[package]]
-name = "tinyalloc-core"
+name = "tinyalloc-sys"
 version = "0.1.0"
 dependencies = [
  "enumset",
  "getset",
- "page_size",
-]
-
-[[package]]
-name = "tinyalloc-sys"
-version = "0.1.0"
-dependencies = [
  "libc",
- "tinyalloc-core",
+ "page_size",
  "windows-sys",
 ]
 

@@ -88,3 +88,60 @@ impl<'mapper> AsMut<[u8]> for Page<'mapper> {
     unsafe { self.ptr.as_mut() }
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use crate::size::page_size;
+  
+  #[cfg(unix)]
+  use crate::system::posix::PosixMapper;
+  #[cfg(windows)]
+  use crate::system::windows::WindowsMapper;
+
+  #[cfg(unix)]
+  static BACKING_MAPPER: PosixMapper = PosixMapper;
+  #[cfg(windows)]
+  static BACKING_MAPPER: WindowsMapper = WindowsMapper;
+
+  static MAPPER: &dyn Mapper = &BACKING_MAPPER;
+
+  #[test]
+  fn test_page_raii_basic() {
+    let page = Page::new(MAPPER, page_size());
+    assert!(page.is_ok());
+    assert!(page.unwrap().is_mapped());
+  }
+
+  #[test]
+  fn test_page_raii_operations() {
+    let mut page = Page::new(MAPPER, page_size()).unwrap();
+
+    assert!(page.is_mapped());
+
+    page.decommit().unwrap();
+    assert!(!page.is_committed());
+
+    page.commit().unwrap();
+    assert!(page.is_committed());
+
+    page.protect().unwrap();
+    assert!(page.is_protected());
+  }
+
+  #[test]
+  fn test_page_raii_write_after_commit() {
+    let mut page = Page::new(MAPPER, page_size()).unwrap();
+
+    page.decommit().unwrap();
+    assert!(!page.is_committed());
+
+    page.commit().unwrap();
+    assert!(page.is_committed());
+
+    if page.is_committed() && !page.is_protected() {
+      page.as_mut()[0] = 42;
+      assert_eq!(page.as_ref()[0], 42);
+    }
+  }
+}

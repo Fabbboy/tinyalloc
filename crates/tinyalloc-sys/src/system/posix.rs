@@ -5,9 +5,9 @@ use std::{
   slice,
 };
 
-use tinyalloc_core::vm::Mapper;
+use crate::vm::Mapper;
 #[cfg(unix)]
-use tinyalloc_core::{
+use crate::{
   size::page_align,
   vm::MapError,
 };

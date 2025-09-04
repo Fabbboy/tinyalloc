@@ -1,9 +1,0 @@
-[package]
-name = "tinyalloc-core"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
-getset = { workspace = true }
-page_size = { workspace = true }
-enumset = { workspace = true }

@@ -4,14 +4,12 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-tinyalloc-core = { workspace = true }
 tinyalloc-sys = { workspace = true }
 
 [workspace]
 resolver = "3"
 members = [
   "crates/tinyalloc-alloc", "crates/tinyalloc-bitmap",
-  "crates/tinyalloc-core",
   "crates/tinyalloc-sys",
 ]
 
@@ -22,7 +20,6 @@ libc = "0.2.175"
 page_size = "0.6.0"
 windows-sys = "0.60.2"
 
-tinyalloc-core = { path = "crates/tinyalloc-core" }
 tinyalloc-sys = { path = "crates/tinyalloc-sys" }
 tinyalloc-alloc = { path = "crates/tinyalloc-alloc" }
 tinyalloc-bitmap = { path = "crates/tinyalloc-bitmap" }
