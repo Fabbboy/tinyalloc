@@ -46,3 +46,11 @@ This project uses Rust nightly toolchain as specified in `rust-toolchain.toml`.
 - `page_size`: Cross-platform page size detection
 - `getset`: Automatic getter generation
 - `enumset`: Efficient enum set implementation
+
+## Coding Standards
+
+The following conventions guide all contributions:
+
+- **Quality over speed**: Prefer smaller, well-tested changes over rushed, large implementations. It is acceptable to leave a task partially implemented if doing so preserves safety and correctness.
+- **Follow the plan**: Adhere strictly to the roadmap, FAQ, and existing coding standards. Deviations should be discussed before implementation.
+- **Rust ergonomics with low-level control**: Unsafe code and pointer arithmetic are expected in this allocator, but maintain Rust's safety patterns where possible. Use `NonNull` for long-lived pointers and return `Result` or `Option` instead of raw or uninitialized values. Never return null pointers or uninitialized data.
