@@ -62,6 +62,7 @@ impl<'mapper> Segment<'mapper> {
           Self::drop(*next, true);
         }
       }
+      ptr::drop_in_place(segment.as_ptr());
     }
   }
 }
