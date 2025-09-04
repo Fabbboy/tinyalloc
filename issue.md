@@ -95,5 +95,5 @@ The decommit behavior is GOOD - it returns memory to the OS. The bug is that we'
 
 ### Low Priority
 
-The `PageQueue` implementation currently never shrinks. There is no shrinking logic in the internal heap. **This is not considered a bug report yet, just a note** for future optimization. Current priority is low.
+The `MappedQueue` implementation currently never shrinks. There is no shrinking logic in the internal heap. **This is not considered a bug report yet, just a note** for future optimization. Current priority is low.
 

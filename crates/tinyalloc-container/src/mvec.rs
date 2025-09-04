@@ -65,14 +65,20 @@ impl<'mapper, T, const N: usize, const Q: usize>
 
   fn initial_capacity(&self) -> usize {
     let ps = *Self::PAGE_SIZE.get_or_init(|| page_size());
-    // Use N as page multiplier, same as MappedQueue
-    // This determines how many pages worth of elements we can store
     N * Self::elements_per_page(ps)
   }
 
   fn grow(&mut self, min_capacity: usize) -> Result<(), MappedVectorError> {
     if self.capacity >= min_capacity {
-      return Ok(());
+      if let Some(page) = self.backing.peek_mut() {
+        if !page.is_committed() {
+          page.commit()?;
+        }
+        return Ok(());
+      }
+      if self.capacity == 0 {
+        return Ok(());
+      }
     }
 
     let ps = *Self::PAGE_SIZE.get_or_init(|| page_size());
@@ -126,6 +132,7 @@ impl<'mapper, T, const N: usize, const Q: usize>
       self.backing.push(new_page)?;
       self.data = Some(unsafe { NonNull::new_unchecked(new_data_ptr) });
       self.active_elements = needed_elements;
+      self.capacity = needed_elements;
     }
     Ok(())
   }
@@ -381,5 +388,69 @@ mod tests {
   fn test_generic_preallocation() {
     let mvec: MappedVector<i32, 20> = MappedVector::new(MAPPER);
     assert!(mvec.initial_capacity() >= 20);
+  }
+
+  #[test]
+  fn test_clear_and_repush_behavior() {
+    let mut mvec: MappedVector<i32, 1> = MappedVector::new(MAPPER);
+
+    for i in 0..10000 {
+      mvec.push(i).unwrap();
+    }
+    for _ in 0..10000 {
+      mvec.pop();
+    } // This triggers decommit
+    assert_eq!(mvec.len(), 0);
+
+    // This MUST work without segfault:
+    for i in 0..10000 {
+      mvec.push(i).unwrap();
+    }
+  }
+
+  #[test]
+  fn test_large_objects_push_pop_push() {
+    // Test with 20k large objects (4kb sized)
+    #[repr(align(4096))]
+    struct LargeObject {
+      data: [u8; 4096],
+    }
+
+    let mut mvec: MappedVector<LargeObject, 1> = MappedVector::new(MAPPER);
+
+    // Push 20k large objects
+    for i in 0..20000 {
+      let obj = LargeObject {
+        data: [i as u8; 4096],
+      };
+      mvec.push(obj).unwrap();
+    }
+
+    assert_eq!(mvec.len(), 20000);
+
+    // Pop ALL objects (triggers shrinking)
+    for _ in 0..20000 {
+      mvec.pop().unwrap();
+    }
+
+    assert_eq!(mvec.len(), 0);
+
+    // Push again 20k objects - this should reuse old memory and be reasonably fast
+    let start = std::time::Instant::now();
+    for i in 0..20000 {
+      let obj = LargeObject {
+        data: [i as u8; 4096],
+      };
+      mvec.push(obj).unwrap();
+    }
+    let duration = start.elapsed();
+
+    assert_eq!(mvec.len(), 20000);
+    // Should complete in reasonable time (less than 5 seconds on modern hardware)
+    assert!(
+      duration.as_secs() < 5,
+      "Push operation took too long: {:?}",
+      duration
+    );
   }
 }
