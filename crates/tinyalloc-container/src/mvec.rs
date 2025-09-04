@@ -16,8 +16,6 @@ use tinyalloc_sys::{
   },
 };
 
-use crate::mqueue::MappedQueue;
-
 pub const MVEC_GROWTH_FACTOR: usize = 2;
 pub const MVEC_DECOMMIT_THRESHOLD: f32 = 0.25;
 pub const MVEC_UNMAP_THRESHOLD: f32 = 0.125;
@@ -38,8 +36,11 @@ pub struct MappedVector<'mapper, T, const N: usize = 10, const Q: usize = 8> {
   data: Option<NonNull<T>>,
   len: usize,
   capacity: usize,
+  /// "Active" elements concept kept for policy thresholds; with a single page
+  /// we remap instead of partial commit, so this equals `capacity` after changes.
   active_elements: usize,
-  backing: MappedQueue<'mapper, Page<'mapper>, Q>,
+  /// Single backing mapping
+  backing: Option<Page<'mapper>>,
   mapper: &'mapper dyn Mapper,
 }
 
@@ -54,111 +55,116 @@ impl<'mapper, T, const N: usize, const Q: usize>
       len: 0,
       capacity: 0,
       active_elements: 0,
-      backing: MappedQueue::new(mapper),
+      backing: None,
       mapper,
     }
   }
 
+  #[inline]
   fn elements_per_page(ps: usize) -> usize {
-    ps / mem::size_of::<T>()
+    let elem = mem::size_of::<T>().max(1);
+    ps / elem
   }
 
   fn initial_capacity(&self) -> usize {
-    let ps = *Self::PAGE_SIZE.get_or_init(|| page_size());
+    let ps = *Self::PAGE_SIZE.get_or_init(page_size);
     N * Self::elements_per_page(ps)
   }
 
+  /// Ensure capacity for at least `min_capacity` elements.
+  /// With a single page, this remaps to a new page if needed and copies old data.
   fn grow(&mut self, min_capacity: usize) -> Result<(), MappedVectorError> {
     if self.capacity >= min_capacity {
-      if let Some(page) = self.backing.peek_mut() {
+      // If someone decommitted (conceptually), "commit" back if API supports it.
+      if let Some(page) = self.backing.as_mut() {
         if !page.is_committed() {
           page.commit()?;
         }
-        return Ok(());
       }
-      if self.capacity == 0 {
-        return Ok(());
-      }
+      return Ok(());
     }
 
-    let ps = *Self::PAGE_SIZE.get_or_init(|| page_size());
+    let ps = *Self::PAGE_SIZE.get_or_init(page_size);
 
     let new_capacity = if self.capacity == 0 {
       min_capacity.max(self.initial_capacity())
     } else {
       (self.capacity * MVEC_GROWTH_FACTOR).max(min_capacity)
     };
-    let bytes_needed = new_capacity * mem::size_of::<T>();
-    let total_pages_needed = (bytes_needed + ps - 1) / ps;
 
-    let old_data = self.data;
-    let new_page = Page::new(self.mapper, total_pages_needed * ps)?;
-    let new_data_ptr = new_page.as_ref().as_ptr() as *mut T;
+    let bytes_needed = new_capacity
+      .checked_mul(mem::size_of::<T>())
+      .expect("capacity overflow");
+    let total_bytes = ((bytes_needed + ps - 1) / ps) * ps;
 
-    if let Some(old_ptr) = old_data {
+    // Map new single region
+    let mut new_page = Page::new(self.mapper, total_bytes)?;
+    let new_data_ptr = new_page.as_mut().as_mut_ptr() as *mut T;
+
+    // Copy old payload before dropping old page
+    if let Some(old_ptr) = self.data {
       unsafe {
         ptr::copy_nonoverlapping(old_ptr.as_ptr(), new_data_ptr, self.len);
       }
     }
 
-    if let Some(old_page) = self.backing.pop() {
+    // Drop old page last
+    if let Some(old_page) = self.backing.take() {
       drop(old_page);
     }
 
-    self.backing.push(new_page)?;
+    self.backing = Some(new_page);
     self.data = Some(unsafe { NonNull::new_unchecked(new_data_ptr) });
     self.capacity = new_capacity;
     self.active_elements = new_capacity;
     Ok(())
   }
 
+  /// "Decommit" policy: with a single page we just remap smaller and copy.
   fn shrink_active(
     &mut self,
     needed_elements: usize,
   ) -> Result<(), MappedVectorError> {
-    let ps = *Self::PAGE_SIZE.get_or_init(|| page_size());
-    let needed_pages = (needed_elements * mem::size_of::<T>() + ps - 1) / ps;
-
-    if let Some(_page) = self.backing.pop() {
-      let new_page = Page::new(self.mapper, needed_pages * ps)?;
-      let new_data_ptr = new_page.as_ref().as_ptr() as *mut T;
-
-      if let Some(old_ptr) = self.data {
-        unsafe {
-          ptr::copy_nonoverlapping(old_ptr.as_ptr(), new_data_ptr, self.len);
-        }
-      }
-
-      self.backing.push(new_page)?;
-      self.data = Some(unsafe { NonNull::new_unchecked(new_data_ptr) });
-      self.active_elements = needed_elements;
-      self.capacity = needed_elements;
-    }
-    Ok(())
+    self.remap_to_capacity(needed_elements)
   }
 
+  /// Hard shrink of total capacity; same remap in single-page world.
   fn shrink_capacity(
     &mut self,
     new_capacity: usize,
   ) -> Result<(), MappedVectorError> {
-    let ps = *Self::PAGE_SIZE.get_or_init(|| page_size());
-    let pages_needed = (new_capacity * mem::size_of::<T>() + ps - 1) / ps;
+    self.remap_to_capacity(new_capacity)
+  }
 
-    let old_data = self.data;
-    let new_page = Page::new(self.mapper, pages_needed * ps)?;
-    let new_data_ptr = new_page.as_ref().as_ptr() as *mut T;
+  /// Remap the single page to fit `new_capacity` elements and copy current data.
+  fn remap_to_capacity(
+    &mut self,
+    new_capacity: usize,
+  ) -> Result<(), MappedVectorError> {
+    let ps = *Self::PAGE_SIZE.get_or_init(page_size);
+    let bytes_needed = new_capacity
+      .checked_mul(mem::size_of::<T>())
+      .expect("capacity overflow");
+    let total_bytes = if bytes_needed == 0 {
+      ps
+    } else {
+      ((bytes_needed + ps - 1) / ps) * ps
+    };
 
-    if let Some(old_ptr) = old_data {
+    let mut new_page = Page::new(self.mapper, total_bytes)?;
+    let new_data_ptr = new_page.as_mut().as_mut_ptr() as *mut T;
+
+    if let Some(old_ptr) = self.data {
       unsafe {
         ptr::copy_nonoverlapping(old_ptr.as_ptr(), new_data_ptr, self.len);
       }
     }
 
-    if let Some(old_page) = self.backing.pop() {
+    if let Some(old_page) = self.backing.take() {
       drop(old_page);
     }
 
-    self.backing.push(new_page)?;
+    self.backing = Some(new_page);
     self.data = Some(unsafe { NonNull::new_unchecked(new_data_ptr) });
     self.capacity = new_capacity;
     self.active_elements = new_capacity;
@@ -191,13 +197,11 @@ impl<'mapper, T, const N: usize, const Q: usize>
 
   pub fn push(&mut self, value: T) -> Result<(), MappedVectorError> {
     self.grow(self.len + 1)?;
-
     unsafe {
       let data_ptr = self.data.unwrap().as_ptr();
       ptr::write(data_ptr.add(self.len), value);
-      self.len += 1;
     }
-
+    self.len += 1;
     Ok(())
   }
 
@@ -205,14 +209,11 @@ impl<'mapper, T, const N: usize, const Q: usize>
     if self.len == 0 {
       return None;
     }
-
     unsafe {
       self.len -= 1;
       let data_ptr = self.data.unwrap().as_ptr();
       let value = ptr::read(data_ptr.add(self.len));
-
-      self.maybe_shrink().ok();
-
+      let _ = self.maybe_shrink();
       Some(value)
     }
   }
@@ -225,9 +226,7 @@ impl<'mapper, T, const N: usize, const Q: usize>
     if index > self.len {
       return Err(MappedVectorError::IndexOutOfBounds);
     }
-
     self.grow(self.len + 1)?;
-
     unsafe {
       let data_ptr = self.data.unwrap().as_ptr();
       ptr::copy(
@@ -236,9 +235,8 @@ impl<'mapper, T, const N: usize, const Q: usize>
         self.len - index,
       );
       ptr::write(data_ptr.add(index), value);
-      self.len += 1;
     }
-
+    self.len += 1;
     Ok(())
   }
 
@@ -246,7 +244,6 @@ impl<'mapper, T, const N: usize, const Q: usize>
     if index >= self.len {
       return None;
     }
-
     unsafe {
       let data_ptr = self.data.unwrap().as_ptr();
       let value = ptr::read(data_ptr.add(index));
@@ -256,9 +253,7 @@ impl<'mapper, T, const N: usize, const Q: usize>
         self.len - index - 1,
       );
       self.len -= 1;
-
-      self.maybe_shrink().ok();
-
+      let _ = self.maybe_shrink();
       Some(value)
     }
   }
@@ -272,7 +267,7 @@ impl<'mapper, T, const N: usize, const Q: usize>
       }
     }
     self.len = 0;
-    self.maybe_shrink().ok();
+    let _ = self.maybe_shrink();
   }
 
   pub fn reserve(
@@ -286,7 +281,6 @@ impl<'mapper, T, const N: usize, const Q: usize>
     if index >= self.len {
       return None;
     }
-
     unsafe {
       let data_ptr = self.data?.as_ptr();
       Some(&*data_ptr.add(index))
@@ -297,21 +291,23 @@ impl<'mapper, T, const N: usize, const Q: usize>
     if index >= self.len {
       return None;
     }
-
     unsafe {
       let data_ptr = self.data?.as_ptr();
       Some(&mut *data_ptr.add(index))
     }
   }
 
+  #[inline]
   pub fn len(&self) -> usize {
     self.len
   }
 
+  #[inline]
   pub fn capacity(&self) -> usize {
     self.capacity
   }
 
+  #[inline]
   pub fn is_empty(&self) -> bool {
     self.len == 0
   }
@@ -441,7 +437,6 @@ mod tests {
     let duration = start.elapsed();
 
     assert_eq!(mvec.len(), 20000);
-
     assert!(
       duration.as_secs() < 5,
       "Push operation took too long: {:?}",
