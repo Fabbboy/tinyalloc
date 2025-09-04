@@ -4,6 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Structure
 
+DO NOT USE VEC OR BOX THIS IS AN INDEPENDENT MEMORY ALLOCATOR THAT DOES **NOT** RELY ON MALLOC/FREE
+
 This is a Rust workspace implementing a tiny memory allocator with the following architecture:
 
 - **Root crate (`tinyalloc`)**: Main library that re-exports components from workspace crates
