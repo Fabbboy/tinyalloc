@@ -21,7 +21,6 @@ use tinyalloc_sys::{
 
 use crate::SEGMENT_SIZE;
 
-#[repr(C)]
 #[derive(Getters, MutGetters)]
 pub struct Segment<'mapper> {
   #[getset(get = "pub", get_mut = "pub")]
