@@ -30,7 +30,7 @@ impl<T> Node<T> {
   }
 }
 
-pub struct MappedQueue<'mapper, T> {
+pub struct MappedQueue<'mapper, T, const N: usize = 8> {
   head: Option<NonNull<Node<T>>>,
   tail: Option<NonNull<Node<T>>>,
   len: usize,
@@ -39,7 +39,7 @@ pub struct MappedQueue<'mapper, T> {
   system: &'mapper dyn Mapper,
 }
 
-impl<'mapper, T> MappedQueue<'mapper, T> {
+impl<'mapper, T, const N: usize> MappedQueue<'mapper, T, N> {
   pub fn new(system: &'mapper dyn Mapper) -> Self {
     Self {
       head: None,
@@ -52,12 +52,12 @@ impl<'mapper, T> MappedQueue<'mapper, T> {
   }
 
   fn nodes_per_page(&self) -> usize {
-    (page_size() * QUEUE_PAGE_MULTIPLIER) / std::mem::size_of::<Node<T>>()
+    (page_size() * N) / std::mem::size_of::<Node<T>>()
   }
 
   fn ensure_capacity(&mut self) -> Result<(), MapError> {
     if self.data.is_none() || self.allocated_nodes >= self.nodes_per_page() {
-      let queue_page_size = page_size() * QUEUE_PAGE_MULTIPLIER;
+      let queue_page_size = page_size() * N;
       let new_page = Page::new(self.system, queue_page_size)?;
       self.data = Some(new_page);
       self.allocated_nodes = 0;
@@ -127,7 +127,7 @@ impl<'mapper, T> MappedQueue<'mapper, T> {
   }
 }
 
-impl<'mapper, T> Drop for MappedQueue<'mapper, T> {
+impl<'mapper, T, const N: usize> Drop for MappedQueue<'mapper, T, N> {
   fn drop(&mut self) {
     while !self.is_empty() {
       let _ = self.pop();
@@ -161,7 +161,7 @@ mod tests {
 
   #[test]
   fn test_push_pop() {
-    let mut queue = MappedQueue::new(MAPPER);
+    let mut queue: MappedQueue<i32> = MappedQueue::new(MAPPER);
 
     queue.push(1).unwrap();
     queue.push(2).unwrap();
@@ -174,7 +174,7 @@ mod tests {
 
   #[test]
   fn test_fifo_order() {
-    let mut queue = MappedQueue::new(MAPPER);
+    let mut queue: MappedQueue<i32> = MappedQueue::new(MAPPER);
 
     for i in 0..10 {
       queue.push(i).unwrap();
