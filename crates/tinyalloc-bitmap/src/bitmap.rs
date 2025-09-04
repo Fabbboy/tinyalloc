@@ -31,7 +31,10 @@ where
     store.len() * T::BITS
   }
 
-  pub const fn within(store: &'slice mut [T], fields: usize) -> Result<Self, BitmapError> {
+  pub const fn within(
+    store: &'slice mut [T],
+    fields: usize,
+  ) -> Result<Self, BitmapError> {
     let total_bits = store.len() * T::BITS;
     if fields > total_bits {
       return Err(BitmapError::InsufficientSize {

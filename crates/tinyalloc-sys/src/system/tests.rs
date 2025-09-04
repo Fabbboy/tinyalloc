@@ -46,7 +46,8 @@ fn test_map_write_read() {
   let ptr = MAPPER.map(size).unwrap();
 
   unsafe {
-    let slice = std::slice::from_raw_parts_mut(ptr.as_ptr() as *mut u8, ptr.len());
+    let slice =
+      std::slice::from_raw_parts_mut(ptr.as_ptr() as *mut u8, ptr.len());
     slice[0] = 42;
     slice[size - 1] = 24;
 
@@ -68,7 +69,8 @@ fn test_commit_after_decommit() {
   assert!(result.is_ok());
 
   unsafe {
-    let slice = std::slice::from_raw_parts_mut(ptr.as_ptr() as *mut u8, ptr.len());
+    let slice =
+      std::slice::from_raw_parts_mut(ptr.as_ptr() as *mut u8, ptr.len());
     slice[0] = 123;
     assert_eq!(slice[0], 123);
   }
@@ -97,4 +99,3 @@ fn test_protect() {
 
   MAPPER.unmap(ptr);
 }
-

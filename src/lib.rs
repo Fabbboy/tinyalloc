@@ -1,1 +1,6 @@
-pub use tinyalloc_sys::{page, size, system, vm};
+pub use tinyalloc_sys::{
+  page,
+  size,
+  system,
+  vm,
+};

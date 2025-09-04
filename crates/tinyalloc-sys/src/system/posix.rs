@@ -92,18 +92,22 @@ impl Mapper for PosixMapper {
   }
 
   fn commit(&self, ptr: NonNull<[u8]>) -> Result<(), MapError> {
-    let result = unsafe { libc::mprotect(self.cptr(ptr), ptr.len(), inner::PERMISSIONS_RW) };
+    let result = unsafe {
+      libc::mprotect(self.cptr(ptr), ptr.len(), inner::PERMISSIONS_RW)
+    };
     self.check_syscall(result)
   }
 
   fn decommit(&self, ptr: NonNull<[u8]>) -> Result<(), MapError> {
-    let result = unsafe { libc::madvise(self.cptr(ptr), ptr.len(), inner::DECOMMIT_FLAG) };
+    let result =
+      unsafe { libc::madvise(self.cptr(ptr), ptr.len(), inner::DECOMMIT_FLAG) };
     self.check_syscall(result)
   }
 
   fn protect(&self, ptr: NonNull<[u8]>) -> Result<(), MapError> {
-    let result = unsafe { libc::mprotect(self.cptr(ptr), ptr.len(), inner::PERMISSIONS_NONE) };
+    let result = unsafe {
+      libc::mprotect(self.cptr(ptr), ptr.len(), inner::PERMISSIONS_NONE)
+    };
     self.check_syscall(result)
   }
 }
-

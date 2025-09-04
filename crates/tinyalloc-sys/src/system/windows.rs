@@ -120,4 +120,3 @@ impl Mapper for WindowsMapper {
     self.check_bool(result)
   }
 }
-

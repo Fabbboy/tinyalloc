@@ -28,7 +28,10 @@ pub struct Page<'mapper> {
 }
 
 impl<'mapper> Page<'mapper> {
-  pub fn new(mapper: &'mapper dyn Mapper, size: usize) -> Result<Self, MapError> {
+  pub fn new(
+    mapper: &'mapper dyn Mapper,
+    size: usize,
+  ) -> Result<Self, MapError> {
     let ptr = mapper.map(size)?;
     Ok(Self {
       mapper,
@@ -93,7 +96,7 @@ impl<'mapper> AsMut<[u8]> for Page<'mapper> {
 mod tests {
   use super::*;
   use crate::size::page_size;
-  
+
   #[cfg(unix)]
   use crate::system::posix::PosixMapper;
   #[cfg(windows)]
