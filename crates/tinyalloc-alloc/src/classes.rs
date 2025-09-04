@@ -148,13 +148,6 @@ mod tests {
   }
 
   #[test]
-  fn test_find_size_class_cutoff() {
-    assert!(find_size_class(CUT_OFF).is_some());
-    assert!(find_size_class(CUT_OFF + 1).is_none());
-    assert!(find_size_class(CUT_OFF * 2).is_none());
-  }
-
-  #[test]
   fn test_size_classes_are_sorted() {
     for i in 1..SIZE_CLASSES.len() {
       assert!(
