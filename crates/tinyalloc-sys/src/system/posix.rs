@@ -66,13 +66,23 @@ impl PosixMapper {
 
 #[cfg(unix)]
 impl Mapper for PosixMapper {
-  fn map(&self, size: usize) -> Result<NonNull<[u8]>, MapError> {
+  fn map(
+    &self,
+    size: usize,
+    committed: bool,
+  ) -> Result<NonNull<[u8]>, MapError> {
     let size = page_align(size);
+    let permission = if committed {
+      inner::PERMISSIONS_RW
+    } else {
+      inner::PERMISSIONS_NONE
+    };
+
     let result = unsafe {
       libc::mmap(
         ptr::null_mut(),
         size,
-        inner::PERMISSIONS_RW,
+        permission,
         inner::MAP_FLAGS,
         inner::TRASH_FD,
         0,

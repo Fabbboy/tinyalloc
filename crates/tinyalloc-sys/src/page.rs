@@ -20,6 +20,7 @@ pub enum PageFlag {
 
 #[derive(Getters)]
 pub struct Page<'mapper> {
+  #[getset(get = "pub")]
   mapper: &'mapper dyn Mapper,
   #[getset(get = "pub")]
   ptr: NonNull<[u8]>,
@@ -31,8 +32,9 @@ impl<'mapper> Page<'mapper> {
   pub fn new(
     mapper: &'mapper dyn Mapper,
     size: usize,
+    committed: bool,
   ) -> Result<Self, MapError> {
-    let ptr = mapper.map(size)?;
+    let ptr = mapper.map(size, committed)?;
     Ok(Self {
       mapper,
       ptr,

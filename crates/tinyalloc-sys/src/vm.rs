@@ -7,8 +7,13 @@ pub trait Mapper
 where
   Self: Sync + Send + 'static,
 {
-  fn map(&self, size: usize) -> Result<NonNull<[u8]>, MapError> {
+  fn map(
+    &self,
+    size: usize,
+    committed: bool,
+  ) -> Result<NonNull<[u8]>, MapError> {
     _ = size;
+    _ = committed;
     return Err(MapError);
   }
   fn unmap(&self, ptr: NonNull<[u8]>) {

@@ -9,7 +9,10 @@ use getset::{
 };
 use tinyalloc_sys::{
   page::Page,
-  size::page_size,
+  size::{
+    page_align,
+    page_size,
+  },
   vm::{
     MapError,
     Mapper,
@@ -25,10 +28,12 @@ pub struct Segment<'mapper> {
   next: Option<NonNull<Segment<'mapper>>>,
   page: Page<'mapper>,
   #[getset(get = "pub")]
-  capacity: usize, // number of pages available
+  capacity: usize,
   #[getset(get = "pub", get_mut = "pub")]
-  used: usize, // number of pages used
-  user: NonNull<[u8]>, // pointer to the user data area
+  used: usize,
+  #[getset(get = "pub", get_mut = "pub")]
+  mapped: usize,
+  user: NonNull<[u8]>,
 }
 
 impl<'mapper> Segment<'mapper> {
@@ -48,17 +53,70 @@ impl<'mapper> Segment<'mapper> {
         page: internal,
         capacity,
         used: 1,
+        mapped: capacity,
         user: NonNull::new_unchecked(user_ptr),
       });
       Ok(NonNull::new_unchecked(segment_ptr))
     }
   }
 
-  fn expand(&mut self, pages: usize) -> Result<(), MapError> {
-    todo!()
+  pub fn expand(&mut self, pages: usize) -> Result<(), MapError> {
+    let new_mapped = self.mapped + pages;
+    if new_mapped > self.capacity {
+      return Err(MapError);
+    }
+
+    let page_sz = page_size();
+    let segment_start = (self.page.ptr().as_ptr() as *const u8) as usize;
+
+    for page_idx in self.mapped..new_mapped {
+      let page_start = page_align(segment_start + (page_idx * page_sz));
+      let page_ptr = unsafe {
+        NonNull::new_unchecked(ptr::slice_from_raw_parts_mut(
+          page_start as *mut u8,
+          page_sz,
+        ))
+      };
+
+      self.page.mapper().commit(page_ptr)?;
+    }
+
+    self.mapped = new_mapped;
+    Ok(())
   }
-  // collect renamend to truncate
-  fn truncate(&mut self) {}
+
+  pub fn truncate(&mut self, pages: usize) -> Result<(), MapError> {
+    if pages > self.mapped {
+      return Err(MapError);
+    }
+
+    let new_mapped = self.mapped - pages;
+    let page_sz = page_size();
+    let segment_start = (self.page.ptr().as_ptr() as *const u8) as usize;
+
+    for page_idx in new_mapped..self.mapped {
+      let page_start = page_align(segment_start + (page_idx * page_sz));
+      let page_ptr = unsafe {
+        NonNull::new_unchecked(ptr::slice_from_raw_parts_mut(
+          page_start as *mut u8,
+          page_sz,
+        ))
+      };
+
+      self.page.mapper().decommit(page_ptr)?;
+    }
+
+    self.mapped = new_mapped;
+    Ok(())
+  }
+
+  pub fn collect(&mut self) -> Result<(), MapError> {
+    if self.used < self.mapped {
+      let pages_to_free = self.mapped - self.used;
+      self.truncate(pages_to_free)?;
+    }
+    Ok(())
+  }
 
   pub fn drop(segment: NonNull<Self>, recursive: bool) {
     unsafe {
@@ -225,6 +283,38 @@ mod tests {
         "Pattern should be written correctly"
       );
     }
+
+    Segment::drop(segment, false);
+  }
+
+  #[test]
+  fn test_segment_expand_and_truncate() {
+    let mut segment = Segment::new(MAPPER).expect("Failed to create segment");
+    let segment_ref = unsafe { segment.as_mut() };
+
+    let initial_mapped = *segment_ref.mapped();
+    assert_eq!(*segment_ref.used(), 1);
+
+    segment_ref.truncate(1).expect("Failed to truncate");
+    assert_eq!(*segment_ref.mapped(), initial_mapped - 1);
+
+    segment_ref.expand(1).expect("Failed to expand");
+    assert_eq!(*segment_ref.mapped(), initial_mapped);
+
+    Segment::drop(segment, false);
+  }
+
+  #[test]
+  fn test_segment_collect() {
+    let mut segment = Segment::new(MAPPER).expect("Failed to create segment");
+    let segment_ref = unsafe { segment.as_mut() };
+
+    *segment_ref.used_mut() = 2;
+    let initial_mapped = *segment_ref.mapped();
+
+    segment_ref.collect().expect("Failed to collect");
+    assert_eq!(*segment_ref.mapped(), 2);
+    assert!(*segment_ref.mapped() < initial_mapped);
 
     Segment::drop(segment, false);
   }

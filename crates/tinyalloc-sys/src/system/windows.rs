@@ -60,16 +60,21 @@ use windows_sys::Win32::System::Memory::{
 
 #[cfg(windows)]
 impl Mapper for WindowsMapper {
-  fn map(&self, size: usize) -> Result<NonNull<[u8]>, MapError> {
+  fn map(
+    &self,
+    size: usize,
+    committed: bool,
+  ) -> Result<NonNull<[u8]>, MapError> {
     let size = page_align(size);
 
+    let permission = if committed {
+      inner::PAGE_RW
+    } else {
+      inner::PAGE_NONE
+    };
+
     let result = unsafe {
-      VirtualAlloc(
-        ptr::null_mut(),
-        size,
-        inner::MEM_RESERVE_COMMIT,
-        inner::PAGE_RW,
-      )
+      VirtualAlloc(ptr::null_mut(), size, inner::MEM_RESERVE_COMMIT, permission)
     };
 
     let ptr = self.check_result(result)?;
