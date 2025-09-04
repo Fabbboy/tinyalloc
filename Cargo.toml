@@ -9,7 +9,8 @@ tinyalloc-sys = { workspace = true }
 [workspace]
 resolver = "3"
 members = [
-  "crates/tinyalloc-alloc", "crates/tinyalloc-bitmap",
+  "crates/tinyalloc-alloc",
+  "crates/tinyalloc-bitmap",
   "crates/tinyalloc-sys",
 ]
 

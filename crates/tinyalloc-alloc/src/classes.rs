@@ -1,9 +1,13 @@
+use std::mem;
+
 use getset::Getters;
+
+use crate::arena::Arena;
 
 const QUANTUM: usize = 16;
 const ONE_KB: usize = 1024;
 const CUT_OFF: usize = 64 * ONE_KB;
-const HEADER_SIZE: usize = 0;
+const HEADER_SIZE: usize = mem::size_of::<Arena>();
 const SLAB_SIZE: usize = CUT_OFF;
 
 #[derive(Getters)]
@@ -24,7 +28,7 @@ pub const fn next_pow2(n: usize) -> usize {
   n |= n >> 4;
   n |= n >> 8;
   n |= n >> 16;
-  if core::mem::size_of::<usize>() == 8 {
+  if mem::size_of::<usize>() == 8 {
     n |= n >> 32;
   }
   n + 1

@@ -5,3 +5,5 @@ edition = "2024"
 
 [dependencies]
 getset = { workspace = true }
+tinyalloc-bitmap = { workspace = true }
+tinyalloc-sys = { workspace = true }

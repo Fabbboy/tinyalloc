@@ -160,6 +160,8 @@ name = "tinyalloc-alloc"
 version = "0.1.0"
 dependencies = [
  "getset",
+ "tinyalloc-bitmap",
+ "tinyalloc-sys",
 ]
 
 [[package]]
