@@ -14,14 +14,14 @@ use crate::queue::Queue;
 
 pub struct MappedVector<'mapper, T> {
   data: Option<NonNull<T>>,
-  backing: Queue<Page<'mapper>>,
+  backing: Queue<'mapper, Page<'mapper>>,
 }
 
 impl<'mapper, T> MappedVector<'mapper, T> {
   pub fn new(mapper: &'mapper dyn Mapper) -> Self {
     Self {
       data: None,
-      backing: Queue::new(),
+      backing: Queue::new(mapper),
     }
   }
 }

@@ -4,8 +4,10 @@ use getset::{
   Getters,
   MutGetters,
 };
-
-// Philosophy: A non-owning singly linked list
+use tinyalloc_sys::{
+  page::Page,
+  vm::Mapper,
+};
 
 #[derive(Getters, MutGetters)]
 pub struct Node<T> {
@@ -21,46 +23,27 @@ impl<T> Node<T> {
   }
 }
 
-pub struct Queue<T> {
+pub struct Queue<'mapper, T> {
   head: Option<NonNull<Node<T>>>,
   current: Option<NonNull<Node<T>>>,
   len: usize,
+  data: Option<Page<'mapper>>, // everything is allocated inside here and the arena is **REPLACED** when more space is needed because most OS do not support remapping. Additionally, this is an Option **ONLY** allocated when something is actually pushed
+  system: &'mapper dyn Mapper,
 }
 
-impl<T> Queue<T> {
-  pub fn new() -> Self {
+impl<'mapper, T> Queue<'mapper, T> {
+  pub fn new(system: &'mapper dyn Mapper) -> Self {
     Self {
       head: None,
       current: None,
       len: 0,
+      data: None,
+      system,
     }
   }
 
-  pub fn push(&mut self, node: NonNull<Node<T>>) {
-    unsafe {
-      if let Some(mut current) = self.current {
-        current.as_mut().next = Some(node);
-        self.current = Some(node);
-      } else {
-        self.head = Some(node);
-        self.current = Some(node);
-      }
-      self.len += 1;
-    }
-  }
-
-  pub fn pop(&mut self) -> Option<NonNull<Node<T>>> {
-    if let Some(head) = self.head {
-      unsafe {
-        self.head = head.as_ref().next;
-        if self.head.is_none() {
-          self.current = None;
-        }
-      }
-      self.len -= 1;
-      Some(head)
-    } else {
-      None
-    }
+  pub fn push(&mut self, value: T) {}
+  pub fn pop(&mut self) -> Option<T> {
+    None
   }
 }
