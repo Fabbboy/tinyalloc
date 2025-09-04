@@ -28,9 +28,9 @@ pub struct Segment<'mapper> {
   page: Page<'mapper>,
   #[getset(get = "pub")]
   capacity: usize,
-  #[getset(get = "pub", get_mut = "pub")]
+  #[getset(get = "pub")]
   used: usize,
-  #[getset(get = "pub", get_mut = "pub")]
+  #[getset(get = "pub")]
   mapped: usize,
   user: NonNull<[u8]>,
 }
@@ -260,7 +260,7 @@ mod tests {
     let segment_ref = unsafe { segment.as_mut() };
 
     let initial_used = *segment_ref.used();
-    *segment_ref.used_mut() = initial_used + 5;
+    segment_ref.used = initial_used + 5;
     assert_eq!(
       *segment_ref.used(),
       initial_used + 5,
@@ -326,13 +326,11 @@ mod tests {
     let mut segment = Segment::new(MAPPER).expect("Failed to create segment");
     let segment_ref = unsafe { segment.as_mut() };
 
-    // Test expanding: used=2, mapped=1 -> should expand to 2
-    *segment_ref.used_mut() = 2;
+    segment_ref.used = 2;
     segment_ref.manage().expect("Failed to collect");
     assert_eq!(*segment_ref.mapped(), 2);
 
-    // Test truncating: used=1, mapped=2 -> should truncate to 1
-    *segment_ref.used_mut() = 1;
+    segment_ref.used = 1;
     segment_ref.manage().expect("Failed to collect");
     assert_eq!(*segment_ref.mapped(), 1);
 
