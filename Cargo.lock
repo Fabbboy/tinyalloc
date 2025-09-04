@@ -173,14 +173,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "tinyalloc-container"
-version = "0.1.0"
-dependencies = [
- "getset",
- "tinyalloc-sys",
-]
-
-[[package]]
 name = "tinyalloc-sys"
 version = "0.1.0"
 dependencies = [

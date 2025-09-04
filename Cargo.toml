@@ -16,7 +16,6 @@ members = [
   "crates/tinyalloc-alloc",
   "crates/tinyalloc-bitmap",
   "crates/tinyalloc-sys",
-  "crates/tinyalloc-container",
 ]
 
 [workspace.dependencies]
@@ -29,4 +28,3 @@ windows-sys = "0.60.2"
 tinyalloc-sys = { path = "crates/tinyalloc-sys" }
 tinyalloc-alloc = { path = "crates/tinyalloc-alloc" }
 tinyalloc-bitmap = { path = "crates/tinyalloc-bitmap" }
-tinyalloc-container = { path = "crates/tinyalloc-container" }

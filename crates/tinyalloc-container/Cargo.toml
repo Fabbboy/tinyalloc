@@ -1,9 +1,0 @@
-[package]
-name = "tinyalloc-container"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
-tinyalloc-sys = { workspace = true }
-
-getset = { workspace = true }
