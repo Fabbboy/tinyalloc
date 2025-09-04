@@ -2,12 +2,10 @@ use std::mem;
 
 use getset::Getters;
 
-use crate::arena::Arena;
-
 const QUANTUM: usize = 16;
 const ONE_KB: usize = 1024;
 const CUT_OFF: usize = 64 * ONE_KB;
-const HEADER_SIZE: usize = mem::size_of::<Arena>();
+const HEADER_SIZE: usize = mem::size_of::<u8>(); // TODO: placeholder for real header size
 const SLAB_SIZE: usize = CUT_OFF;
 
 #[derive(Getters)]
