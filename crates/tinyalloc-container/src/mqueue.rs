@@ -14,6 +14,7 @@ use tinyalloc_sys::{
 };
 
 pub const QUEUE_NODE_ALIGNMENT: usize = 8;
+pub const QUEUE_PAGE_MULTIPLIER: usize = 8;
 
 #[derive(Getters, MutGetters)]
 pub struct Node<T> {
@@ -51,12 +52,13 @@ impl<'mapper, T> MappedQueue<'mapper, T> {
   }
 
   fn nodes_per_page(&self) -> usize {
-    page_size() / std::mem::size_of::<Node<T>>()
+    (page_size() * QUEUE_PAGE_MULTIPLIER) / std::mem::size_of::<Node<T>>()
   }
 
   fn ensure_capacity(&mut self) -> Result<(), MapError> {
     if self.data.is_none() || self.allocated_nodes >= self.nodes_per_page() {
-      let new_page = Page::new(self.system, page_size())?;
+      let queue_page_size = page_size() * QUEUE_PAGE_MULTIPLIER;
+      let new_page = Page::new(self.system, queue_page_size)?;
       self.data = Some(new_page);
       self.allocated_nodes = 0;
     }
@@ -122,6 +124,14 @@ impl<'mapper, T> MappedQueue<'mapper, T> {
 
   pub fn is_empty(&self) -> bool {
     self.len == 0
+  }
+}
+
+impl<'mapper, T> Drop for MappedQueue<'mapper, T> {
+  fn drop(&mut self) {
+    while !self.is_empty() {
+      let _ = self.pop();
+    }
   }
 }
 
