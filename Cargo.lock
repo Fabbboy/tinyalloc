@@ -173,6 +173,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinyalloc-container"
+version = "0.1.0"
+dependencies = [
+ "getset",
+ "tinyalloc-sys",
+]
+
+[[package]]
 name = "tinyalloc-sys"
 version = "0.1.0"
 dependencies = [
@@ -181,13 +189,6 @@ dependencies = [
  "libc",
  "page_size",
  "windows-sys",
-]
-
-[[package]]
-name = "tinyalloc-vector"
-version = "0.1.0"
-dependencies = [
- "tinyalloc-sys",
 ]
 
 [[package]]

@@ -12,7 +12,8 @@ resolver = "3"
 members = [
   "crates/tinyalloc-alloc",
   "crates/tinyalloc-bitmap",
-  "crates/tinyalloc-sys", "crates/tinyalloc-vector",
+  "crates/tinyalloc-sys",
+  "crates/tinyalloc-container",
 ]
 
 [workspace.dependencies]
@@ -25,4 +26,4 @@ windows-sys = "0.60.2"
 tinyalloc-sys = { path = "crates/tinyalloc-sys" }
 tinyalloc-alloc = { path = "crates/tinyalloc-alloc" }
 tinyalloc-bitmap = { path = "crates/tinyalloc-bitmap" }
-tinyalloc-vector = { path = "crates/tinyalloc-vector" }
+tinyalloc-container = { path = "crates/tinyalloc-container" }
