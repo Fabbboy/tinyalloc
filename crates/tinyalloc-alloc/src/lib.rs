@@ -1,5 +1,6 @@
 pub mod classes;
 pub mod segment;
+pub mod heap;
 
 const ONE_KB: usize = 1024;
 const ONE_MB: usize = 1024 * ONE_KB;

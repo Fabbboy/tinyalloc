@@ -129,7 +129,7 @@ impl<'mapper> Segment<'mapper> {
     Ok(())
   }
 
-  pub fn drop(segment: NonNull<Self>, recursive: bool) {
+  /*pub fn drop(segment: NonNull<Self>, recursive: bool) {
     unsafe {
       let segment_ref = segment.as_ref();
       if recursive {
@@ -138,6 +138,23 @@ impl<'mapper> Segment<'mapper> {
         }
       }
       ptr::drop_in_place(segment.as_ptr());
+    }
+  }*/
+
+  pub fn drop(segment: NonNull<Self>) {
+    unsafe {
+      ptr::drop_in_place(segment.as_ptr());
+    }
+  }
+
+  pub fn drop_all(segment: NonNull<Self>) {
+    let mut current = Some(segment);
+    while let Some(seg) = current {
+      unsafe {
+        let seg_ref = seg.as_ref();
+        current = seg_ref.next;
+        Self::drop(seg);
+      }
     }
   }
 }
@@ -210,7 +227,7 @@ mod tests {
       "User data should extend to end of segment"
     );
 
-    Segment::drop(segment, false);
+    Segment::drop(segment);
   }
 
   #[test]
@@ -251,7 +268,7 @@ mod tests {
       "Segments should have different addresses"
     );
 
-    Segment::drop(segment1, true);
+    Segment::drop_all(segment1);
   }
 
   #[test]
@@ -299,7 +316,7 @@ mod tests {
       );
     }
 
-    Segment::drop(segment, false);
+    Segment::drop(segment);
   }
 
   #[test]
@@ -317,7 +334,7 @@ mod tests {
     segment_ref.truncate(3).expect("Failed to truncate");
     assert_eq!(*segment_ref.mapped(), initial_mapped + 2);
 
-    Segment::drop(segment, false);
+    Segment::drop(segment);
   }
 
   #[test]
@@ -333,6 +350,6 @@ mod tests {
     segment_ref.manage().expect("Failed to collect");
     assert_eq!(*segment_ref.mapped(), 1);
 
-    Segment::drop(segment, false);
+    Segment::drop(segment);
   }
 }
