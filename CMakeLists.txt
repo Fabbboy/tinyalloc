@@ -19,35 +19,28 @@ set(CARGO_TARGET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/target/${CARGO_PROFILE}")
 set(STATIC_LIB "${CARGO_TARGET_DIR}/libtinyalloc.a")
 set(DYNAMIC_LIB "${CARGO_TARGET_DIR}/libtinyalloc.so")
 
-# Build the Rust library
-add_custom_command(
-    OUTPUT ${STATIC_LIB} ${DYNAMIC_LIB} ${CMAKE_CURRENT_SOURCE_DIR}/tinyalloc.h
+# Build the Rust library - use ALL to ensure it's always built
+add_custom_target(tinyalloc_cargo_build ALL
     COMMAND ${CARGO_CMD} build ${CARGO_BUILD_FLAGS}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    BYPRODUCTS 
+        ${STATIC_LIB}
+        ${DYNAMIC_LIB}
+        ${CMAKE_CURRENT_SOURCE_DIR}/tinyalloc.h
     COMMENT "Building Rust libraries and header"
     VERBATIM
 )
 
-# Create a target that depends on the libraries being built
-add_custom_target(tinyalloc_build
-    DEPENDS ${STATIC_LIB} ${DYNAMIC_LIB} ${CMAKE_CURRENT_SOURCE_DIR}/tinyalloc.h
-)
+# Create interface library instead of imported library to fix linking
+add_library(tinyalloc_static INTERFACE)
+target_link_libraries(tinyalloc_static INTERFACE ${STATIC_LIB})
+target_include_directories(tinyalloc_static INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+add_dependencies(tinyalloc_static tinyalloc_cargo_build)
 
-# Create the static library target
-add_library(tinyalloc_static STATIC IMPORTED)
-set_target_properties(tinyalloc_static PROPERTIES
-    IMPORTED_LOCATION ${STATIC_LIB}
-    INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}
-)
-add_dependencies(tinyalloc_static tinyalloc_build)
-
-# Create the shared library target  
-add_library(tinyalloc_dynamic SHARED IMPORTED)
-set_target_properties(tinyalloc_dynamic PROPERTIES
-    IMPORTED_LOCATION ${DYNAMIC_LIB}
-    INTERFACE_INCLUDE_DIRECTORIES ${CMAKE_CURRENT_SOURCE_DIR}
-)
-add_dependencies(tinyalloc_dynamic tinyalloc_build)
+add_library(tinyalloc_dynamic INTERFACE) 
+target_link_libraries(tinyalloc_dynamic INTERFACE ${DYNAMIC_LIB})
+target_include_directories(tinyalloc_dynamic INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
+add_dependencies(tinyalloc_dynamic tinyalloc_cargo_build)
 
 # Create alias targets for easier usage
 add_library(tinyalloc::static ALIAS tinyalloc_static)
