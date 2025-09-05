@@ -25,13 +25,19 @@ impl<'mapper> Heap<'mapper> {
 impl<'mapper> Drop for Heap<'mapper> {
   fn drop(&mut self) {
     if let Some(segment) = self.full_list {
-      Segment::drop_all(segment);
+      unsafe {
+        Segment::drop_all(segment);
+      }
     }
     if let Some(segment) = self.partial_list {
-      Segment::drop_all(segment);
+      unsafe {
+        Segment::drop_all(segment);
+      }
     }
     if let Some(segment) = self.free_list {
-      Segment::drop_all(segment);
+      unsafe {
+        Segment::drop_all(segment);
+      }
     }
   }
 }

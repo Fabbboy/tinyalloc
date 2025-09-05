@@ -1,6 +1,9 @@
-use std::ptr::{
-  self,
-  NonNull,
+use std::{
+  ptr::{
+    self,
+    NonNull,
+  },
+  slice,
 };
 
 use getset::{
@@ -41,15 +44,13 @@ impl<'mapper> Segment<'mapper> {
     let capacity = SEGMENT_SIZE / page_size;
     let mut internal = Page::new(mapper, SEGMENT_SIZE, false)?;
     let page_sz = page_size;
+    let base_ptr = unsafe { (*internal.ptr().as_ptr()).as_mut_ptr() };
     let first_page_ptr = unsafe {
-      NonNull::new_unchecked(ptr::slice_from_raw_parts_mut(
-        internal.as_mut().as_ptr() as *mut u8,
-        page_sz,
-      ))
+      NonNull::new_unchecked(ptr::slice_from_raw_parts_mut(base_ptr, page_sz))
     };
     internal.mapper().commit(first_page_ptr)?;
 
-    let segment_ptr = internal.as_mut().as_ptr() as *mut Segment;
+    let segment_ptr = base_ptr as *mut Segment;
     let user_size = SEGMENT_SIZE - std::mem::size_of::<Segment>();
     let user_ptr = unsafe {
       ptr::slice_from_raw_parts_mut(segment_ptr.add(1) as *mut u8, user_size)
@@ -141,13 +142,13 @@ impl<'mapper> Segment<'mapper> {
     }
   }*/
 
-  pub fn drop(segment: NonNull<Self>) {
+  pub unsafe fn drop(segment: NonNull<Self>) {
     unsafe {
       ptr::drop_in_place(segment.as_ptr());
     }
   }
 
-  pub fn drop_all(segment: NonNull<Self>) {
+  pub unsafe fn drop_all(segment: NonNull<Self>) {
     let mut current = Some(segment);
     while let Some(seg) = current {
       unsafe {
@@ -159,15 +160,38 @@ impl<'mapper> Segment<'mapper> {
   }
 }
 
-impl<'mapper> AsRef<[u8]> for Segment<'mapper> {
-  fn as_ref(&self) -> &[u8] {
-    unsafe { self.user.as_ref() }
+impl<'mapper> Segment<'mapper> {
+  pub fn as_slice(&self) -> Option<&[u8]> {
+    if self.mapped > 0 {
+      let len = self.mapped * page_size() - std::mem::size_of::<Segment>();
+      if len <= self.user.len() {
+        // Safety: `user` points to the beginning of the user-accessible memory
+        // for this segment, and `len` is bounded by the mapped pages.
+        Some(unsafe {
+          slice::from_raw_parts(self.user.as_ptr() as *const u8, len)
+        })
+      } else {
+        None
+      }
+    } else {
+      None
+    }
   }
-}
 
-impl<'mapper> AsMut<[u8]> for Segment<'mapper> {
-  fn as_mut(&mut self) -> &mut [u8] {
-    unsafe { self.user.as_mut() }
+  pub fn as_slice_mut(&mut self) -> Option<&mut [u8]> {
+    if self.mapped > 0 {
+      let len = self.mapped * page_size() - std::mem::size_of::<Segment>();
+      if len <= self.user.len() {
+        // Safety: same reasoning as `as_slice` but for mutable access.
+        Some(unsafe {
+          slice::from_raw_parts_mut(self.user.as_ptr() as *mut u8, len)
+        })
+      } else {
+        None
+      }
+    } else {
+      None
+    }
   }
 }
 
@@ -195,7 +219,7 @@ mod tests {
     let segment_ref = unsafe { segment.as_ref() };
 
     let expected_capacity = SEGMENT_SIZE / page_size();
-    let expected_user_size = SEGMENT_SIZE - mem::size_of::<Segment>();
+    let expected_user_size = page_size() - mem::size_of::<Segment>();
 
     assert_eq!(
       *segment_ref.capacity(),
@@ -208,12 +232,17 @@ mod tests {
       "Next pointer should be None for new segment"
     );
     assert_eq!(
-      segment_ref.as_ref().len(),
+      segment_ref
+        .as_slice()
+        .expect("segment should expose mapped slice")
+        .len(),
       expected_user_size,
-      "User area size should be segment size minus struct size"
+      "Initial committed user area should be one page minus struct size"
     );
 
-    let user_data = segment_ref.as_ref();
+    let user_data = segment_ref
+      .as_slice()
+      .expect("segment should expose mapped slice");
     assert!(!user_data.is_empty(), "User data area should not be empty");
     assert!(
       user_data.as_ptr() as usize > segment.as_ptr() as usize,
@@ -222,12 +251,14 @@ mod tests {
 
     let segment_end = segment.as_ptr() as usize + SEGMENT_SIZE;
     let user_end = user_data.as_ptr() as usize + user_data.len();
-    assert_eq!(
-      user_end, segment_end,
-      "User data should extend to end of segment"
+    assert!(
+      user_end <= segment_end,
+      "User data should not exceed segment bounds",
     );
 
-    Segment::drop(segment);
+    unsafe {
+      Segment::drop(segment);
+    }
   }
 
   #[test]
@@ -268,7 +299,9 @@ mod tests {
       "Segments should have different addresses"
     );
 
-    Segment::drop_all(segment1);
+    unsafe {
+      Segment::drop_all(segment1);
+    }
   }
 
   #[test]
@@ -288,7 +321,9 @@ mod tests {
       .expand(segment_ref.capacity() - 1)
       .expect("Failed to expand for test");
 
-    let user_data = segment_ref.as_mut();
+    let user_data = segment_ref
+      .as_slice_mut()
+      .expect("segment should expose mapped mutable slice");
     let original_len = user_data.len();
 
     user_data.fill(0xAA);
@@ -316,7 +351,9 @@ mod tests {
       );
     }
 
-    Segment::drop(segment);
+    unsafe {
+      Segment::drop(segment);
+    }
   }
 
   #[test]
@@ -334,7 +371,9 @@ mod tests {
     segment_ref.truncate(3).expect("Failed to truncate");
     assert_eq!(*segment_ref.mapped(), initial_mapped + 2);
 
-    Segment::drop(segment);
+    unsafe {
+      Segment::drop(segment);
+    }
   }
 
   #[test]
@@ -350,6 +389,8 @@ mod tests {
     segment_ref.manage().expect("Failed to collect");
     assert_eq!(*segment_ref.mapped(), 1);
 
-    Segment::drop(segment);
+    unsafe {
+      Segment::drop(segment);
+    }
   }
 }

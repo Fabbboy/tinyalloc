@@ -82,15 +82,25 @@ impl<'mapper> Drop for Page<'mapper> {
   }
 }
 
-impl<'mapper> AsRef<[u8]> for Page<'mapper> {
-  fn as_ref(&self) -> &[u8] {
-    unsafe { self.ptr.as_ref() }
+impl<'mapper> Page<'mapper> {
+  pub fn as_slice(&self) -> Option<&[u8]> {
+    if self.is_committed() && !self.is_protected() {
+      // Safety: we verify that the page is both committed and unprotected
+      // before exposing the backing memory.
+      Some(unsafe { self.ptr.as_ref() })
+    } else {
+      None
+    }
   }
-}
 
-impl<'mapper> AsMut<[u8]> for Page<'mapper> {
-  fn as_mut(&mut self) -> &mut [u8] {
-    unsafe { self.ptr.as_mut() }
+  pub fn as_slice_mut(&mut self) -> Option<&mut [u8]> {
+    if self.is_committed() && !self.is_protected() {
+      // Safety: we verify that the page is both committed and unprotected
+      // before exposing the backing memory mutably.
+      Some(unsafe { self.ptr.as_mut() })
+    } else {
+      None
+    }
   }
 }
 
@@ -144,9 +154,11 @@ mod tests {
     page.commit().unwrap();
     assert!(page.is_committed());
 
-    if page.is_committed() && !page.is_protected() {
-      page.as_mut()[0] = 42;
-      assert_eq!(page.as_ref()[0], 42);
+    if let Some(slice) = page.as_slice_mut() {
+      slice[0] = 42;
+    }
+    if let Some(slice) = page.as_slice() {
+      assert_eq!(slice[0], 42);
     }
   }
 }
