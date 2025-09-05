@@ -19,29 +19,31 @@ set(CARGO_TARGET_DIR "${CMAKE_CURRENT_SOURCE_DIR}/target/${CARGO_PROFILE}")
 set(STATIC_LIB "${CARGO_TARGET_DIR}/libtinyalloc.a")
 set(DYNAMIC_LIB "${CARGO_TARGET_DIR}/libtinyalloc.so")
 
-# Build the Rust library - use ALL to ensure it's always built
-add_custom_target(tinyalloc_cargo_build ALL
+# Build the Rust library
+add_custom_command(
+    OUTPUT ${STATIC_LIB} ${DYNAMIC_LIB} ${CMAKE_CURRENT_SOURCE_DIR}/tinyalloc.h
     COMMAND ${CARGO_CMD} build ${CARGO_BUILD_FLAGS}
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    BYPRODUCTS 
-        ${STATIC_LIB}
-        ${DYNAMIC_LIB}
-        ${CMAKE_CURRENT_SOURCE_DIR}/tinyalloc.h
     COMMENT "Building Rust libraries and header"
     VERBATIM
 )
 
-# Create interface library instead of imported library to fix linking
-add_library(tinyalloc_static INTERFACE)
-target_link_libraries(tinyalloc_static INTERFACE ${STATIC_LIB})
-target_include_directories(tinyalloc_static INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
-add_dependencies(tinyalloc_static tinyalloc_cargo_build)
+# Create wrapper static library that depends on the Rust library
+add_library(tinyalloc_static_wrapper ${CMAKE_CURRENT_SOURCE_DIR}/wrapper.c)
+target_include_directories(tinyalloc_static_wrapper PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(tinyalloc_static_wrapper PRIVATE ${STATIC_LIB})
+add_dependencies(tinyalloc_static_wrapper ${STATIC_LIB})
 
-add_library(tinyalloc_dynamic INTERFACE) 
-target_link_libraries(tinyalloc_dynamic INTERFACE ${DYNAMIC_LIB})
-target_include_directories(tinyalloc_dynamic INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
-add_dependencies(tinyalloc_dynamic tinyalloc_cargo_build)
+# Create wrapper shared library that depends on the Rust library
+add_library(tinyalloc_dynamic_wrapper SHARED ${CMAKE_CURRENT_SOURCE_DIR}/wrapper.c)
+target_include_directories(tinyalloc_dynamic_wrapper PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_link_libraries(tinyalloc_dynamic_wrapper PRIVATE ${DYNAMIC_LIB})
+add_dependencies(tinyalloc_dynamic_wrapper ${DYNAMIC_LIB})
+
+# Create the preferred targets
+add_library(tinyalloc_static ALIAS tinyalloc_static_wrapper)
+add_library(tinyalloc_dynamic ALIAS tinyalloc_dynamic_wrapper)
 
 # Create alias targets for easier usage
-add_library(tinyalloc::static ALIAS tinyalloc_static)
-add_library(tinyalloc::shared ALIAS tinyalloc_dynamic)
+add_library(tinyalloc::static ALIAS tinyalloc_static_wrapper)
+add_library(tinyalloc::shared ALIAS tinyalloc_dynamic_wrapper)
