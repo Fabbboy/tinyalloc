@@ -27,6 +27,14 @@ add_custom_target(tinyalloc_cargo_build ALL
     VERBATIM
 )
 
+add_custom_command(
+    OUTPUT ${STATIC_LIB} ${DYNAMIC_LIB} ${CMAKE_CURRENT_SOURCE_DIR}/tinyalloc.h
+    COMMAND ${CARGO_CMD} build ${CARGO_BUILD_FLAGS}
+    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    COMMENT "Building Rust libraries and header"
+    VERBATIM
+)
+
 add_custom_target(cargo_build ALL
     DEPENDS ${STATIC_LIB} ${DYNAMIC_LIB} ${CMAKE_CURRENT_SOURCE_DIR}/tinyalloc.h
 )
