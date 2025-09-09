@@ -65,7 +65,7 @@ All implementation details should go in `.c` files, keeping headers lean with on
 ## Fast Lookup Reference
 
 - **INDEX.md**: Contains fast-path lookups for components, functions, and concepts
-  - Check INDEX.md first before searching codebase
+  - Check INDEX.md first before searching codebase (cache contents, no need to re-read unless specifically requested)
   - Update INDEX.md when discovering new information
   - Use for quick reference on mimalloc internals, build commands, and project structure
 

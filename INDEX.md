@@ -54,6 +54,11 @@ This file serves as a fast-path lookup for agents and developers to quickly find
 - **Multi-sharding**: Thread-local + concurrent free lists per page
 - **Arena allocation**: Atomic bitmap allocation from fixed OS memory areas
 - **Segment ownership**: Thread-local segments with cross-thread freeing support
+- **Arena thread-sharing**: Global `mi_arenas[MI_MAX_ARENAS]` array with atomic pointers, all threads can allocate segments using atomic bitmap operations (`blocks_inuse`), segments get assigned `thread_id` for ownership
+- **Arena limits**: Static maximum of 132 arenas (`MI_MAX_ARENAS = 132`) due to exponential reservation growth and `.bss` size concerns
+- **Arena sizing**: Base `MI_ARENA_BLOCK_SIZE = MI_SEGMENT_SIZE = 32MiB` on 64-bit, default reserve 1GiB, exponential growth every 8 arenas: 1x, 2x, 4x, 8x... (arenas 1-8: 1GiB, 9-16: 2GiB, 17-24: 4GiB, etc., reaching ~589TiB by arena 128)
+- **Arena metadata storage**: Arena structs (`mi_arena_t`) allocated separately via `_mi_arena_meta_zalloc()` (static area first, then OS), global array `mi_arenas[]` holds pointers to these dynamically-sized structs (includes variable bitmap arrays)
+- **Cross-thread access**: Segments belong to creating thread via `thread_id`, but other threads can free into them via `xthread_free` lists and mark them as abandoned
 
 ## Project Structure
 ```
