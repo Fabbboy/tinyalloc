@@ -21,14 +21,13 @@ bool ta_page_init(ta_page_t *page, size_t size, ta_mapper_t mapper) {
   return true;
 }
 
-void ta_page_deinit(ta_page_t *page){
-    TA_CHECK_RET(TA_IS_NULLPTR(page) || TA_IS_NULLPTR(page->ptr) ||
-                     TA_IS_ZERO(page->size),
-                 );
-    
-    page->mapper.unmap(page->ptr, page->size);
-    page->ptr = NULL;
-    page->size = 0;
+void ta_page_deinit(ta_page_t *page) {
+  TA_CHECK_RET(TA_IS_NULLPTR(page) || TA_IS_NULLPTR(page->ptr) ||
+                   TA_IS_ZERO(page->size), );
+
+  page->mapper.unmap(page->ptr, page->size);
+  page->ptr = NULL;
+  page->size = 0;
 }
 
 #endif
