@@ -1,36 +1,42 @@
+#if defined(TA_PLATFORM_UNIX) || defined(TA_PLATFORM_BSD)
+#include "../lib/platform/posix.c"
+#elif defined(TA_PLATFORM_WINDOWS)
+#include "../lib/platform/windows.c"
+#endif
+
 #include "../lib/segment.c"
 #include "tinyalloc/tinyalloc-internal.h"
 #include "unity.h"
 
 void test_segment_init_success(void) {
-  ta_segment_t segment;
+  ta_segment_t *segment;
   ta_mapper_t mapper = ta_mapper();
 
   bool result = ta_segment_init(&segment, 4096, mapper);
 
   TEST_ASSERT_TRUE(result);
-  TEST_ASSERT_NOT_NULL(segment.page.ptr);
-  TEST_ASSERT_EQUAL_size_t(4096, segment.page.size);
-  TEST_ASSERT_NOT_NULL(segment.page.mapper.map);
-  TEST_ASSERT_NOT_NULL(segment.page.mapper.unmap);
-  TEST_ASSERT_NULL(segment.next);
+  TEST_ASSERT_NOT_NULL(segment->page.ptr);
+  TEST_ASSERT_EQUAL_size_t(4096, segment->page.size);
+  TEST_ASSERT_NOT_NULL(segment->page.mapper.map);
+  TEST_ASSERT_NOT_NULL(segment->page.mapper.unmap);
+  TEST_ASSERT_NULL(segment->next);
 
-  ta_segment_deinit(&segment);
+  ta_segment_deinit(segment);
 }
 
 void test_segment_iterator(void) {
   ta_mapper_t mapper = ta_mapper();
-  ta_segment_t segment1, segment2, segment3;
+  ta_segment_t *segment1, *segment2, *segment3;
 
   TEST_ASSERT_TRUE(ta_segment_init(&segment1, 4096, mapper));
   TEST_ASSERT_TRUE(ta_segment_init(&segment2, 4096, mapper));
   TEST_ASSERT_TRUE(ta_segment_init(&segment3, 4096, mapper));
 
-  ta_segment_next(&segment1, &segment2);
-  ta_segment_next(&segment2, &segment3);
-  ta_segment_next(&segment3, NULL);
+  ta_segment_next(segment1, segment2);
+  ta_segment_next(segment2, segment3);
+  ta_segment_next(segment3, NULL);
 
-  ta_segment_t *current = &segment1;
+  ta_segment_t *current = segment1;
   ta_segment_t *next;
   int count = 0;
 
@@ -53,13 +59,13 @@ void test_segment_iterator(void) {
 
 void test_segment_write(void) {
   ta_mapper_t mapper = ta_mapper();
-  ta_segment_t segment;
+  ta_segment_t *segment;
 
   TEST_ASSERT_TRUE(ta_segment_init(&segment, 4096, mapper));
 
   size_t size;
   uint8_t *ptr;
-  ta_segment_space(&segment, &size, &ptr);
+  ta_segment_space(segment, &size, &ptr);
 
   TEST_ASSERT_NOT_NULL(ptr);
   TEST_ASSERT_EQUAL_size_t(4096, size);
@@ -74,15 +80,15 @@ void test_segment_write(void) {
     TEST_ASSERT_EQUAL_UINT8((uint8_t)(i % 256), ptr[i]);
   }
 
-  ta_segment_deinit(&segment);
+  ta_segment_deinit(segment);
 }
 
 int main(void) {
   UNITY_BEGIN();
-  
+
   RUN_TEST(test_segment_init_success);
   RUN_TEST(test_segment_iterator);
   RUN_TEST(test_segment_write);
-  
+
   return UNITY_END();
 }
