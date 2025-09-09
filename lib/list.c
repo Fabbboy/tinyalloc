@@ -1,11 +1,5 @@
 #include <tinyalloc/tinyalloc-internal.h>
 
-void ta_list_init(ta_list_t *list) {
-  TA_CHECK_RET(TA_IS_NULLPTR(list), );
-  list->head = NULL;
-  list->tail = NULL;
-}
-
 bool ta_list_empty(ta_list_t *list) {
   return TA_IS_NULLPTR(list) || TA_IS_NULLPTR(list->head);
 }

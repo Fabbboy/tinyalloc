@@ -61,12 +61,10 @@ typedef struct {
   ta_item_t *tail;
 } ta_list_t;
 
-void ta_list_init(ta_list_t *list);
 void ta_list_push(ta_list_t *list, ta_item_t *item);
 ta_item_t *ta_list_pop(ta_list_t *list);
 void ta_list_remove(ta_list_t *list, ta_item_t *item);
 bool ta_list_empty(ta_list_t *list);
-
 
 typedef struct ta_segment_t {
   ta_page_t page;
