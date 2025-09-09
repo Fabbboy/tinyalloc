@@ -2,7 +2,7 @@
 set -eu
 
 SRC_DIR="$(pwd)"
-BUILD_DIR="$SRC_DIR/build"
+BUILD_DIR="$SRC_DIR/.build"
 
 CLEAN=0
 for arg in "$@"; do
