@@ -10,6 +10,7 @@
   if (expr) {                                                                  \
     return ret;                                                                \
   }
+#define TA_BITS_OF(T) (sizeof(T) * 8)
 
 typedef struct {
   bool (*map)(uint8_t **ptr, size_t size);
@@ -30,3 +31,18 @@ typedef struct {
 
 bool ta_page_init(ta_page_t *page, size_t size, ta_mapper_t mapper);
 void ta_page_deinit(ta_page_t *page);
+
+#define TA_BITMAP_TYPE uint64_t
+
+typedef struct {
+  TA_BITMAP_TYPE *bits;
+  size_t bit_count;
+} ta_bitmap_t;
+
+size_t ta_bitmap_require(size_t bit_count);
+bool ta_bitmap_init(ta_bitmap_t *bitmap, uint8_t *bits, size_t length,
+                    size_t bit_count);
+void ta_bitmap_clear(ta_bitmap_t *bitmap, size_t index);
+void ta_bitmap_set(ta_bitmap_t *bitmap, size_t index);
+bool ta_bitmap_zero(ta_bitmap_t *bitmap);
+bool ta_bitmap_one(ta_bitmap_t *bitmap);
