@@ -62,6 +62,13 @@ All implementation details should go in `.c` files, keeping headers lean with on
 - **Test location**: All tests are located in `tests/` directory
 - **Coverage requirement**: Every major feature needs thorough testing
 
+## Fast Lookup Reference
+
+- **INDEX.md**: Contains fast-path lookups for components, functions, and concepts
+  - Check INDEX.md first before searching codebase
+  - Update INDEX.md when discovering new information
+  - Use for quick reference on mimalloc internals, build commands, and project structure
+
 ## Important Build Notes
 
 - Build output goes to `build/` directory
