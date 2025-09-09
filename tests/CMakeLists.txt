@@ -3,6 +3,7 @@ enable_testing()
 set(TINYALLOC_TESTS
     test_math.c
     test_page.c
+    test_bitmap.c
 )
 
 foreach(test ${TINYALLOC_TESTS})

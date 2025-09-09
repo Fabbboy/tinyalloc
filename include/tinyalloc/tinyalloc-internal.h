@@ -46,3 +46,5 @@ void ta_bitmap_clear(ta_bitmap_t *bitmap, size_t index);
 void ta_bitmap_set(ta_bitmap_t *bitmap, size_t index);
 bool ta_bitmap_zero(ta_bitmap_t *bitmap);
 bool ta_bitmap_one(ta_bitmap_t *bitmap);
+size_t ta_bitmap_find_first_set(ta_bitmap_t *bitmap);
+size_t ta_bitmap_find_first_clear(ta_bitmap_t *bitmap);
