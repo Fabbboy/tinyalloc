@@ -1,4 +1,5 @@
-#pragma once
+#ifndef TINYALLOC_INTERNAL_H
+#define TINYALLOC_INTERNAL_H
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -48,3 +49,16 @@ bool ta_bitmap_zero(ta_bitmap_t *bitmap);
 bool ta_bitmap_one(ta_bitmap_t *bitmap);
 size_t ta_bitmap_find_first_set(ta_bitmap_t *bitmap);
 size_t ta_bitmap_find_first_clear(ta_bitmap_t *bitmap);
+
+typedef struct ta_segment_t {
+  struct ta_segment_t *next;
+  ta_page_t page;
+} ta_segment_t;
+
+bool ta_segment_init(ta_segment_t *segment, size_t size, ta_mapper_t mapper);
+void ta_segment_next(ta_segment_t *segment, ta_segment_t *next);
+void ta_segment_space(ta_segment_t *segment, size_t *size, uint8_t **ptr);
+bool ta_segment_iter(ta_segment_t *segment, ta_segment_t **next);
+void ta_segment_deinit(ta_segment_t *segment);
+
+#endif
