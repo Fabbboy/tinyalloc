@@ -13,7 +13,7 @@ void test_segment_init_success(void) {
   TEST_ASSERT_EQUAL_size_t(4096, segment->page.size);
   TEST_ASSERT_NOT_NULL(segment->page.mapper.map);
   TEST_ASSERT_NOT_NULL(segment->page.mapper.unmap);
-  TEST_ASSERT_NULL(segment->next);
+  TEST_ASSERT_NULL(segment->item.next);
 
   ta_segment_deinit(segment);
 }

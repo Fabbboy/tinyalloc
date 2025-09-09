@@ -56,18 +56,27 @@ typedef struct ta_item_t {
   struct ta_item_t *prev;
 } ta_item_t;
 
+typedef struct {
+  ta_item_t *head;
+  ta_item_t *tail;
+  size_t count;
+} ta_list_t;
+
 typedef struct ta_segment_t {
-  ta_item_t *next;
-  ta_item_t *prev;
   ta_page_t page;
   uint8_t *data;
   size_t usable;
   ta_item_t item;
 } ta_segment_t;
 
+void ta_list_init(ta_list_t *list);
+bool ta_list_empty(ta_list_t *list);
+size_t ta_list_count(ta_list_t *list);
+void ta_list_push(ta_list_t *list, ta_item_t *item);
+ta_item_t *ta_list_pop(ta_list_t *list);
+void ta_list_remove(ta_list_t *list, ta_item_t *item);
+
 bool ta_segment_init(ta_segment_t **segment, size_t size, ta_mapper_t mapper);
-void ta_segment_next(ta_segment_t *segment, ta_item_t *next);
-void ta_segment_prev(ta_segment_t *segment, ta_item_t *prev);
 void ta_segment_space(ta_segment_t *segment, size_t *size, uint8_t **ptr);
 void ta_segment_deinit(ta_segment_t *segment);
 

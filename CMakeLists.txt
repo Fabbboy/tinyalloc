@@ -29,6 +29,7 @@ set(TINYALLOC_SOURCES
     lib/math.c
     lib/heap.c
     lib/bitmap.c
+    lib/list.c
     lib/segment.c
     lib/platform/posix.c
     lib/platform/windows.c

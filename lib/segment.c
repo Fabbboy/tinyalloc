@@ -19,14 +19,12 @@ bool ta_segment_init(ta_segment_t **segment, size_t size, ta_mapper_t mapper) {
 
   ta_segment_t *seg = (ta_segment_t *)base_aligned;
   seg->page = page;
-  seg->next = NULL;
-  seg->prev = NULL;
   seg->data = user_ptr;
   seg->usable = page.size - overhead;
 
   ta_item_t item = {0};
-  item.next = seg->next;
-  item.prev = seg->prev;
+  item.next = NULL;
+  item.prev = NULL;
   item.ptr = seg;
 
   seg->item = item;
@@ -45,16 +43,4 @@ void ta_segment_space(ta_segment_t *segment, size_t *size, uint8_t **ptr) {
                    TA_IS_NULLPTR(ptr), );
   *size = segment->usable;
   *ptr = segment->data;
-}
-
-void ta_segment_next(ta_segment_t *segment, ta_item_t *next) {
-  TA_CHECK_RET(TA_IS_NULLPTR(segment), );
-  segment->item.next = next;
-  next->prev = &segment->item;
-}
-
-void ta_segment_prev(ta_segment_t *segment, ta_item_t *prev) {
-  TA_CHECK_RET(TA_IS_NULLPTR(segment), );
-  segment->item.prev = prev;
-  prev->next = &segment->item;
 }
