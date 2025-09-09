@@ -3,16 +3,21 @@ set -eu
 
 SRC_DIR="$(pwd)"
 BUILD_DIR="$SRC_DIR/.build"
+TEST_DIR="$BUILD_DIR/tests"
 
 CLEAN=0
+TEST=0
 for arg in "$@"; do
     case "$arg" in
         --clean)
             CLEAN=1
             ;;
+        --test)
+            TEST=1
+            ;;
         *)
             echo "[!] Unknown argument: $arg" >&2
-            echo "Usage: $0 [--clean]"
+            echo "Usage: $0 [--clean] [--test]"
             exit 1
             ;;
     esac
@@ -48,3 +53,9 @@ cmake -G "$GENERATOR" "$SRC_DIR"
 $BUILD_CMD
 
 echo "[✔] Build completed successfully!"
+
+if [ $TEST -eq 1 ]; then
+    echo "[*] Running tests..."
+    ctest --output-on-failure --test-dir $TEST_DIR
+    echo "[✔] Tests completed!"
+fi

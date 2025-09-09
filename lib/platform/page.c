@@ -4,6 +4,7 @@
 #include "tinyalloc/tinyalloc-internal.h"
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdio.h>
 
 static _Atomic size_t page_size = 0;
 

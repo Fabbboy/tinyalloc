@@ -35,9 +35,7 @@ add_library(tinyalloc STATIC ${TINYALLOC_SOURCES})
 target_include_directories(tinyalloc
     PUBLIC
         $<BUILD_INTERFACE:${TINYALLOC_INCLUDE}>
-        $<INSTALL_INTERFACE:include>
-    PRIVATE
-        $<BUILD_INTERFACE:${TINYALLOC_LIB}>
+        $<INSTALL_INTERFACE:include> 
 )
 
 add_subdirectory(vendor/Unity)

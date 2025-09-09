@@ -1,3 +1,6 @@
+#ifndef TA_MATH_C
+#define TA_MATH_C
+
 #include "limits.h"
 #include <stdbool.h>
 #include <stdint.h>
@@ -42,3 +45,5 @@ static inline size_t ta_align_down(size_t n, size_t alignment) {
     return n;
   return n & ~(alignment - 1);
 }
+
+#endif

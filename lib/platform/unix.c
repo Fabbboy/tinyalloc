@@ -1,4 +1,4 @@
-#include "platform/page.c"
+#include "page.c"
 #include "tinyalloc/tinyalloc-internal.h"
 #include <stdatomic.h>
 #include <stdbool.h>
