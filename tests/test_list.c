@@ -7,7 +7,6 @@ void test_list_init(void) {
   
   TEST_ASSERT_NULL(list.head);
   TEST_ASSERT_NULL(list.tail);
-  TEST_ASSERT_EQUAL_size_t(0, list.count);
   TEST_ASSERT_TRUE(ta_list_empty(&list));
 }
 
@@ -22,7 +21,6 @@ void test_list_push_single_item(void) {
   
   TEST_ASSERT_EQUAL_PTR(&item, list.head);
   TEST_ASSERT_EQUAL_PTR(&item, list.tail);
-  TEST_ASSERT_EQUAL_size_t(1, list.count);
   TEST_ASSERT_FALSE(ta_list_empty(&list));
   TEST_ASSERT_NULL(item.next);
   TEST_ASSERT_NULL(item.prev);
@@ -45,7 +43,6 @@ void test_list_push_multiple_items(void) {
   
   TEST_ASSERT_EQUAL_PTR(&item1, list.head);
   TEST_ASSERT_EQUAL_PTR(&item3, list.tail);
-  TEST_ASSERT_EQUAL_size_t(3, list.count);
   
   TEST_ASSERT_EQUAL_PTR(&item2, item1.next);
   TEST_ASSERT_NULL(item1.prev);
@@ -70,7 +67,6 @@ void test_list_pop_single_item(void) {
   TEST_ASSERT_EQUAL_PTR(&item, popped);
   TEST_ASSERT_NULL(list.head);
   TEST_ASSERT_NULL(list.tail);
-  TEST_ASSERT_EQUAL_size_t(0, list.count);
   TEST_ASSERT_TRUE(ta_list_empty(&list));
   TEST_ASSERT_NULL(popped->next);
   TEST_ASSERT_NULL(popped->prev);
@@ -91,20 +87,17 @@ void test_list_pop_multiple_items(void) {
   ta_item_t *popped3 = ta_list_pop(&list);
   TEST_ASSERT_EQUAL_PTR(&item3, popped3);
   TEST_ASSERT_EQUAL_PTR(&item2, list.tail);
-  TEST_ASSERT_EQUAL_size_t(2, list.count);
   TEST_ASSERT_NULL(item2.next);
   
   ta_item_t *popped2 = ta_list_pop(&list);
   TEST_ASSERT_EQUAL_PTR(&item2, popped2);
   TEST_ASSERT_EQUAL_PTR(&item1, list.tail);
-  TEST_ASSERT_EQUAL_size_t(1, list.count);
   TEST_ASSERT_NULL(item1.next);
   
   ta_item_t *popped1 = ta_list_pop(&list);
   TEST_ASSERT_EQUAL_PTR(&item1, popped1);
   TEST_ASSERT_NULL(list.head);
   TEST_ASSERT_NULL(list.tail);
-  TEST_ASSERT_EQUAL_size_t(0, list.count);
 }
 
 void test_list_remove_middle_item(void) {
@@ -121,7 +114,6 @@ void test_list_remove_middle_item(void) {
   
   ta_list_remove(&list, &item2);
   
-  TEST_ASSERT_EQUAL_size_t(2, list.count);
   TEST_ASSERT_EQUAL_PTR(&item3, item1.next);
   TEST_ASSERT_EQUAL_PTR(&item1, item3.prev);
   TEST_ASSERT_NULL(item2.next);

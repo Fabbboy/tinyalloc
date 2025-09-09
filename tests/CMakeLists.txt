@@ -5,6 +5,7 @@ set(TINYALLOC_TESTS
     test_page.c
     test_bitmap.c
     test_segment.c
+    test_list.c
 )
 
 foreach(test ${TINYALLOC_TESTS})
