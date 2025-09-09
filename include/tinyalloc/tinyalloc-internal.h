@@ -69,7 +69,6 @@ bool ta_segment_init(ta_segment_t **segment, size_t size, ta_mapper_t mapper);
 void ta_segment_next(ta_segment_t *segment, ta_item_t *next);
 void ta_segment_prev(ta_segment_t *segment, ta_item_t *prev);
 void ta_segment_space(ta_segment_t *segment, size_t *size, uint8_t **ptr);
-bool ta_segment_iter(ta_segment_t *segment, ta_segment_t **next);
 void ta_segment_deinit(ta_segment_t *segment);
 
 #endif
