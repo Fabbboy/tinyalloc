@@ -1,3 +1,4 @@
+#include <stdio.h>
 #if defined(TA_PLATFORM_UNIX) || defined(TA_PLATFORM_BSD)
 #include "../lib/platform/posix.c"
 #elif defined(TA_PLATFORM_WINDOWS)
@@ -70,12 +71,10 @@ void test_segment_write(void) {
   TEST_ASSERT_NOT_NULL(ptr);
   TEST_ASSERT_EQUAL_size_t(4096, size);
 
-  // Write some data to verify the segment is writable
   for (int i = 0; i < 100; i++) {
     ptr[i] = (uint8_t)(i % 256);
   }
 
-  // Verify the written data
   for (int i = 0; i < 100; i++) {
     TEST_ASSERT_EQUAL_UINT8((uint8_t)(i % 256), ptr[i]);
   }
