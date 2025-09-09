@@ -49,6 +49,20 @@ All implementation details should go in `.c` files, keeping headers lean with on
 
 ### Build Output
 
-- Static library: `build/libtinyalloc.a`
-- Compile commands: `build/compile_commands.json` (for IDE integration)
+- Static library: `.build/libtinyalloc.a`
+- Compile commands: `.build/compile_commands.json` (for IDE integration)
 - C11 standard compliance
+
+## Testing
+
+- **Test framework**: Unity testing framework
+- **Test command**: `./build.sh --test` 
+- **Manual test execution**: Run `.build/tests/*` directly from build directory
+- **Test location**: All tests are located in `tests/` directory
+- **Coverage requirement**: Every major feature needs thorough testing
+
+## Important Build Notes
+
+- Build output goes to `.build/` directory (dot folder not accessible to Claude due to permissions)
+- Unity build style: Use C includes in other C files to minimize surface area
+- Keep API surface small and clean
