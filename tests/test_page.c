@@ -1,4 +1,9 @@
-#include "../lib/platform/unix.c"
+#if defined(TA_PLATFORM_UNIX) || defined(TA_PLATFORM_BSD)
+#include "../lib/platform/posix.c"
+#elif defined(TA_PLATFORM_WINDOWS)
+#include "../lib/platform/windows.c"
+#endif
+
 #include "unity.h"
 
 void test_page_init_success(void) {

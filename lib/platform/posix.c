@@ -5,12 +5,17 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#ifdef TA_PLATFORM_UNIX
+#if defined(TA_PLATFORM_UNIX) || defined(TA_PLATFORM_BSD)
 #include <sys/mman.h>
 #include <unistd.h>
 
 const uint16_t TA_OS_PERM_RW = PROT_READ | PROT_WRITE;
+
+#ifdef TA_PLATFORM_BSD
+const uint16_t TA_OS_FLAGS = MAP_PRIVATE | MAP_ANON;
+#else
 const uint16_t TA_OS_FLAGS = MAP_PRIVATE | MAP_ANONYMOUS;
+#endif
 
 size_t ta_get_page_size(void) {
   size_t ps = atomic_load_explicit(&page_size, memory_order_acquire);
@@ -42,6 +47,7 @@ void os_unmap(uint8_t *ptr, size_t size) {
 
   munmap(ptr, size);
 }
+
 bool os_map(uint8_t **ptr, size_t size) {
   TA_CHECK_RET(TA_IS_NULLPTR(ptr) || TA_IS_ZERO(size), false);
   void *p = mmap(NULL, size, TA_OS_PERM_RW, TA_OS_FLAGS, -1, 0);
