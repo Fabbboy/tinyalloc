@@ -4,17 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Build System
 
-This project uses CMake with automatic build system detection:
+This project uses Just with CMake:
 
-- **Build command**: `./build.sh` - Automatically detects and uses Ninja or Make
-- **Clean build**: `./build.sh --clean` - Removes build directory and rebuilds
-- **Manual build**: From the build directory, run `ninja` or `make -j$(nproc)`
+- **Build command**: `just` or `just build` - Uses CMake with Ninja generator
+- **Clean build**: `just clean` - Removes build directory and rebuilds
+- **Run tests**: `just test` - Builds and runs all tests
+- **Clean and rebuild**: `just rebuild` - Clean, then build
 
-The build script automatically:
-- Detects the best available build system (Ninja preferred, Make fallback)
-- Configures CMake with appropriate generator
+The justfile automatically:
+- Uses CMake with configurable generator (default: Ninja)
 - Builds the static library `libtinyalloc.a`
-- Uses parallel builds when possible
+- Supports environment variable overrides for tools
 
 ## Architecture
 
@@ -50,20 +50,20 @@ All implementation details should go in `.c` files, keeping headers lean with on
 
 ### Build Output
 
-- Static library: `.build/libtinyalloc.a`
-- Compile commands: `.build/compile_commands.json` (for IDE integration)
+- Static library: `build/libtinyalloc.a`
+- Compile commands: `build/compile_commands.json` (for IDE integration)
 - C11 standard compliance
 
 ## Testing
 
 - **Test framework**: Unity testing framework
-- **Test command**: `./build.sh --test` 
-- **Manual test execution**: Run `.build/tests/*` directly from build directory
+- **Test command**: `just test` 
+- **Manual test execution**: Run `build/tests/*` directly from build directory
 - **Test location**: All tests are located in `tests/` directory
 - **Coverage requirement**: Every major feature needs thorough testing
 
 ## Important Build Notes
 
-- Build output goes to `.build/` directory (dot folder not accessible to Claude due to permissions)
+- Build output goes to `build/` directory
 - Unity build style: Use C includes in other C files to minimize surface area
 - Keep API surface small and clean
