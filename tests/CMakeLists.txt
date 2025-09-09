@@ -7,7 +7,7 @@ set(TINYALLOC_TESTS
 
 foreach(test ${TINYALLOC_TESTS})
     get_filename_component(test_name ${test} NAME_WE)
-    add_executable(${test_name} ${test})
+    add_executable(${test_name} ${test} test_common.c)
     target_link_libraries(${test_name} 
         tinyalloc 
         unity::framework

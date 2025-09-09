@@ -1,14 +1,6 @@
 #include "../lib/math.c"
 #include "unity.h"
 
-void setUp(void) {
-  // Setup for each test
-}
-
-void tearDown(void) {
-  // Cleanup after each test
-}
-
 void test_next_power_of_2_basic(void) {
   TEST_ASSERT_EQUAL_size_t(1, ta_next_power_of_2(0));
   TEST_ASSERT_EQUAL_size_t(1, ta_next_power_of_2(1));

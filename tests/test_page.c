@@ -1,14 +1,6 @@
 #include "../lib/platform/unix.c"
 #include "unity.h"
 
-void setUp(void) {
-  // Setup for each test
-}
-
-void tearDown(void) {
-  // Cleanup after each test
-}
-
 void test_page_init_success(void) {
   ta_page_t page;
   ta_mapper_t mapper = ta_mapper();
