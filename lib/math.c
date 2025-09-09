@@ -32,7 +32,9 @@ static inline size_t ta_prev_power_of_2(size_t n) {
   return n - (n >> 1);
 }
 
-static inline bool ta_is_power_of_2(size_t n) { return n != 0 && (n & (n - 1)) == 0; }
+static inline bool ta_is_power_of_2(size_t n) {
+  return n != 0 && (n & (n - 1)) == 0;
+}
 
 static inline size_t ta_align_up(size_t n, size_t alignment) {
   if (alignment == 0)
