@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 
-size_t ta_next_power_of_2(size_t n) {
+static inline size_t ta_next_power_of_2(size_t n) {
   if (n == 0)
     return 1;
 
@@ -18,7 +18,7 @@ size_t ta_next_power_of_2(size_t n) {
   return n + 1;
 }
 
-size_t ta_prev_power_of_2(size_t n) {
+static inline size_t ta_prev_power_of_2(size_t n) {
   if (n == 0)
     return 0;
 
@@ -29,15 +29,15 @@ size_t ta_prev_power_of_2(size_t n) {
   return n - (n >> 1);
 }
 
-bool ta_is_power_of_2(size_t n) { return n != 0 && (n & (n - 1)) == 0; }
+static inline bool ta_is_power_of_2(size_t n) { return n != 0 && (n & (n - 1)) == 0; }
 
-size_t ta_align_up(size_t n, size_t alignment) {
+static inline size_t ta_align_up(size_t n, size_t alignment) {
   if (alignment == 0)
     return n;
   return (n + alignment - 1) & ~(alignment - 1);
 }
 
-size_t ta_align_down(size_t n, size_t alignment) {
+static inline size_t ta_align_down(size_t n, size_t alignment) {
   if (alignment == 0)
     return n;
   return n & ~(alignment - 1);
