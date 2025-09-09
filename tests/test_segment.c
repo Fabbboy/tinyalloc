@@ -26,8 +26,8 @@ void test_segment_iterator(void) {
   TEST_ASSERT_TRUE(ta_segment_init(&segment2, 4096, mapper));
   TEST_ASSERT_TRUE(ta_segment_init(&segment3, 4096, mapper));
 
-  ta_segment_next(segment1, segment2);
-  ta_segment_next(segment2, segment3);
+  ta_segment_next(segment1, &segment2->item);
+  ta_segment_next(segment2, &segment3->item);
   ta_segment_next(segment3, NULL);
 
   ta_segment_t *current = segment1;

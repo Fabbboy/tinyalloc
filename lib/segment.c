@@ -20,8 +20,16 @@ bool ta_segment_init(ta_segment_t **segment, size_t size, ta_mapper_t mapper) {
   ta_segment_t *seg = (ta_segment_t *)base_aligned;
   seg->page = page;
   seg->next = NULL;
+  seg->prev = NULL;
   seg->data = user_ptr;
   seg->usable = page.size - overhead;
+
+  ta_item_t item = {0};
+  item.next = seg->next;
+  item.prev = seg->prev;
+  item.ptr = seg;
+
+  seg->item = item;
   *segment = seg;
   return true;
 }
@@ -34,7 +42,9 @@ void ta_segment_deinit(ta_segment_t *segment) {
 
 bool ta_segment_iter(ta_segment_t *segment, ta_segment_t **next) {
   TA_CHECK_RET(TA_IS_NULLPTR(segment) || TA_IS_NULLPTR(next), false);
-  return (*next = segment->next) != NULL;
+  TA_CHECK_RET(TA_IS_NULLPTR(segment->item.next), false);
+  *next = (ta_segment_t *)segment->item.next->ptr;
+  return true;
 }
 
 void ta_segment_space(ta_segment_t *segment, size_t *size, uint8_t **ptr) {
@@ -44,12 +54,14 @@ void ta_segment_space(ta_segment_t *segment, size_t *size, uint8_t **ptr) {
   *ptr = segment->data;
 }
 
-void ta_segment_next(ta_segment_t *segment, ta_segment_t *next) {
+void ta_segment_next(ta_segment_t *segment, ta_item_t *next) {
   TA_CHECK_RET(TA_IS_NULLPTR(segment), );
-  segment->next = next;
+  segment->item.next = next;
+  next->prev = &segment->item;
 }
 
-void ta_segment_prev(ta_segment_t *segment, ta_segment_t *prev) {
+void ta_segment_prev(ta_segment_t *segment, ta_item_t *prev) {
   TA_CHECK_RET(TA_IS_NULLPTR(segment), );
-  segment->prev = prev;
+  segment->item.prev = prev;
+  prev->next = &segment->item;
 }
