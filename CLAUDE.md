@@ -24,6 +24,7 @@ TinyAlloc is a minimal C library providing mathematical utility functions for me
 
 - `include/tinyalloc/math.h` - Public API header with mathematical utility functions
 - `lib/math.c` - Implementation of mathematical utilities
+- `vendor/mimalloc/` - Complete Microsoft mimalloc source tree for reference and integration
 - `CMakeLists.txt` - Build configuration creating static library
 - `build/` - CMake build directory (generated)
 
