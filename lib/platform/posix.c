@@ -1,11 +1,12 @@
+
+
+#if defined(TA_PLATFORM_UNIX) || defined(TA_PLATFORM_BSD)
 #include "page.c"
 #include "tinyalloc/tinyalloc-internal.h"
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
-
-#if defined(TA_PLATFORM_UNIX) || defined(TA_PLATFORM_BSD)
 #include <sys/mman.h>
 #include <unistd.h>
 
