@@ -48,3 +48,8 @@ void ta_segment_next(ta_segment_t *segment, ta_segment_t *next) {
   TA_CHECK_RET(TA_IS_NULLPTR(segment), );
   segment->next = next;
 }
+
+void ta_segment_prev(ta_segment_t *segment, ta_segment_t *prev) {
+  TA_CHECK_RET(TA_IS_NULLPTR(segment), );
+  segment->prev = prev;
+}
