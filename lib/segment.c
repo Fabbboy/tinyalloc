@@ -17,7 +17,7 @@ bool ta_segment_init(ta_segment_t **segment, size_t size, ta_mapper_t mapper) {
   uint8_t *user_ptr = base_aligned + sizeof(ta_segment_t);
   size_t overhead = user_ptr - page.ptr;
 
-  ta_segment_t *seg = (ta_segment_t *)page.ptr;
+  ta_segment_t *seg = (ta_segment_t *)base_aligned;
   seg->page = page;
   seg->next = NULL;
   seg->data = user_ptr;
@@ -28,7 +28,8 @@ bool ta_segment_init(ta_segment_t **segment, size_t size, ta_mapper_t mapper) {
 
 void ta_segment_deinit(ta_segment_t *segment) {
   TA_CHECK_RET(TA_IS_NULLPTR(segment), );
-  ta_page_deinit(&segment->page);
+  ta_page_t page = segment->page;
+  ta_page_deinit(&page);
 }
 
 bool ta_segment_iter(ta_segment_t *segment, ta_segment_t **next) {

@@ -1,13 +1,6 @@
-#include <stdio.h>
-#if defined(TA_PLATFORM_UNIX) || defined(TA_PLATFORM_BSD)
-#include "../lib/platform/posix.c"
-#elif defined(TA_PLATFORM_WINDOWS)
-#include "../lib/platform/windows.c"
-#endif
-
-#include "../lib/segment.c"
 #include "tinyalloc/tinyalloc-internal.h"
 #include "unity.h"
+#include <stdio.h>
 
 void test_segment_init_success(void) {
   ta_segment_t *segment;
@@ -69,13 +62,13 @@ void test_segment_write(void) {
   ta_segment_space(segment, &size, &ptr);
 
   TEST_ASSERT_NOT_NULL(ptr);
-  TEST_ASSERT_EQUAL_size_t(4096, size);
-
-  for (int i = 0; i < 100; i++) {
+  TEST_ASSERT_EQUAL(size, 4096 - sizeof(ta_segment_t));
+  size_t write_size = size < 100 ? size : 100;
+  for (size_t i = 0; i < write_size; i++) {
     ptr[i] = (uint8_t)(i % 256);
   }
 
-  for (int i = 0; i < 100; i++) {
+  for (size_t i = 0; i < write_size; i++) {
     TEST_ASSERT_EQUAL_UINT8((uint8_t)(i % 256), ptr[i]);
   }
 
