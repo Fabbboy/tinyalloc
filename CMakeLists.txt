@@ -42,5 +42,6 @@ target_include_directories(tinyalloc
         $<INSTALL_INTERFACE:include> 
 )
 
+add_subdirectory(vendor/mimalloc)
 add_subdirectory(vendor/Unity)
 add_subdirectory(tests)
