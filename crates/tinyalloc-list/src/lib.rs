@@ -57,4 +57,150 @@ where
             tail: None,
         }
     }
+
+    pub fn push_back(&mut self, mut item: NonNull<T>) {
+        unsafe {
+            item.as_mut().set_next(None);
+            item.as_mut().set_prev(self.tail);
+
+            if let Some(mut tail) = self.tail {
+                tail.as_mut().set_next(Some(item));
+            } else {
+                self.head = Some(item);
+            }
+
+            self.tail = Some(item);
+        }
+    }
+
+    pub fn pop_back(&mut self) -> Option<NonNull<T>> {
+        self.tail.map(|tail| unsafe {
+            let prev = tail.as_ref().prev();
+
+            if let Some(mut prev) = prev {
+                prev.as_mut().set_next(None);
+                self.tail = Some(prev);
+            } else {
+                self.head = None;
+                self.tail = None;
+            }
+
+            tail
+        })
+    }
+
+    pub fn insert_before(&mut self, mut target: NonNull<T>, mut new_item: NonNull<T>) {
+        unsafe {
+            let prev = target.as_ref().prev();
+
+            new_item.as_mut().set_next(Some(target));
+            new_item.as_mut().set_prev(prev);
+
+            target.as_mut().set_prev(Some(new_item));
+
+            if let Some(mut prev) = prev {
+                prev.as_mut().set_next(Some(new_item));
+            } else {
+                self.head = Some(new_item);
+            }
+        }
+    }
+
+    pub fn insert_after(&mut self, mut target: NonNull<T>, mut new_item: NonNull<T>) {
+        unsafe {
+            let next = target.as_ref().next();
+
+            new_item.as_mut().set_prev(Some(target));
+            new_item.as_mut().set_next(next);
+
+            target.as_mut().set_next(Some(new_item));
+
+            if let Some(mut next) = next {
+                next.as_mut().set_prev(Some(new_item));
+            } else {
+                self.tail = Some(new_item);
+            }
+        }
+    }
+
+    pub fn remove(&mut self, item: NonNull<T>) {
+        unsafe {
+            let prev = item.as_ref().prev();
+            let next = item.as_ref().next();
+
+            if let Some(mut prev) = prev {
+                prev.as_mut().set_next(next);
+            } else {
+                self.head = next;
+            }
+
+            if let Some(mut next) = next {
+                next.as_mut().set_prev(prev);
+            } else {
+                self.tail = prev;
+            }
+        }
+    }
+
+    pub fn iter(&self) -> Iter<T> {
+        Iter {
+            next: self.head,
+            _marker: PhantomData,
+        }
+    }
+
+    pub fn iter_mut(&mut self) -> IterMut<T> {
+        IterMut {
+            next: self.head,
+            _marker: PhantomData,
+        }
+    }
+
+    pub fn drain(&mut self) -> DrainIter<T> {
+        DrainIter { list: self }
+    }
+}
+
+impl<'list, T> Iterator for Iter<'list, T>
+where
+    T: Item<T>,
+{
+    type Item = &'list T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next.map(|current| unsafe {
+            let current_ref = current.as_ref();
+            self.next = current_ref.next();
+            current_ref
+        })
+    }
+}
+
+impl<'list, T> Iterator for IterMut<'list, T>
+where
+    T: Item<T>,
+{
+    type Item = &'list mut T;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.next.map(|mut current| unsafe {
+            let current_mut = current.as_mut();
+            self.next = current_mut.next();
+            current_mut
+        })
+    }
+}
+
+impl<'list, T> Iterator for DrainIter<'list, T>
+where
+    T: Item<T>,
+{
+    type Item = NonNull<T>;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        self.list.head.map(|head| {
+            self.list.remove(head);
+            head
+        })
+    }
 }
