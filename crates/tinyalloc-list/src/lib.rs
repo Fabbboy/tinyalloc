@@ -1,14 +1,13 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
+use std::ptr::NonNull;
+
+use thiserror::Error;
+
+pub trait Item {
+    fn next(&self) -> Option<NonNull<Self>>;
+    fn prev(&self) -> Option<NonNull<Self>>;
+    fn set_next(&mut self, next: Option<NonNull<Self>>);
+    fn set_prev(&mut self, prev: Option<NonNull<Self>>);
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+#[derive(Debug, Error)]
+pub enum ListError {}
