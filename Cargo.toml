@@ -17,8 +17,10 @@ getset = "0.1.6"
 libc = "0.2.175"
 parking_lot = "0.12.4"
 typed-builder = "0.21.2"
-windows-sys = "0.61.0"
 heapless = "0.9.1"
+anyhow = "1.0.99"
+thiserror = { version = "2.0.16", default-features = false }
+enumset = "1.1.10"
 
 tinyalloc-alloc = { path = "crates/tinyalloc-alloc" }
 tinyalloc-bitmap = { path = "crates/tinyalloc-bitmap" }

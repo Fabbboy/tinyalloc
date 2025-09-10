@@ -1,14 +1,20 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+use thiserror::Error;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub mod mapper;
+pub mod posix;
+pub mod region;
+pub mod size;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+#[derive(Debug, Error)]
+pub enum MapError {
+    #[error("Invalid size for memory mapping")]
+    InvalidSize,
+    #[error("Failed to map memory region")]
+    OutOfMemory,
+    #[error("Failed to commit memory region")]
+    CommitFailed,
+    #[error("Failed to decommit memory region")]
+    DecommitFailed,
+    #[error("Failed to protect memory region")]
+    ProtectFailed,
 }
