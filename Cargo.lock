@@ -175,6 +175,11 @@ version = "0.1.0"
 [[package]]
 name = "tinyalloc-bitmap"
 version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "getset",
+ "thiserror",
+]
 
 [[package]]
 name = "tinyalloc-list"
