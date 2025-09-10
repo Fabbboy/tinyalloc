@@ -15,9 +15,6 @@ members = [
 [workspace.dependencies]
 getset = "0.1.6"
 libc = "0.2.175"
-parking_lot = "0.12.4"
-typed-builder = "0.21.2"
-heapless = "0.9.1"
 anyhow = "1.0.99"
 thiserror = { version = "2.0.16", default-features = false }
 enumset = "1.1.10"
