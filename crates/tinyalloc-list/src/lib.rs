@@ -1,4 +1,4 @@
-use std::ptr::NonNull;
+use std::{marker::PhantomData, ptr::NonNull};
 
 use thiserror::Error;
 
@@ -14,6 +14,29 @@ pub trait Item<T> {
 
 #[derive(Debug, Error)]
 pub enum ListError {}
+
+pub struct DrainIter<'list, T>
+where
+    T: Item<T>,
+{
+    list: &'list mut List<T>,
+}
+
+pub struct Iter<'list, T>
+where
+    T: Item<T>,
+{
+    next: Option<NonNull<T>>,
+    _marker: PhantomData<&'list T>,
+}
+
+pub struct IterMut<'list, T>
+where
+    T: Item<T>,
+{
+    next: Option<NonNull<T>>,
+    _marker: PhantomData<&'list mut T>,
+}
 
 #[derive(Debug)]
 pub struct List<T>
