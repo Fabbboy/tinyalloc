@@ -1,8 +1,10 @@
-use core::ops::BitXor;
+use core::ops::{BitXor, Shl, Shr};
 
 pub trait BitsRequire
 where
-    Self: Sized + Copy + PartialEq + Eq + BitXor<Output = Self>,
+    Self: Sized + Copy + PartialEq + Eq,
+    Self: BitXor<Output = Self>,
+    Self: Shl<usize, Output = Self> + Shr<usize, Output = Self>,
 {
 }
 
