@@ -26,7 +26,7 @@ tinyalloc-list = { path = "crates/tinyalloc-list" }
 tinyalloc-sys = { path = "crates/tinyalloc-sys" }
 
 [lib]
-crate-type = ["cdylib", "staticlib"] # no rlib
+crate-type = ["cdylib", "staticlib", "rlib"]
 
 [profile.release]
 panic = "abort"
