@@ -2,6 +2,9 @@ use std::ptr::NonNull;
 
 use thiserror::Error;
 
+#[cfg(test)]
+pub mod tests;
+
 pub trait Item<T> {
     fn next(&self) -> Option<NonNull<T>>;
     fn prev(&self) -> Option<NonNull<T>>;
