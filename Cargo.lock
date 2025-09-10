@@ -184,10 +184,6 @@ dependencies = [
 [[package]]
 name = "tinyalloc-list"
 version = "0.1.0"
-dependencies = [
- "anyhow",
- "thiserror",
-]
 
 [[package]]
 name = "tinyalloc-sys"

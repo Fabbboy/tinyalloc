@@ -1,7 +1,5 @@
 use std::{marker::PhantomData, ptr::NonNull};
 
-use thiserror::Error;
-
 #[cfg(test)]
 pub mod tests;
 
@@ -11,9 +9,6 @@ pub trait Item<T> {
     fn set_next(&mut self, next: Option<NonNull<T>>);
     fn set_prev(&mut self, prev: Option<NonNull<T>>);
 }
-
-#[derive(Debug, Error)]
-pub enum ListError {}
 
 pub struct DrainIter<'list, T>
 where
