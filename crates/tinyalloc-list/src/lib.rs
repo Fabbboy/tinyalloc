@@ -137,21 +137,21 @@ where
         }
     }
 
-    pub fn iter(&self) -> Iter<T> {
+    pub fn iter<'list>(&self) -> Iter<'list, T> {
         Iter {
             next: self.head,
             _marker: PhantomData,
         }
     }
 
-    pub fn iter_mut(&mut self) -> IterMut<T> {
+    pub fn iter_mut<'list>(&self) -> IterMut<'list, T> {
         IterMut {
             next: self.head,
             _marker: PhantomData,
         }
     }
 
-    pub fn drain(&mut self) -> DrainIter<T> {
+    pub fn drain<'list>(&'list mut self) -> DrainIter<'list, T> {
         DrainIter { list: self }
     }
 }
