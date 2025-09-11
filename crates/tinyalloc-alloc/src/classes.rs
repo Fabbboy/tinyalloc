@@ -10,7 +10,9 @@ pub struct Class(pub Size, pub Align);
 
 const fn classes() -> [Class; SIZES] {
     let mut classes = [Class(Size(0), Align(0)); SIZES];
-    
+    let mut i = 0;
+    while i < SIZES {}
+
     classes
 }
 
