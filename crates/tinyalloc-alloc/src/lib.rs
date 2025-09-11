@@ -1,6 +1,7 @@
 pub mod arena;
 pub mod classes;
 pub mod heap;
+pub mod segment;
 
 pub const SIZES: usize = 32;
 pub const ONE: usize = 1;
@@ -30,3 +31,7 @@ pub const LARGE_SC_LIMIT: usize = 1 << (SHIFT + 13);
 pub const SMALL_ALIGN_LIMIT: usize = SMALL_SC_LIMIT / 4;
 pub const MEDIUM_ALIGN_LIMIT: usize = MEDIUM_SC_LIMIT / 8;
 pub const LARGE_ALIGN_RATIO: usize = 8;
+
+pub const fn align_up(size: usize, align: usize) -> usize {
+    (size + align - 1) & !(align - 1)
+}

@@ -6,3 +6,4 @@ edition = "2024"
 [dependencies]
 tinyalloc-sys = { workspace = true }
 tinyalloc-list = { workspace = true }
+tinyalloc-bitmap = { workspace = true }
