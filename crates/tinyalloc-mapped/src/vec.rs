@@ -7,27 +7,16 @@ use tinyvec::SliceVec;
 #[derive(Debug)]
 pub struct MappedVec<'vec, T, M>
 where
-    M: Mapper,
+    M: Mapper + ?Sized,
 {
     vec: SliceVec<'vec, T>,
-    backing: Option<Region<M>>,
-}
-
-impl<'vec, T, M> Default for MappedVec<'vec, T, M>
-where
-    M: Mapper,
-{
-    fn default() -> Self {
-        Self {
-            vec: SliceVec::default(),
-            backing: None,
-        }
-    }
+    backing: Option<Region<'vec, M>>,
+    mapper: &'vec M,
 }
 
 impl<'vec, T, M> MappedVec<'vec, T, M>
 where
-    M: Mapper,
+    M: Mapper + ?Sized,
     T: Copy + Default,
 {
     const T_SIZE: usize = std::mem::size_of::<T>();
@@ -40,12 +29,16 @@ where
         unsafe { std::slice::from_raw_parts_mut(raw_ptr, len) }
     }
 
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(mapper: &'vec M) -> Self {
+        Self {
+            vec: SliceVec::default(),
+            backing: None,
+            mapper,
+        }
     }
 
-    pub fn new_capacity(initial: usize) -> Result<Self> {
-        let backing = Region::<M>::new(initial * Self::T_SIZE)?;
+    pub fn new_capacity(mapper: &'vec M, initial: usize) -> Result<Self> {
+        let backing = Region::new(mapper, initial * Self::T_SIZE)?;
         backing.activate()?;
         let raw_slice: NonNull<[u8]> = *backing.data();
         let slice = Self::tslice(raw_slice);
@@ -53,6 +46,7 @@ where
         Ok(Self {
             vec,
             backing: Some(backing),
+            mapper,
         })
     }
 
@@ -63,7 +57,7 @@ where
             return Ok(());
         }
 
-        let new_backing = Region::<M>::new(new_capacity * Self::T_SIZE)?;
+        let new_backing = Region::new(self.mapper, new_capacity * Self::T_SIZE)?;
         new_backing.activate()?;
         let raw_slice: NonNull<[u8]> = *new_backing.data();
         let new_slice = Self::tslice(raw_slice);
@@ -172,16 +166,14 @@ where
     }
 }
 
-#[cfg(test)]
+#[cfg(all(test, unix))]
 mod tests {
     use super::*;
-    use tinyalloc_sys::posix::PosixMapper;
-
-    type TestVec<T> = MappedVec<'static, T, PosixMapper>;
+    use tinyalloc_sys::GLOBAL_MAPPER;
 
     #[test]
     fn test_basic_operations() {
-        let mut vec: TestVec<i32> = MappedVec::new();
+        let mut vec = MappedVec::new(GLOBAL_MAPPER);
         assert!(vec.is_empty());
 
         vec.push(42).unwrap();
@@ -194,7 +186,7 @@ mod tests {
 
     #[test]
     fn test_capacity_growth() {
-        let mut vec: TestVec<i32> = MappedVec::new_capacity(2).unwrap();
+        let mut vec = MappedVec::new_capacity(GLOBAL_MAPPER, 2).unwrap();
         vec.push(1).unwrap();
         vec.push(2).unwrap();
         vec.push(3).unwrap(); // Should trigger growth
@@ -204,7 +196,7 @@ mod tests {
 
     #[test]
     fn test_clear_and_shrink() {
-        let mut vec: MappedVec<i32, PosixMapper> = MappedVec::new_capacity(10).unwrap();
+        let mut vec = MappedVec::new_capacity(GLOBAL_MAPPER, 10).unwrap();
         for i in 0..10 {
             vec.push(i).unwrap();
         }
@@ -214,7 +206,7 @@ mod tests {
 
     #[test]
     fn test_insert_remove() {
-        let mut vec: MappedVec<i32, PosixMapper> = MappedVec::new();
+        let mut vec = MappedVec::new(GLOBAL_MAPPER);
         vec.push(1).unwrap();
         vec.push(3).unwrap();
         vec.insert(1, 2).unwrap();
@@ -227,18 +219,18 @@ mod tests {
 
     #[test]
     fn test_different_types() {
-        let mut vec_u8: MappedVec<u8, PosixMapper> = MappedVec::new();
+        let mut vec_u8 = MappedVec::new(GLOBAL_MAPPER);
         vec_u8.push(255u8).unwrap();
         assert_eq!(vec_u8.as_slice(), &[255u8]);
 
-        let mut vec_f64: MappedVec<f64, PosixMapper> = MappedVec::new();
+        let mut vec_f64 = MappedVec::new(GLOBAL_MAPPER);
         vec_f64.push(3.14).unwrap();
         assert_eq!(vec_f64.as_slice(), &[3.14]);
     }
 
     #[test]
     fn test_slice_access() {
-        let mut vec: MappedVec<i32, PosixMapper> = MappedVec::new();
+        let mut vec = MappedVec::new(GLOBAL_MAPPER);
         vec.push(1).unwrap();
         vec.push(2).unwrap();
 

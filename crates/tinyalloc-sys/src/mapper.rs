@@ -11,27 +11,35 @@ pub enum Protection {
     Write,
 }
 
-pub trait Mapper {
-    fn cptr<T>(rptr: *mut T) -> *mut libc::c_void {
+pub trait MapperRequires
+where
+    Self: Send + Sync,
+{
+}
+
+pub trait Mapper
+where
+    Self: MapperRequires,
+{
+    fn cptr(&self, rptr: *mut u8) -> *mut libc::c_void {
         rptr as *mut libc::c_void
     }
-
-    fn map(size: usize) -> Result<NonNull<[u8]>> {
+    fn map(&self, size: usize) -> Result<NonNull<[u8]>> {
         _ = size;
         Err(MapError::OutOfMemory.into())
     }
-    fn unmap(ptr: NonNull<[u8]>) {
+    fn unmap(&self, ptr: NonNull<[u8]>) {
         _ = ptr;
     }
-    fn commit(ptr: NonNull<[u8]>) -> Result<()> {
+    fn commit(&self, ptr: NonNull<[u8]>) -> Result<()> {
         _ = ptr;
         Err(MapError::CommitFailed.into())
     }
-    fn decommit(ptr: NonNull<[u8]>) -> Result<()> {
+    fn decommit(&self, ptr: NonNull<[u8]>) -> Result<()> {
         _ = ptr;
         Ok(())
     }
-    fn protect(ptr: NonNull<[u8]>, prot: EnumSet<Protection>) -> Result<()> {
+    fn protect(&self, ptr: NonNull<[u8]>, prot: EnumSet<Protection>) -> Result<()> {
         _ = (ptr, prot);
         Err(MapError::ProtectFailed.into())
     }

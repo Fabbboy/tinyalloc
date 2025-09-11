@@ -2,9 +2,9 @@
 use std::ptr::NonNull;
 
 use crate::MapError;
-use crate::mapper::Mapper;
 #[cfg(unix)]
 use crate::mapper::Protection;
+use crate::mapper::{Mapper, MapperRequires};
 use crate::size::page_align;
 use anyhow::Result;
 #[cfg(unix)]
@@ -29,6 +29,8 @@ mod unix {
 #[derive(Clone)]
 pub struct PosixMapper;
 
+impl MapperRequires for PosixMapper {}
+
 #[cfg(unix)]
 impl PosixMapper {
     fn to_prot(prot: EnumSet<Protection>) -> i32 {
@@ -45,7 +47,7 @@ impl PosixMapper {
 
 #[cfg(unix)]
 impl Mapper for PosixMapper {
-    fn map(size: usize) -> Result<NonNull<[u8]>> {
+    fn map(&self, size: usize) -> Result<NonNull<[u8]>> {
         if size == 0 {
             return Err(MapError::InvalidSize.into());
         }
@@ -69,29 +71,29 @@ impl Mapper for PosixMapper {
         Ok(NonNull::new(slice).unwrap())
     }
 
-    fn unmap(ptr: NonNull<[u8]>) {
+    fn unmap(&self, ptr: NonNull<[u8]>) {
         let size = ptr.len();
         unsafe { libc::munmap(ptr.as_ptr() as *mut libc::c_void, size) };
     }
 
-    fn commit(ptr: NonNull<[u8]>) -> Result<()> {
-        Self::protect(ptr, EnumSet::all())?;
+    fn commit(&self, ptr: NonNull<[u8]>) -> Result<()> {
+        self.protect(ptr, EnumSet::all())?;
         Ok(())
     }
 
-    fn decommit(ptr: NonNull<[u8]>) -> Result<()> {
-        let cptr = Self::cptr(ptr.as_ptr() as *mut u8);
+    fn decommit(&self, ptr: NonNull<[u8]>) -> Result<()> {
+        let cptr = self.cptr(ptr.as_ptr() as *mut u8);
         let res = unsafe { libc::madvise(cptr, ptr.len(), unix::DONTNEED) };
         if res != 0 {
             return Err(MapError::DecommitFailed.into());
         }
-        Self::protect(ptr, EnumSet::empty())?;
+        self.protect(ptr, EnumSet::empty())?;
         Ok(())
     }
 
-    fn protect(ptr: NonNull<[u8]>, prot: EnumSet<Protection>) -> Result<()> {
+    fn protect(&self, ptr: NonNull<[u8]>, prot: EnumSet<Protection>) -> Result<()> {
         let prot_flags = Self::to_prot(prot);
-        let cptr = Self::cptr(ptr.as_ptr() as *mut u8);
+        let cptr = self.cptr(ptr.as_ptr() as *mut u8);
         let res = unsafe { libc::mprotect(cptr, ptr.len(), prot_flags) };
         if res != 0 {
             return Err(MapError::ProtectFailed.into());
@@ -103,12 +105,13 @@ impl Mapper for PosixMapper {
 #[cfg(not(unix))]
 impl Mapper for PosixMapper {}
 
-#[cfg(all(unix, test))]
+#[cfg(all(test, unix))]
 mod tests {
     use enumset::EnumSet;
 
     use crate::{
-        mapper::{Mapper, Protection},
+        GLOBAL_MAPPER,
+        mapper::Protection,
         posix::{PosixMapper, unix},
     };
 
@@ -128,18 +131,18 @@ mod tests {
 
     #[test]
     fn test_map_and_unmap() {
-        let result = PosixMapper::map(4096);
+        let result = GLOBAL_MAPPER.map(4096);
         assert!(result.is_ok());
 
         let ptr = result.unwrap();
         assert!(ptr.len() >= 4096);
 
-        PosixMapper::unmap(ptr);
+        GLOBAL_MAPPER.unmap(ptr);
     }
 
     #[test]
     fn test_map_zero_size() {
-        let result = PosixMapper::map(0);
+        let result = GLOBAL_MAPPER.map(0);
         assert!(result.is_err());
 
         if let Err(e) = result {
@@ -150,48 +153,48 @@ mod tests {
 
     #[test]
     fn test_commit_and_protect() {
-        let ptr = PosixMapper::map(4096).unwrap();
+        let ptr = GLOBAL_MAPPER.map(4096).unwrap();
 
-        let commit_result = PosixMapper::commit(ptr);
+        let commit_result = GLOBAL_MAPPER.commit(ptr);
         assert!(commit_result.is_ok());
 
-        let protect_result = PosixMapper::protect(ptr, Protection::Read.into());
+        let protect_result = GLOBAL_MAPPER.protect(ptr, Protection::Read.into());
         assert!(protect_result.is_ok());
 
-        PosixMapper::unmap(ptr);
+        GLOBAL_MAPPER.unmap(ptr);
     }
 
     #[test]
     fn test_protect_with_different_permissions() {
-        let ptr = PosixMapper::map(4096).unwrap();
+        let ptr = GLOBAL_MAPPER.map(4096).unwrap();
 
-        assert!(PosixMapper::protect(ptr, EnumSet::empty()).is_ok());
-        assert!(PosixMapper::protect(ptr, Protection::Read.into()).is_ok());
-        assert!(PosixMapper::protect(ptr, Protection::Write.into()).is_ok());
-        assert!(PosixMapper::protect(ptr, EnumSet::all()).is_ok());
+        assert!(GLOBAL_MAPPER.protect(ptr, EnumSet::empty()).is_ok());
+        assert!(GLOBAL_MAPPER.protect(ptr, Protection::Read.into()).is_ok());
+        assert!(GLOBAL_MAPPER.protect(ptr, Protection::Write.into()).is_ok());
+        assert!(GLOBAL_MAPPER.protect(ptr, EnumSet::all()).is_ok());
 
-        PosixMapper::unmap(ptr);
+        GLOBAL_MAPPER.unmap(ptr);
     }
 
     #[test]
     fn test_decommit() {
-        let ptr = PosixMapper::map(4096).unwrap();
-        PosixMapper::commit(ptr).unwrap();
+        let ptr = GLOBAL_MAPPER.map(4096).unwrap();
+        GLOBAL_MAPPER.commit(ptr).unwrap();
 
-        let decommit_result = PosixMapper::decommit(ptr);
+        let decommit_result = GLOBAL_MAPPER.decommit(ptr);
         assert!(decommit_result.is_ok());
-        PosixMapper::unmap(ptr);
+        GLOBAL_MAPPER.unmap(ptr);
     }
 
     #[test]
     fn test_large_allocation() {
         let size = 1024 * 1024;
-        let ptr = PosixMapper::map(size).unwrap();
+        let ptr = GLOBAL_MAPPER.map(size).unwrap();
         assert!(ptr.len() >= size);
 
-        PosixMapper::commit(ptr).unwrap();
-        PosixMapper::protect(ptr, EnumSet::all()).unwrap();
+        GLOBAL_MAPPER.commit(ptr).unwrap();
+        GLOBAL_MAPPER.protect(ptr, EnumSet::all()).unwrap();
 
-        PosixMapper::unmap(ptr);
+        GLOBAL_MAPPER.unmap(ptr);
     }
 }

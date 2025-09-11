@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, ptr::NonNull};
+use std::ptr::NonNull;
 
 use anyhow::Result;
 use getset::Getters;
@@ -6,41 +6,38 @@ use getset::Getters;
 use crate::mapper::Mapper;
 
 #[derive(Debug, Getters)]
-pub struct Region<M>
+pub struct Region<'mapper, M>
 where
-    M: Mapper,
+    M: Mapper + ?Sized,
 {
     #[getset(get = "pub")]
     data: NonNull<[u8]>,
-    _marker: PhantomData<M>,
+    mapper: &'mapper M,
 }
 
-impl<M> Region<M>
+impl<'mapper, M> Region<'mapper, M>
 where
-    M: Mapper,
+    M: Mapper + ?Sized,
 {
-    pub fn new(size: usize) -> Result<Self> {
-        let data = M::map(size)?;
-        Ok(Self {
-            data,
-            _marker: PhantomData,
-        })
+    pub fn new(mapper: &'mapper M, size: usize) -> Result<Self> {
+        let data = mapper.map(size)?;
+        Ok(Self { data, mapper })
     }
 
     pub fn activate(&self) -> Result<()> {
-        M::commit(self.data)
+        self.mapper.commit(self.data)
     }
 
     pub fn deactivate(&self) -> Result<()> {
-        M::decommit(self.data)
+        self.mapper.decommit(self.data)
     }
 }
 
-impl<M> Drop for Region<M>
+impl<'mapper, M> Drop for Region<'mapper, M>
 where
-    M: Mapper,
+    M: Mapper + ?Sized,
 {
     fn drop(&mut self) {
-        M::unmap(self.data);
+        self.mapper.unmap(self.data);
     }
 }
