@@ -109,7 +109,7 @@ mod tests {
     use enumset::EnumSet;
 
     use crate::{
-        GLOBAL_MAPPER,
+        GLOBAL_MAPPER, MapError,
         mapper::Protection,
         posix::{PosixMapper, unix},
     };
@@ -145,7 +145,7 @@ mod tests {
         assert!(result.is_err());
 
         if let Err(e) = result {
-            assert!(matches!(e, crate::MapError::InvalidSize));
+            assert!(matches!(e, MapError::InvalidSize));
         }
     }
 
