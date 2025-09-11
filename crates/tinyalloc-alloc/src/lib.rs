@@ -2,7 +2,7 @@ pub mod arena;
 pub mod classes;
 pub mod heap;
 
-pub const SIZES: usize = 44;
+pub const SIZES: usize = 32;
 pub const ONE: usize = 1;
 pub const WORD: usize = std::mem::size_of::<usize>();
 
@@ -20,7 +20,15 @@ pub const MIN_SIZE: usize = MIN_ALIGN;
 pub const ARENA_SHIFT: usize = 23 + SHIFT;
 pub const ARENA_SIZE: usize = 1 << ARENA_SHIFT;
 
-pub const SEGMENT_SHIFT: usize = 13 + SHIFT;
+pub const SEGMENT_SHIFT: usize = 17 + SHIFT;
 pub const SEGMENT_SIZE: usize = 1 << SEGMENT_SHIFT;
 
 pub const SEGMENT_NUM: usize = ARENA_SIZE / SEGMENT_SIZE;
+
+pub const SMALL_SC_LIMIT: usize = 1 << (SHIFT + 5);
+pub const MEDIUM_SC_LIMIT: usize = 1 << (SHIFT + 10);
+pub const LARGE_SC_LIMIT: usize = 1 << (SHIFT + 13);
+
+pub const FITS2: usize = ARENA_SIZE / SEGMENT_SIZE;
+pub const FITS: usize = SEGMENT_SIZE / LARGE_SC_LIMIT;
+pub const TOTAL_FITS: usize = FITS * FITS2;
