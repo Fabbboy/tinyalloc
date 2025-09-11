@@ -141,6 +141,12 @@ dependencies = [
 [[package]]
 name = "tinyalloc"
 version = "0.1.0"
+dependencies = [
+ "tinyalloc-alloc",
+ "tinyalloc-bitmap",
+ "tinyalloc-list",
+ "tinyalloc-sys",
+]
 
 [[package]]
 name = "tinyalloc-alloc"
