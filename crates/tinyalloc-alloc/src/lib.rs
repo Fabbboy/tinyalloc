@@ -1,7 +1,4 @@
-pub mod arena;
 pub mod classes;
-pub mod heap;
-pub mod segment;
 
 pub const SIZES: usize = 32;
 pub const ONE: usize = 1;
