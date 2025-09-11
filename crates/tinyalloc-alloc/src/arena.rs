@@ -1,15 +1,15 @@
 use std::{
-    mem,
+    array, mem,
     ptr::{self, NonNull},
     slice,
 };
 
 use tinyalloc_bitmap::{Bitmap, BitmapError};
-use tinyalloc_list::Item;
+use tinyalloc_list::{Item, List};
 use tinyalloc_sys::{MapError, mapper::Mapper, region::Region};
 
 use crate::{
-    ARENA_SIZE, SEGMENT_SIZE,
+    ARENA_SIZE, SEGMENT_SIZE, SIZES,
     segment::{Segment, SegmentId},
 };
 
@@ -28,6 +28,7 @@ where
     next: Option<NonNull<Self>>,
     prev: Option<NonNull<Self>>,
     segment_map: Bitmap<'mapper, usize>,
+    segments: [List<Segment<'mapper, M>>; SIZES],
 }
 
 impl<'mapper, M> Arena<'mapper, M>
@@ -40,6 +41,8 @@ where
         let arena_ptr = data.as_mut_ptr() as *mut Self;
         let arena_size = mem::size_of::<Self>();
         let num_segments = ARENA_SIZE / SEGMENT_SIZE;
+
+        let segments = array::from_fn(|_| List::new());
 
         let bitmap_words = Bitmap::<usize>::words(num_segments);
         let bitmap_start = unsafe { arena_ptr.byte_add(arena_size) as *mut usize };
@@ -57,6 +60,7 @@ where
                     next: None,
                     prev: None,
                     segment_map,
+                    segments,
                 },
             );
         }

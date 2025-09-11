@@ -1,5 +1,6 @@
 use std::{marker::PhantomData, ptr::NonNull};
 
+use tinyalloc_list::Item;
 use tinyalloc_sys::mapper::Mapper;
 
 use crate::{
@@ -25,6 +26,8 @@ where
     data: &'mapper mut [u8],
     arena: &'mapper mut Arena<'mapper, M>,
     _marker: PhantomData<M>,
+    next: Option<NonNull<Self>>,
+    prev: Option<NonNull<Self>>,
 }
 
 impl<'mapper, M> Segment<'mapper, M>
@@ -45,6 +48,8 @@ where
         segment.data = segment_slice;
         segment._marker = PhantomData;
         segment.arena = arena;
+        segment.next = None;
+        segment.prev = None;
         Ok(segment_nn)
     }
 }
@@ -55,5 +60,26 @@ where
 {
     fn drop(&mut self) {
         let _ = self.arena.deallocate(self.id);
+    }
+}
+
+impl<'mapper, M> Item for Segment<'mapper, M>
+where
+    M: Mapper,
+{
+    fn next(&self) -> Option<NonNull<Self>> {
+        self.next
+    }
+
+    fn set_next(&mut self, next: Option<NonNull<Self>>) {
+        self.next = next;
+    }
+
+    fn prev(&self) -> Option<NonNull<Self>> {
+        self.prev
+    }
+
+    fn set_prev(&mut self, prev: Option<NonNull<Self>>) {
+        self.prev = prev;
     }
 }
