@@ -1,5 +1,5 @@
-use std::ptr::NonNull;
 use crate::{Item, List};
+use std::ptr::NonNull;
 
 #[derive(Debug)]
 struct TestNode {
@@ -47,49 +47,55 @@ unsafe fn free_node(node: NonNull<TestNode>) {
 #[test]
 fn test_push_back_and_pop_back() {
     let mut list = List::new();
-    
+
     let node1 = create_node(1);
     let node2 = create_node(2);
     let node3 = create_node(3);
-    
-    list.push_back(node1);
-    list.push_back(node2);
-    list.push_back(node3);
-    
+
+    list.push(node1);
+    list.push(node2);
+    list.push(node3);
+
     assert_eq!(unsafe { node3.as_ref().value }, 3);
     assert_eq!(unsafe { node2.as_ref().value }, 2);
     assert_eq!(unsafe { node1.as_ref().value }, 1);
-    
-    let popped = list.pop_back().unwrap();
+
+    let popped = list.pop().unwrap();
     assert_eq!(unsafe { popped.as_ref().value }, 3);
-    unsafe { free_node(popped); }
-    
-    let popped = list.pop_back().unwrap();
+    unsafe {
+        free_node(popped);
+    }
+
+    let popped = list.pop().unwrap();
     assert_eq!(unsafe { popped.as_ref().value }, 2);
-    unsafe { free_node(popped); }
-    
-    let popped = list.pop_back().unwrap();
+    unsafe {
+        free_node(popped);
+    }
+
+    let popped = list.pop().unwrap();
     assert_eq!(unsafe { popped.as_ref().value }, 1);
-    unsafe { free_node(popped); }
-    
-    assert!(list.pop_back().is_none());
+    unsafe {
+        free_node(popped);
+    }
+
+    assert!(list.pop().is_none());
 }
 
 #[test]
 fn test_insert_before_and_after() {
     let mut list = List::new();
-    
+
     let node1 = create_node(1);
     let node2 = create_node(2);
     let node3 = create_node(3);
-    
-    list.push_back(node2);
+
+    list.push(node2);
     list.insert_before(node2, node1);
     list.insert_after(node2, node3);
-    
+
     let values: Vec<i32> = list.iter().map(|node| node.value).collect();
     assert_eq!(values, vec![1, 2, 3]);
-    
+
     unsafe {
         free_node(node1);
         free_node(node2);
@@ -100,28 +106,28 @@ fn test_insert_before_and_after() {
 #[test]
 fn test_remove() {
     let mut list = List::new();
-    
+
     let node1 = create_node(1);
     let node2 = create_node(2);
     let node3 = create_node(3);
-    
-    list.push_back(node1);
-    list.push_back(node2);
-    list.push_back(node3);
-    
+
+    list.push(node1);
+    list.push(node2);
+    list.push(node3);
+
     list.remove(node2);
-    
+
     let values: Vec<i32> = list.iter().map(|node| node.value).collect();
     assert_eq!(values, vec![1, 3]);
-    
+
     list.remove(node1);
     let values: Vec<i32> = list.iter().map(|node| node.value).collect();
     assert_eq!(values, vec![3]);
-    
+
     list.remove(node3);
     let values: Vec<i32> = list.iter().map(|node| node.value).collect();
     assert_eq!(values, vec![]);
-    
+
     unsafe {
         free_node(node1);
         free_node(node2);
@@ -132,18 +138,18 @@ fn test_remove() {
 #[test]
 fn test_iter() {
     let mut list = List::new();
-    
+
     let node1 = create_node(10);
     let node2 = create_node(20);
     let node3 = create_node(30);
-    
-    list.push_back(node1);
-    list.push_back(node2);
-    list.push_back(node3);
-    
+
+    list.push(node1);
+    list.push(node2);
+    list.push(node3);
+
     let values: Vec<i32> = list.iter().map(|node| node.value).collect();
     assert_eq!(values, vec![10, 20, 30]);
-    
+
     unsafe {
         free_node(node1);
         free_node(node2);
@@ -154,22 +160,22 @@ fn test_iter() {
 #[test]
 fn test_iter_mut() {
     let mut list = List::new();
-    
+
     let node1 = create_node(10);
     let node2 = create_node(20);
     let node3 = create_node(30);
-    
-    list.push_back(node1);
-    list.push_back(node2);
-    list.push_back(node3);
-    
+
+    list.push(node1);
+    list.push(node2);
+    list.push(node3);
+
     for node in list.iter_mut() {
         node.value *= 2;
     }
-    
+
     let values: Vec<i32> = list.iter().map(|node| node.value).collect();
     assert_eq!(values, vec![20, 40, 60]);
-    
+
     unsafe {
         free_node(node1);
         free_node(node2);
@@ -180,25 +186,26 @@ fn test_iter_mut() {
 #[test]
 fn test_drain() {
     let mut list = List::new();
-    
+
     let node1 = create_node(100);
     let node2 = create_node(200);
     let node3 = create_node(300);
-    
-    list.push_back(node1);
-    list.push_back(node2);
-    list.push_back(node3);
-    
-    let drained: Vec<i32> = list.drain()
-        .map(|node| unsafe { 
+
+    list.push(node1);
+    list.push(node2);
+    list.push(node3);
+
+    let drained: Vec<i32> = list
+        .drain()
+        .map(|node| unsafe {
             let value = node.as_ref().value;
             free_node(node);
             value
         })
         .collect();
-    
+
     assert_eq!(drained, vec![100, 200, 300]);
-    
+
     let values: Vec<i32> = list.iter().map(|node| node.value).collect();
     assert_eq!(values, vec![]);
 }
@@ -206,14 +213,15 @@ fn test_drain() {
 #[test]
 fn test_empty_list() {
     let mut list: List<TestNode> = List::new();
-    
-    assert!(list.pop_back().is_none());
-    
+
+    assert!(list.pop().is_none());
+
     let values: Vec<i32> = list.iter().map(|node| node.value).collect();
     assert_eq!(values, vec![]);
-    
-    let drained: Vec<i32> = list.drain()
-        .map(|node| unsafe { 
+
+    let drained: Vec<i32> = list
+        .drain()
+        .map(|node| unsafe {
             let value = node.as_ref().value;
             free_node(node);
             value
@@ -226,17 +234,19 @@ fn test_empty_list() {
 fn test_single_element() {
     let mut list = List::new();
     let node = create_node(42);
-    
-    list.push_back(node);
-    
+
+    list.push(node);
+
     let values: Vec<i32> = list.iter().map(|node| node.value).collect();
     assert_eq!(values, vec![42]);
-    
-    let popped = list.pop_back().unwrap();
+
+    let popped = list.pop().unwrap();
     assert_eq!(unsafe { popped.as_ref().value }, 42);
-    
+
     let values: Vec<i32> = list.iter().map(|node| node.value).collect();
     assert_eq!(values, vec![]);
-    
-    unsafe { free_node(popped); }
+
+    unsafe {
+        free_node(popped);
+    }
 }

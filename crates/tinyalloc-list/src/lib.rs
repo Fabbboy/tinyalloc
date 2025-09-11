@@ -53,7 +53,7 @@ where
         }
     }
 
-    pub fn push_back(&mut self, mut item: NonNull<T>) {
+    pub fn push(&mut self, mut item: NonNull<T>) {
         unsafe {
             item.as_mut().set_next(None);
             item.as_mut().set_prev(self.tail);
@@ -68,7 +68,7 @@ where
         }
     }
 
-    pub fn pop_back(&mut self) -> Option<NonNull<T>> {
+    pub fn pop(&mut self) -> Option<NonNull<T>> {
         self.tail.map(|tail| unsafe {
             let prev = tail.as_ref().prev();
 
