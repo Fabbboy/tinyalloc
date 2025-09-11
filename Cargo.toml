@@ -29,3 +29,7 @@ crate-type = ["cdylib", "staticlib", "rlib"]
 panic = "abort"
 
 [dependencies]
+tinyalloc-alloc = { workspace = true }
+tinyalloc-bitmap = { workspace = true }
+tinyalloc-list = { workspace = true }
+tinyalloc-sys = { workspace = true }
