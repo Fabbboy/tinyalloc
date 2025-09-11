@@ -26,3 +26,7 @@ pub const SEGMENT_SIZE: usize = 1 << SEGMENT_SHIFT;
 pub const SMALL_SC_LIMIT: usize = 1 << (SHIFT + 5);
 pub const MEDIUM_SC_LIMIT: usize = 1 << (SHIFT + 10);
 pub const LARGE_SC_LIMIT: usize = 1 << (SHIFT + 13);
+
+pub const SMALL_ALIGN_LIMIT: usize = SMALL_SC_LIMIT / 4;
+pub const MEDIUM_ALIGN_LIMIT: usize = MEDIUM_SC_LIMIT / 8;
+pub const LARGE_ALIGN_RATIO: usize = 8;

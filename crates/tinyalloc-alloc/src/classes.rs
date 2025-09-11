@@ -1,4 +1,7 @@
-use crate::{LARGE_SC_LIMIT, MEDIUM_SC_LIMIT, MIN_ALIGN, MIN_SIZE, SIZES, SMALL_SC_LIMIT};
+use crate::{
+    LARGE_ALIGN_RATIO, LARGE_SC_LIMIT, MEDIUM_ALIGN_LIMIT, MEDIUM_SC_LIMIT, MIN_ALIGN, MIN_SIZE,
+    SIZES, SMALL_ALIGN_LIMIT, SMALL_SC_LIMIT,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Size(pub usize);
@@ -9,26 +12,14 @@ pub struct Align(pub usize);
 pub struct Class(pub Size, pub Align);
 
 const fn size_to_align(size: usize) -> usize {
-    if size <= MIN_ALIGN {
+    if size <= SMALL_ALIGN_LIMIT {
         MIN_ALIGN
-    } else if size <= SMALL_SC_LIMIT {
-        let mut align = MIN_ALIGN;
-        while align < size && align < SMALL_SC_LIMIT / 4 {
-            align *= 2;
-        }
-        align
-    } else if size <= MEDIUM_SC_LIMIT {
-        let mut align = SMALL_SC_LIMIT / 4;
-        while align < size && align < MEDIUM_SC_LIMIT / 8 {
-            align *= 2;
-        }
-        align
+    } else if size <= MEDIUM_ALIGN_LIMIT {
+        SMALL_ALIGN_LIMIT
+    } else if size <= LARGE_SC_LIMIT {
+        MEDIUM_ALIGN_LIMIT
     } else {
-        let mut align = MEDIUM_SC_LIMIT / 8;
-        while align < size && align * 8 <= size {
-            align *= 2;
-        }
-        align
+        size / LARGE_ALIGN_RATIO
     }
 }
 
@@ -53,7 +44,6 @@ const fn classes() -> [Class; SIZES] {
 
         i += 1;
     }
-
     classes
 }
 
