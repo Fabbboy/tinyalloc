@@ -5,7 +5,6 @@ edition = "2024"
 
 [dependencies]
 anyhow = { workspace = true }
-thiserror = { workspace = true }
 getset = { workspace = true }
 libc = { workspace = true }
 enumset = { workspace = true }

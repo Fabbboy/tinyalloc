@@ -6,6 +6,5 @@ edition = "2024"
 [dependencies]
 tinyvec = { workspace = true }
 anyhow = { workspace = true }
-thiserror = { workspace = true }
 
 tinyalloc-sys = { workspace = true }

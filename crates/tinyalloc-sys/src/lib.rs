@@ -1,20 +1,28 @@
-use thiserror::Error;
 
 pub mod mapper;
 pub mod posix;
 pub mod region;
 pub mod size;
 
-#[derive(Debug, Error)]
+#[derive(Debug)]
 pub enum MapError {
-    #[error("Invalid size for memory mapping")]
     InvalidSize,
-    #[error("Failed to map memory region")]
     OutOfMemory,
-    #[error("Failed to commit memory region")]
     CommitFailed,
-    #[error("Failed to decommit memory region")]
     DecommitFailed,
-    #[error("Failed to protect memory region")]
     ProtectFailed,
 }
+
+impl std::fmt::Display for MapError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            MapError::InvalidSize => write!(f, "Invalid size for memory mapping"),
+            MapError::OutOfMemory => write!(f, "Failed to map memory region"),
+            MapError::CommitFailed => write!(f, "Failed to commit memory region"),
+            MapError::DecommitFailed => write!(f, "Failed to decommit memory region"),
+            MapError::ProtectFailed => write!(f, "Failed to protect memory region"),
+        }
+    }
+}
+
+impl std::error::Error for MapError {}

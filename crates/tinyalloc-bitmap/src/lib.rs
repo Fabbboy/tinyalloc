@@ -1,5 +1,4 @@
 use getset::Getters;
-use thiserror::Error;
 
 use crate::numeric::{Bits, BitsRequire};
 
@@ -7,13 +6,22 @@ pub mod numeric;
 #[cfg(test)]
 pub mod tests;
 
-#[derive(Debug, Error)]
+#[derive(Debug)]
 pub enum BitmapError {
-    #[error("Bitmap size insufficient: have {have} bits, need {need} bits")]
     InsufficientSize { have: usize, need: usize },
-    #[error("Bitmap index {index} out of bounds (size {size})")]
     OutOfBounds { index: usize, size: usize },
 }
+
+impl std::fmt::Display for BitmapError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BitmapError::InsufficientSize { .. } => write!(f, "Bitmap size insufficient"),
+            BitmapError::OutOfBounds { .. } => write!(f, "Bitmap index out of bounds"),
+        }
+    }
+}
+
+impl std::error::Error for BitmapError {}
 
 #[derive(Debug, Getters)]
 pub struct Bitmap<'bitmap, T>
