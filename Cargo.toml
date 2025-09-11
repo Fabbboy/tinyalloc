@@ -8,7 +8,7 @@ resolver = "3"
 members = [
   "crates/tinyalloc-alloc",
   "crates/tinyalloc-bitmap",
-  "crates/tinyalloc-list", "crates/tinyalloc-mapped",
+  "crates/tinyalloc-list",
   "crates/tinyalloc-sys",
 ]
 
@@ -16,7 +16,6 @@ members = [
 getset = "0.1.6"
 libc = "0.2.175"
 enumset = "1.1.10"
-tinyvec = "1.10.0"
 
 tinyalloc-alloc = { path = "crates/tinyalloc-alloc" }
 tinyalloc-bitmap = { path = "crates/tinyalloc-bitmap" }

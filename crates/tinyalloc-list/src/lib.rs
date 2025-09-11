@@ -3,23 +3,23 @@ use std::{marker::PhantomData, ptr::NonNull};
 #[cfg(test)]
 pub mod tests;
 
-pub trait Item<T> {
-    fn next(&self) -> Option<NonNull<T>>;
-    fn prev(&self) -> Option<NonNull<T>>;
-    fn set_next(&mut self, next: Option<NonNull<T>>);
-    fn set_prev(&mut self, prev: Option<NonNull<T>>);
+pub trait Item {
+    fn next(&self) -> Option<NonNull<Self>>;
+    fn prev(&self) -> Option<NonNull<Self>>;
+    fn set_next(&mut self, next: Option<NonNull<Self>>);
+    fn set_prev(&mut self, prev: Option<NonNull<Self>>);
 }
 
 pub struct DrainIter<'list, T>
 where
-    T: Item<T>,
+    T: Item,
 {
     list: &'list mut List<T>,
 }
 
 pub struct Iter<'list, T>
 where
-    T: Item<T>,
+    T: Item,
 {
     next: Option<NonNull<T>>,
     _marker: PhantomData<&'list T>,
@@ -27,7 +27,7 @@ where
 
 pub struct IterMut<'list, T>
 where
-    T: Item<T>,
+    T: Item,
 {
     next: Option<NonNull<T>>,
     _marker: PhantomData<&'list mut T>,
@@ -36,7 +36,7 @@ where
 #[derive(Debug)]
 pub struct List<T>
 where
-    T: Item<T>,
+    T: Item,
 {
     head: Option<NonNull<T>>,
     tail: Option<NonNull<T>>,
@@ -44,7 +44,7 @@ where
 
 impl<T> List<T>
 where
-    T: Item<T>,
+    T: Item,
 {
     pub const fn new() -> Self {
         Self {
@@ -158,7 +158,7 @@ where
 
 impl<'list, T> Iterator for Iter<'list, T>
 where
-    T: Item<T>,
+    T: Item,
 {
     type Item = &'list T;
 
@@ -173,7 +173,7 @@ where
 
 impl<'list, T> Iterator for IterMut<'list, T>
 where
-    T: Item<T>,
+    T: Item,
 {
     type Item = &'list mut T;
 
@@ -188,7 +188,7 @@ where
 
 impl<'list, T> Iterator for DrainIter<'list, T>
 where
-    T: Item<T>,
+    T: Item,
 {
     type Item = NonNull<T>;
 

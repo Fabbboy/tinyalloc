@@ -18,8 +18,8 @@ impl TestNode {
     }
 }
 
-impl Item<TestNode> for TestNode {
-    fn next(&self) -> Option<NonNull<TestNode>> {
+impl Item for TestNode {
+    fn next(&self) -> Option<NonNull<Self>> {
         self.next
     }
 
