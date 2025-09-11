@@ -1,6 +1,5 @@
 use std::ptr::NonNull;
 
-use anyhow::Result;
 use enumset::{EnumSet, EnumSetType};
 
 use crate::MapError;
@@ -24,23 +23,23 @@ where
     fn cptr(&self, rptr: *mut u8) -> *mut libc::c_void {
         rptr as *mut libc::c_void
     }
-    fn map(&self, size: usize) -> Result<NonNull<[u8]>> {
+    fn map(&self, size: usize) -> Result<NonNull<[u8]>, MapError> {
         _ = size;
-        Err(MapError::OutOfMemory.into())
+        Err(MapError::OutOfMemory)
     }
     fn unmap(&self, ptr: NonNull<[u8]>) {
         _ = ptr;
     }
-    fn commit(&self, ptr: NonNull<[u8]>) -> Result<()> {
+    fn commit(&self, ptr: NonNull<[u8]>) -> Result<(), MapError> {
         _ = ptr;
-        Err(MapError::CommitFailed.into())
+        Err(MapError::CommitFailed)
     }
-    fn decommit(&self, ptr: NonNull<[u8]>) -> Result<()> {
+    fn decommit(&self, ptr: NonNull<[u8]>) -> Result<(), MapError> {
         _ = ptr;
         Ok(())
     }
-    fn protect(&self, ptr: NonNull<[u8]>, prot: EnumSet<Protection>) -> Result<()> {
+    fn protect(&self, ptr: NonNull<[u8]>, prot: EnumSet<Protection>) -> Result<(), MapError> {
         _ = (ptr, prot);
-        Err(MapError::ProtectFailed.into())
+        Err(MapError::ProtectFailed)
     }
 }

@@ -1,9 +1,8 @@
 use std::ptr::NonNull;
 
-use anyhow::Result;
 use getset::Getters;
 
-use crate::mapper::Mapper;
+use crate::{MapError, mapper::Mapper};
 
 #[derive(Debug, Getters)]
 pub struct Region<'mapper, M>
@@ -19,16 +18,16 @@ impl<'mapper, M> Region<'mapper, M>
 where
     M: Mapper + ?Sized,
 {
-    pub fn new(mapper: &'mapper M, size: usize) -> Result<Self> {
+    pub fn new(mapper: &'mapper M, size: usize) -> Result<Self, MapError> {
         let data = mapper.map(size)?;
         Ok(Self { data, mapper })
     }
 
-    pub fn activate(&self) -> Result<()> {
+    pub fn activate(&self) -> Result<(), MapError> {
         self.mapper.commit(self.data)
     }
 
-    pub fn deactivate(&self) -> Result<()> {
+    pub fn deactivate(&self) -> Result<(), MapError> {
         self.mapper.decommit(self.data)
     }
 }

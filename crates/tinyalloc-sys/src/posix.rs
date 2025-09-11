@@ -6,7 +6,6 @@ use crate::MapError;
 use crate::mapper::Protection;
 use crate::mapper::{Mapper, MapperRequires};
 use crate::size::page_align;
-use anyhow::Result;
 #[cfg(unix)]
 use enumset::EnumSet;
 
@@ -47,9 +46,9 @@ impl PosixMapper {
 
 #[cfg(unix)]
 impl Mapper for PosixMapper {
-    fn map(&self, size: usize) -> Result<NonNull<[u8]>> {
+    fn map(&self, size: usize) -> Result<NonNull<[u8]>, MapError> {
         if size == 0 {
-            return Err(MapError::InvalidSize.into());
+            return Err(MapError::InvalidSize);
         }
         let aligned_size = page_align(size);
         let ptr = unsafe {
@@ -64,7 +63,7 @@ impl Mapper for PosixMapper {
         };
 
         if ptr == libc::MAP_FAILED {
-            return Err(MapError::OutOfMemory.into());
+            return Err(MapError::OutOfMemory);
         }
 
         let slice = unsafe { std::slice::from_raw_parts_mut(ptr as *mut u8, aligned_size) };
@@ -76,27 +75,27 @@ impl Mapper for PosixMapper {
         unsafe { libc::munmap(ptr.as_ptr() as *mut libc::c_void, size) };
     }
 
-    fn commit(&self, ptr: NonNull<[u8]>) -> Result<()> {
+    fn commit(&self, ptr: NonNull<[u8]>) -> Result<(), MapError> {
         self.protect(ptr, EnumSet::all())?;
         Ok(())
     }
 
-    fn decommit(&self, ptr: NonNull<[u8]>) -> Result<()> {
+    fn decommit(&self, ptr: NonNull<[u8]>) -> Result<(), MapError> {
         let cptr = self.cptr(ptr.as_ptr() as *mut u8);
         let res = unsafe { libc::madvise(cptr, ptr.len(), unix::DONTNEED) };
         if res != 0 {
-            return Err(MapError::DecommitFailed.into());
+            return Err(MapError::DecommitFailed);
         }
         self.protect(ptr, EnumSet::empty())?;
         Ok(())
     }
 
-    fn protect(&self, ptr: NonNull<[u8]>, prot: EnumSet<Protection>) -> Result<()> {
+    fn protect(&self, ptr: NonNull<[u8]>, prot: EnumSet<Protection>) -> Result<(), MapError> {
         let prot_flags = Self::to_prot(prot);
         let cptr = self.cptr(ptr.as_ptr() as *mut u8);
         let res = unsafe { libc::mprotect(cptr, ptr.len(), prot_flags) };
         if res != 0 {
-            return Err(MapError::ProtectFailed.into());
+            return Err(MapError::ProtectFailed);
         }
         Ok(())
     }
@@ -146,8 +145,7 @@ mod tests {
         assert!(result.is_err());
 
         if let Err(e) = result {
-            let map_error = e.downcast_ref::<crate::MapError>();
-            assert!(matches!(map_error, Some(crate::MapError::InvalidSize)));
+            assert!(matches!(e, crate::MapError::InvalidSize));
         }
     }
 

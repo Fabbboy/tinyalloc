@@ -1,7 +1,6 @@
 use std::ptr::NonNull;
 
-use anyhow::Result;
-use tinyalloc_sys::{mapper::Mapper, region::Region};
+use tinyalloc_sys::{MapError, mapper::Mapper, region::Region};
 use tinyvec::SliceVec;
 
 #[derive(Debug)]
@@ -37,12 +36,12 @@ where
         }
     }
 
-    pub fn new_capacity(mapper: &'vec M, initial: usize) -> Result<Self> {
+    pub fn new_capacity(mapper: &'vec M, initial: usize) -> Result<Self, MapError> {
         let backing = Region::new(mapper, initial * Self::T_SIZE)?;
         backing.activate()?;
         let raw_slice: NonNull<[u8]> = *backing.data();
         let slice = Self::tslice(raw_slice);
-        let vec = SliceVec::from(slice);
+        let vec = SliceVec::from_slice_len(slice, 0);
         Ok(Self {
             vec,
             backing: Some(backing),
@@ -50,7 +49,7 @@ where
         })
     }
 
-    fn resize_backing(&mut self, new_capacity: usize) -> Result<()> {
+    fn resize_backing(&mut self, new_capacity: usize) -> Result<(), MapError> {
         if new_capacity == 0 {
             self.backing = None;
             self.vec = SliceVec::default();
@@ -61,8 +60,7 @@ where
         new_backing.activate()?;
         let raw_slice: NonNull<[u8]> = *new_backing.data();
         let new_slice = Self::tslice(raw_slice);
-
-        let mut new_vec = SliceVec::from(new_slice);
+        let mut new_vec = SliceVec::from_slice_len(new_slice, 0);
         for item in self.vec.as_slice() {
             new_vec.push(*item);
         }
@@ -72,7 +70,7 @@ where
         Ok(())
     }
 
-    fn ensure_capacity(&mut self, additional: usize) -> Result<()> {
+    fn ensure_capacity(&mut self, additional: usize) -> Result<(), MapError> {
         let required = self.vec.len() + additional;
         if required <= self.vec.capacity() {
             return Ok(());
@@ -87,7 +85,7 @@ where
         self.resize_backing(new_capacity)
     }
 
-    fn shrink_if_needed(&mut self) -> Result<()> {
+    fn shrink_if_needed(&mut self) -> Result<(), MapError> {
         let current_len = self.vec.len();
         let current_capacity = self.vec.capacity();
 
@@ -103,7 +101,7 @@ where
         Ok(())
     }
 
-    pub fn push(&mut self, value: T) -> Result<()> {
+    pub fn push(&mut self, value: T) -> Result<(), MapError> {
         self.ensure_capacity(1)?;
         self.vec.push(value);
         Ok(())
@@ -134,7 +132,7 @@ where
         let _ = self.shrink_if_needed();
     }
 
-    pub fn insert(&mut self, index: usize, element: T) -> Result<()> {
+    pub fn insert(&mut self, index: usize, element: T) -> Result<(), MapError> {
         self.ensure_capacity(1)?;
         self.vec.insert(index, element);
         Ok(())

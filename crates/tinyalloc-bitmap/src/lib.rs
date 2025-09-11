@@ -13,7 +13,6 @@ pub enum BitmapError {
 }
 
 
-impl std::error::Error for BitmapError {}
 
 #[derive(Debug, Getters)]
 pub struct Bitmap<'bitmap, T>

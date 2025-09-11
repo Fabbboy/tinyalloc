@@ -21,6 +21,3 @@ pub enum MapError {
     DecommitFailed,
     ProtectFailed,
 }
-
-
-impl std::error::Error for MapError {}
