@@ -1,0 +1,11 @@
+[package]
+name = "tinyalloc-mapped"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tinyvec = { workspace = true }
+anyhow = { workspace = true }
+thiserror = { workspace = true }
+
+tinyalloc-sys = { workspace = true }
