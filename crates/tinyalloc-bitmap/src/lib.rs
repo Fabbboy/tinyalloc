@@ -12,14 +12,6 @@ pub enum BitmapError {
     OutOfBounds { index: usize, size: usize },
 }
 
-impl std::fmt::Display for BitmapError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            BitmapError::InsufficientSize { .. } => write!(f, "Bitmap size insufficient"),
-            BitmapError::OutOfBounds { .. } => write!(f, "Bitmap index out of bounds"),
-        }
-    }
-}
 
 impl std::error::Error for BitmapError {}
 
