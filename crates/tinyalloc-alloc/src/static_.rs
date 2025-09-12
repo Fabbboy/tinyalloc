@@ -8,7 +8,7 @@ use tinyalloc_sys::mapper::Mapper;
 
 use crate::{
     arena::Arena,
-    config::{ARENA_BATCH, ARENA_INITIAL_SIZE, ARENA_LIMIT, SEGMENT_SIZE},
+    config::{ARENA_BATCH, ARENA_INITIAL_SIZE, ARENA_LIMIT},
 };
 
 pub type ArenaAlias = Arena<'static, dyn Mapper>;
