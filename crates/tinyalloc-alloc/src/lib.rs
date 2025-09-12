@@ -4,3 +4,4 @@ pub mod config;
 pub mod heap;
 pub mod static_;
 pub mod segment;
+pub mod queue;

@@ -9,7 +9,11 @@ use tinyalloc_sys::{
     region::Region,
 };
 
-use crate::config::{ArenaConfig, WORD, align_up};
+use crate::{
+    classes::class_init,
+    config::{ArenaConfig, SIZES, WORD, align_up},
+    queue::Queue,
+};
 
 #[derive(Debug)]
 pub enum ArenaError {
@@ -31,6 +35,7 @@ where
     config: ArenaConfig,
     region: Region<'mapper, M>,
     bitmap: Bitmap<'mapper, usize>,
+    classes: [Queue<'mapper>; SIZES],
 }
 
 impl<'mapper, M> Arena<'mapper, M>
@@ -42,7 +47,10 @@ where
         region: Region<'mapper, M>,
         bitmap: Bitmap<'mapper, usize>,
     ) -> Self {
+        let classes: [Queue; SIZES] = class_init(|class| Queue::new(class));
+
         Self {
+            classes,
             config,
             region,
             bitmap,

@@ -1,3 +1,5 @@
+use std::array;
+
 use crate::config::{
     LARGE_ALIGN_RATIO, LARGE_SC_LIMIT, MEDIUM_ALIGN_LIMIT, MEDIUM_SC_LIMIT, MIN_ALIGN, MIN_SIZE,
     SIZES, SMALL_ALIGN_LIMIT, SMALL_SC_LIMIT,
@@ -59,4 +61,8 @@ pub const fn find_class(size: usize) -> Option<&'static Class> {
         i += 1;
     }
     None
+}
+
+pub fn class_init<T>(f: impl Fn(&'static Class) -> T) -> [T; SIZES] {
+    array::from_fn(|i| f(&CLASSES[i]))
 }
