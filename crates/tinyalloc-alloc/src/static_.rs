@@ -1,6 +1,6 @@
 use std::{
     num::NonZeroUsize,
-    sync::atomic::{AtomicPtr, Ordering},
+    sync::{atomic::{AtomicPtr, Ordering}, RwLock},
 };
 
 use heapless::Vec;
@@ -12,7 +12,7 @@ use crate::{
 };
 
 pub type ArenaAlias = Arena<'static, dyn Mapper>;
-static mut ARENAS: Vec<AtomicPtr<ArenaAlias>, ARENA_LIMIT> = Vec::new();
+static mut ARENAS: RwLock<Vec<AtomicPtr<ArenaAlias>, ARENA_LIMIT>> = RwLock::new(Vec::new());
 
 pub struct Manager;
 
