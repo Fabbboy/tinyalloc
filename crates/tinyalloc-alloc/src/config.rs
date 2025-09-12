@@ -18,7 +18,10 @@ pub const MIN_ALIGN: usize = WORD;
 pub const MIN_SIZE: usize = MIN_ALIGN;
 
 pub const ARENA_SHIFT: usize = 23 + SHIFT;
-pub const ARENA_SIZE: usize = 1 << ARENA_SHIFT;
+pub const ARENA_INITIAL_SIZE: usize = 1 << ARENA_SHIFT;
+pub const ARENA_GROWTH: usize = 2;
+pub const ARENA_BATCH: usize = 8;
+pub const ARENA_LIMIT: usize = 80;
 
 pub const SEGMENT_SHIFT: usize = 13 + SHIFT;
 pub const SEGMENT_SIZE: usize = 1 << SEGMENT_SHIFT;

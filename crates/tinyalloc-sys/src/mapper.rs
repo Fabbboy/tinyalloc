@@ -12,7 +12,7 @@ pub enum Protection {
 
 pub trait MapperRequires
 where
-    Self: Send + Sync,
+    Self: Send + Sync + 'static,
 {
 }
 

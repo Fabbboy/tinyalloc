@@ -130,4 +130,8 @@ where
         }
         None
     }
+
+    pub fn is_clear(&self) -> bool {
+        self.find_first_set().is_none()
+    }
 }
