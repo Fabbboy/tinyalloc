@@ -1,4 +1,4 @@
-use std::ptr::NonNull;
+use std::{num::NonZeroUsize, ptr::NonNull};
 
 use enumset::{EnumSet, EnumSetType};
 
@@ -23,16 +23,12 @@ where
     fn cptr(&self, rptr: *mut u8) -> *mut libc::c_void {
         rptr as *mut libc::c_void
     }
-    fn map(&self, size: usize) -> Result<NonNull<[u8]>, MapError> {
+    fn map(&self, size: NonZeroUsize) -> Result<NonNull<[u8]>, MapError> {
         _ = size;
         Err(MapError::OutOfMemory)
     }
     fn unmap(&self, ptr: NonNull<[u8]>) {
         _ = ptr;
-    }
-    fn commit(&self, ptr: NonNull<[u8]>) -> Result<(), MapError> {
-        _ = ptr;
-        Err(MapError::CommitFailed)
     }
     fn decommit(&self, ptr: NonNull<[u8]>) -> Result<(), MapError> {
         _ = ptr;

@@ -1,11 +1,13 @@
 #[cfg(unix)]
+use std::num::NonZeroUsize;
+#[cfg(unix)]
 use std::ptr::NonNull;
 
 use crate::MapError;
 #[cfg(unix)]
 use crate::mapper::Protection;
 use crate::mapper::{Mapper, MapperRequires};
-use crate::size::page_align;
+use crate::size::{page_align, page_align_slice};
 #[cfg(unix)]
 use enumset::EnumSet;
 
@@ -46,11 +48,8 @@ impl PosixMapper {
 
 #[cfg(unix)]
 impl Mapper for PosixMapper {
-    fn map(&self, size: usize) -> Result<NonNull<[u8]>, MapError> {
-        if size == 0 {
-            return Err(MapError::InvalidSize);
-        }
-        let aligned_size = page_align(size);
+    fn map(&self, size: NonZeroUsize) -> Result<NonNull<[u8]>, MapError> {
+        let aligned_size = page_align(size.get());
         let ptr = unsafe {
             libc::mmap(
                 unix::NULL,
@@ -75,14 +74,10 @@ impl Mapper for PosixMapper {
         unsafe { libc::munmap(ptr.as_ptr() as *mut libc::c_void, size) };
     }
 
-    fn commit(&self, ptr: NonNull<[u8]>) -> Result<(), MapError> {
-        self.protect(ptr, EnumSet::all())?;
-        Ok(())
-    }
-
     fn decommit(&self, ptr: NonNull<[u8]>) -> Result<(), MapError> {
-        let cptr = self.cptr(ptr.as_ptr() as *mut u8);
-        let res = unsafe { libc::madvise(cptr, ptr.len(), unix::DONTNEED) };
+        let aligned_slice = page_align_slice(ptr);
+        let cptr = self.cptr(aligned_slice.as_ptr() as *mut u8);
+        let res = unsafe { libc::madvise(cptr, aligned_slice.len(), unix::DONTNEED) };
         if res != 0 {
             return Err(MapError::DecommitFailed);
         }
@@ -92,8 +87,9 @@ impl Mapper for PosixMapper {
 
     fn protect(&self, ptr: NonNull<[u8]>, prot: EnumSet<Protection>) -> Result<(), MapError> {
         let prot_flags = Self::to_prot(prot);
-        let cptr = self.cptr(ptr.as_ptr() as *mut u8);
-        let res = unsafe { libc::mprotect(cptr, ptr.len(), prot_flags) };
+        let aligned_slice = page_align_slice(ptr);
+        let cptr = self.cptr(aligned_slice.as_ptr() as *mut u8);
+        let res = unsafe { libc::mprotect(cptr, aligned_slice.len(), prot_flags) };
         if res != 0 {
             return Err(MapError::ProtectFailed);
         }
@@ -106,6 +102,8 @@ impl Mapper for PosixMapper {}
 
 #[cfg(all(test, unix))]
 mod tests {
+    use std::num::NonZero;
+
     use enumset::EnumSet;
 
     use crate::{
@@ -130,7 +128,7 @@ mod tests {
 
     #[test]
     fn test_map_and_unmap() {
-        let result = GLOBAL_MAPPER.map(4096);
+        let result = GLOBAL_MAPPER.map(NonZero::new(4096).unwrap());
         assert!(result.is_ok());
 
         let ptr = result.unwrap();
@@ -141,7 +139,7 @@ mod tests {
 
     #[test]
     fn test_map_zero_size() {
-        let result = GLOBAL_MAPPER.map(0);
+        let result = GLOBAL_MAPPER.map(NonZero::new(0).unwrap());
         assert!(result.is_err());
 
         if let Err(e) = result {
@@ -151,9 +149,9 @@ mod tests {
 
     #[test]
     fn test_commit_and_protect() {
-        let ptr = GLOBAL_MAPPER.map(4096).unwrap();
+        let ptr = GLOBAL_MAPPER.map(NonZero::new(4096).unwrap()).unwrap();
 
-        let commit_result = GLOBAL_MAPPER.commit(ptr);
+        let commit_result = GLOBAL_MAPPER.protect(ptr, EnumSet::all());
         assert!(commit_result.is_ok());
 
         let protect_result = GLOBAL_MAPPER.protect(ptr, Protection::Read.into());
@@ -164,7 +162,7 @@ mod tests {
 
     #[test]
     fn test_protect_with_different_permissions() {
-        let ptr = GLOBAL_MAPPER.map(4096).unwrap();
+        let ptr = GLOBAL_MAPPER.map(NonZero::new(4096).unwrap()).unwrap();
 
         assert!(GLOBAL_MAPPER.protect(ptr, EnumSet::empty()).is_ok());
         assert!(GLOBAL_MAPPER.protect(ptr, Protection::Read.into()).is_ok());
@@ -176,8 +174,8 @@ mod tests {
 
     #[test]
     fn test_decommit() {
-        let ptr = GLOBAL_MAPPER.map(4096).unwrap();
-        GLOBAL_MAPPER.commit(ptr).unwrap();
+        let ptr = GLOBAL_MAPPER.map(NonZero::new(4096).unwrap()).unwrap();
+        GLOBAL_MAPPER.protect(ptr, EnumSet::all()).unwrap();
 
         let decommit_result = GLOBAL_MAPPER.decommit(ptr);
         assert!(decommit_result.is_ok());
@@ -187,10 +185,9 @@ mod tests {
     #[test]
     fn test_large_allocation() {
         let size = 1024 * 1024;
-        let ptr = GLOBAL_MAPPER.map(size).unwrap();
+        let ptr = GLOBAL_MAPPER.map(NonZero::new(size).unwrap()).unwrap();
         assert!(ptr.len() >= size);
 
-        GLOBAL_MAPPER.commit(ptr).unwrap();
         GLOBAL_MAPPER.protect(ptr, EnumSet::all()).unwrap();
 
         GLOBAL_MAPPER.unmap(ptr);

@@ -7,3 +7,6 @@ edition = "2024"
 tinyalloc-sys = { workspace = true }
 tinyalloc-list = { workspace = true }
 tinyalloc-bitmap = { workspace = true }
+
+getset = { workspace = true }
+enumset = { workspace = true }

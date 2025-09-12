@@ -152,6 +152,8 @@ dependencies = [
 name = "tinyalloc-alloc"
 version = "0.1.0"
 dependencies = [
+ "enumset",
+ "getset",
  "tinyalloc-bitmap",
  "tinyalloc-list",
  "tinyalloc-sys",

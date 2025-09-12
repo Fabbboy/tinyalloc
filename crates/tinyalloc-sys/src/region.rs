@@ -1,8 +1,12 @@
-use std::ptr::NonNull;
+use std::{num::NonZeroUsize, ptr::NonNull};
 
+use enumset::EnumSet;
 use getset::Getters;
 
-use crate::{MapError, mapper::Mapper};
+use crate::{
+    MapError,
+    mapper::{Mapper, Protection},
+};
 
 #[derive(Debug, Getters)]
 pub struct Region<'mapper, M>
@@ -19,7 +23,7 @@ impl<'mapper, M> Region<'mapper, M>
 where
     M: Mapper + ?Sized,
 {
-    pub fn new(mapper: &'mapper M, size: usize) -> Result<Self, MapError> {
+    pub fn new(mapper: &'mapper M, size: NonZeroUsize) -> Result<Self, MapError> {
         let data = mapper.map(size)?;
         Ok(Self {
             data,
@@ -29,7 +33,7 @@ where
     }
 
     pub fn activate(&mut self) -> Result<(), MapError> {
-        self.mapper.commit(self.data)?;
+        self.mapper.protect(self.data, EnumSet::all())?;
         self.activate = true;
         Ok(())
     }
@@ -48,12 +52,29 @@ where
         }
     }
 
+    pub fn partial(
+        &self,
+        range: NonNull<[u8]>,
+        protection: EnumSet<Protection>,
+    ) -> Result<(), MapError> {
+        if protection.is_empty() {
+            self.mapper.decommit(range)?;
+        }
+
+        self.mapper.protect(range, protection)?;
+        Ok(())
+    }
+
     pub fn as_mut(&mut self) -> Option<&mut [u8]> {
         if self.activate {
             Some(unsafe { self.data.as_mut() })
         } else {
             None
         }
+    }
+
+    pub fn as_ptr(&self) -> *mut u8 {
+        self.data.as_ptr() as *mut u8
     }
 }
 

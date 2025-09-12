@@ -12,8 +12,6 @@ pub enum BitmapError {
     OutOfBounds { index: usize, size: usize },
 }
 
-
-
 #[derive(Debug, Getters)]
 pub struct Bitmap<'bitmap, T>
 where
