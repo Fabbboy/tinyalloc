@@ -1,7 +1,3 @@
-use std::num::NonZeroUsize;
-
-use getset::Getters;
-
 pub const SIZES: usize = 32;
 pub const ONE: usize = 1;
 pub const WORD: usize = core::mem::size_of::<usize>();
@@ -36,33 +32,4 @@ pub const LARGE_ALIGN_RATIO: usize = 8;
 
 pub const fn align_up(size: usize, align: usize) -> usize {
     (size + align - 1) & !(align - 1)
-}
-
-#[derive(Getters, Clone)]
-pub struct SegmentConfig {
-    #[getset(get = "pub")]
-    size: NonZeroUsize,
-}
-
-impl SegmentConfig {
-    pub fn new(size: NonZeroUsize) -> SegmentConfig {
-        SegmentConfig { size }
-    }
-}
-
-#[derive(Getters, Clone)]
-pub struct ArenaConfig {
-    #[getset(get = "pub")]
-    arena_size: NonZeroUsize,
-    #[getset(get = "pub")]
-    segment_config: SegmentConfig,
-}
-
-impl ArenaConfig {
-    pub fn new(arena_size: NonZeroUsize, segment_config: &SegmentConfig) -> ArenaConfig {
-        ArenaConfig {
-            arena_size,
-            segment_config: segment_config.clone(),
-        }
-    }
 }

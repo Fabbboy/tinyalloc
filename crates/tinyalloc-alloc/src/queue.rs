@@ -1,8 +1,15 @@
 use std::ptr::NonNull;
 
+use enumset::EnumSetType;
 use tinyalloc_list::List;
 
 use crate::{classes::Class, segment::Segment};
+
+enum Move {
+    Free,
+    Partial,
+    Full,
+}
 
 pub struct Queue<'mapper> {
     class: &'static Class,
@@ -20,4 +27,6 @@ impl<'mapper> Queue<'mapper> {
             full_list: List::new(),
         }
     }
+
+    fn displace(&mut self, segment: NonNull<Segment<'mapper>>, mv: Move) {}
 }

@@ -8,7 +8,7 @@ use tinyalloc_sys::mapper::Mapper;
 
 use crate::{
     arena::Arena,
-    config::{ARENA_BATCH, ARENA_INITIAL_SIZE, ARENA_LIMIT, SEGMENT_SIZE, SegmentConfig},
+    config::{ARENA_BATCH, ARENA_INITIAL_SIZE, ARENA_LIMIT, SEGMENT_SIZE},
 };
 
 pub type ArenaAlias = Arena<'static, dyn Mapper>;
@@ -17,10 +17,6 @@ static mut ARENAS: Vec<AtomicPtr<ArenaAlias>, ARENA_LIMIT> = Vec::new();
 pub struct Manager;
 
 impl Manager {
-    fn seg_config() -> SegmentConfig {
-        SegmentConfig::new(NonZeroUsize::new(SEGMENT_SIZE).unwrap())
-    }
-
     fn arena_size(index: usize) -> usize {
         ARENA_INITIAL_SIZE << (index / ARENA_BATCH)
     }
