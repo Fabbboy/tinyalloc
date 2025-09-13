@@ -1,9 +1,8 @@
-use std::{
+/*use std::{
     num::NonZeroUsize,
-    sync::{atomic::AtomicPtr, RwLock},
+    sync::{RwLock, atomic::AtomicPtr},
 };
 
-use heapless::Vec;
 use tinyalloc_sys::mapper::Mapper;
 
 use crate::{
@@ -12,7 +11,9 @@ use crate::{
 };
 
 pub type ArenaAlias = Arena<'static, dyn Mapper>;
-static mut ARENAS: RwLock<Vec<AtomicPtr<ArenaAlias>, ARENA_LIMIT>> = RwLock::new(Vec::new());
+//static mut ARENAS: RwLock<Vec<AtomicPtr<ArenaAlias>, ARENA_LIMIT>> = RwLock::new(Vec::new());
+static ARENAS: RwLock<[Option<AtomicPtr<ArenaAlias>>; ARENA_LIMIT]> =
+    RwLock::new([(); ARENA_LIMIT].map(|_| None));
 
 pub struct Manager;
 
@@ -27,3 +28,4 @@ impl Manager {
 }
 
 pub static GLOBAL_MANAGER: Manager = Manager;
+*/

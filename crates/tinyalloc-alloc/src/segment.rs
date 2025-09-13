@@ -1,24 +1,24 @@
-use std::cell::OnceCell;
-
-use heapless::Vec;
-use tinyalloc_bitmap::Bitmap;
+use tinyalloc_bitmap::{Bitmap, BitmapError};
 use tinyalloc_list::{HasLink, Link};
+use tinyvec::SliceVec;
 
-use crate::config::SEGMENT_SIZE;
+use crate::classes::Class;
 
-#[derive(Default)]
 pub struct Segment<'mapper> {
+    class: Class,
     link: Link<Segment<'mapper>>,
-    bitmap: OnceCell<Bitmap<'mapper, usize>>, // we need concrete types dont want to carve manually
-    data: Vec<u8, SEGMENT_SIZE>, // not sure abt this one would be nice honestly simplifies our lvies but needs some unsafe
+    bitmap: Bitmap<usize, 1>,
+    vec: SliceVec<'mapper, u8>,
 }
 
 impl<'mapper> Segment<'mapper> {
-    pub fn new(bitmap: Bitmap<'mapper, usize>) -> Self {
-        Self {
-            link: Default::default(),
-            bitmap,
-            data: Vec::new(),
+    pub fn new(class: Class, slice: &'mapper mut [u8]) -> Self {
+        let vec = SliceVec::from_slice_len(slice, 0);
+        Segment {
+            class,
+            link: Link::new(),
+            bitmap: Bitmap::default(),
+            vec,
         }
     }
 }

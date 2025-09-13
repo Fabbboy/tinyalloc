@@ -34,7 +34,7 @@ where
     M: Mapper + ?Sized,
 {
     fn inner_new(region: Region<'mapper, M>) -> Self {
-        let classes: [Queue<'mapper>; SIZES] = class_init(|class| Queue::new(class));
+        let classes: [Queue; SIZES] = class_init(|class| Queue::new(class));
 
         Self { classes, region }
     }

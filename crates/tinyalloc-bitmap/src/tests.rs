@@ -2,8 +2,7 @@ use super::*;
 
 #[test]
 fn test_basic_bit_operations() {
-    let mut storage = [0u32; 2];
-    let mut bitmap = Bitmap::within(&mut storage, 32).unwrap();
+    let mut bitmap: Bitmap<u32, 2> = Bitmap::new();
 
     assert!(!bitmap.get(0).unwrap());
     assert!(!bitmap.get(31).unwrap());
@@ -28,8 +27,7 @@ fn test_basic_bit_operations() {
 
 #[test]
 fn test_multi_word_operations() {
-    let mut storage = [0u64; 2];
-    let mut bitmap = Bitmap::within(&mut storage, 100).unwrap();
+    let mut bitmap: Bitmap<u64, 2> = Bitmap::new();
 
     bitmap.set(0).unwrap();
     bitmap.set(63).unwrap();
@@ -46,8 +44,7 @@ fn test_multi_word_operations() {
 
 #[test]
 fn test_bulk_operations() {
-    let mut storage = [0u32; 3];
-    let mut bitmap = Bitmap::within(&mut storage, 80).unwrap();
+    let mut bitmap: Bitmap<u32, 3> = Bitmap::new();
 
     bitmap.set(5).unwrap();
     bitmap.set(35).unwrap();
@@ -73,8 +70,7 @@ fn test_bulk_operations() {
 
 #[test]
 fn test_search_operations() {
-    let mut storage = [0u32; 2];
-    let mut bitmap = Bitmap::within(&mut storage, 64).unwrap();
+    let mut bitmap: Bitmap<u32, 2> = Bitmap::new();
 
     assert_eq!(bitmap.find_first_set(), None);
     assert_eq!(bitmap.find_first_clear(), Some(0));
@@ -95,49 +91,45 @@ fn test_search_operations() {
 
 #[test]
 fn test_error_handling() {
-    let mut storage = [0u32; 1];
-    let mut bitmap = Bitmap::within(&mut storage, 16).unwrap();
+    let mut bitmap: Bitmap<u32, 1> = Bitmap::new();
 
-    assert!(bitmap.set(15).is_ok());
-    assert!(bitmap.set(16).is_err());
-    assert!(bitmap.get(16).is_err());
-    assert!(bitmap.clear(16).is_err());
-    assert!(bitmap.flip(16).is_err());
+    assert!(bitmap.set(31).is_ok());
+    assert!(bitmap.set(32).is_err());
+    assert!(bitmap.get(32).is_err());
+    assert!(bitmap.clear(32).is_err());
+    assert!(bitmap.flip(32).is_err());
 
-    let result = Bitmap::within(&mut storage, 64);
+    let result = Bitmap::<u32, 1>::check(64);
     assert!(result.is_err());
 }
 
 #[test]
 fn test_partial_word_handling() {
-    let mut storage = [0u32; 1];
-    let mut bitmap = Bitmap::within(&mut storage, 20).unwrap();
+    let mut bitmap: Bitmap<u32, 1> = Bitmap::new();
 
     bitmap.set_all();
-    for i in 0..20 {
+    for i in 0..32 {
         assert!(bitmap.get(i).unwrap());
     }
 
     bitmap.clear_all();
-    for i in 0..20 {
+    for i in 0..32 {
         assert!(!bitmap.get(i).unwrap());
     }
 
-    bitmap.set(19).unwrap();
-    assert_eq!(bitmap.find_first_set(), Some(19));
+    bitmap.set(31).unwrap();
+    assert_eq!(bitmap.find_first_set(), Some(31));
 }
 
 #[test]
 fn test_different_word_types() {
-    let mut storage8 = [0u8; 2];
-    let mut bitmap8 = Bitmap::within(&mut storage8, 12).unwrap();
+    let mut bitmap8: Bitmap<u8, 2> = Bitmap::new();
     bitmap8.set(7).unwrap();
     bitmap8.set(8).unwrap();
     assert!(bitmap8.get(7).unwrap());
     assert!(bitmap8.get(8).unwrap());
 
-    let mut storage16 = [0u16; 1];
-    let mut bitmap16 = Bitmap::within(&mut storage16, 10).unwrap();
+    let mut bitmap16: Bitmap<u16, 1> = Bitmap::new();
     bitmap16.set(9).unwrap();
     assert!(bitmap16.get(9).unwrap());
     assert_eq!(bitmap16.find_first_set(), Some(9));

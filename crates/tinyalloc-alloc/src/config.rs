@@ -19,7 +19,7 @@ pub const ARENA_GROWTH: usize = 2;
 pub const ARENA_BATCH: usize = 8;
 pub const ARENA_LIMIT: usize = 80;
 
-pub const SEGMENT_SHIFT: usize = 13 + SHIFT;
+pub const SEGMENT_SHIFT: usize = 14 + SHIFT;
 pub const SEGMENT_SIZE: usize = 1 << SEGMENT_SHIFT;
 
 pub const SMALL_SC_LIMIT: usize = 1 << (SHIFT + 5);

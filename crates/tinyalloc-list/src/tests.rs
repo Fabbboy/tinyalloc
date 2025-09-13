@@ -1,7 +1,7 @@
 use crate::{HasLink, Link, List};
 use std::ptr::NonNull;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 struct TestNode {
     value: i32,
     link: Link<TestNode>,
@@ -11,7 +11,7 @@ impl TestNode {
     fn new(value: i32) -> Box<TestNode> {
         Box::new(TestNode {
             value,
-            link: Link::default(),
+            link: Link::new(),
         })
     }
 }

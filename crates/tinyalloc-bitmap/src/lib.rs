@@ -1,5 +1,3 @@
-use getset::Getters;
-
 use crate::numeric::{Bits, BitsRequire};
 
 pub mod numeric;
@@ -12,18 +10,25 @@ pub enum BitmapError {
     OutOfBounds { index: usize, size: usize },
 }
 
-#[derive(Debug, Getters)]
-pub struct Bitmap<'bitmap, T>
+#[derive(Debug)]
+pub struct Bitmap<T, const WORDS: usize>
 where
     T: Bits + BitsRequire,
 {
-    #[getset(get = "pub")]
-    store: &'bitmap mut [T],
-    #[getset(get = "pub")]
+    store: [T; WORDS],
     bits: usize,
 }
 
-impl<'bitmap, T> Bitmap<'bitmap, T>
+impl<T, const WORDS: usize> Default for Bitmap<T, WORDS>
+where
+    T: Bits + BitsRequire,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl<T, const WORDS: usize> Bitmap<T, WORDS>
 where
     T: Bits + BitsRequire,
 {
@@ -31,8 +36,16 @@ where
         (fields + T::BITS - 1) / T::BITS
     }
 
-    pub const fn available(store: &'bitmap [T]) -> usize {
-        store.len() * T::BITS
+    pub const fn available() -> usize {
+        WORDS * T::BITS
+    }
+
+    pub fn store(&self) -> &[T; WORDS] {
+        &self.store
+    }
+
+    pub fn bits(&self) -> usize {
+        self.bits
     }
 
     const fn position(&self, index: usize) -> Result<(usize, usize), BitmapError> {
@@ -47,18 +60,33 @@ where
         Ok((word_index, bit_index))
     }
 
-    pub const fn within(store: &'bitmap mut [T], fields: usize) -> Result<Self, BitmapError> {
-        let total_bits = store.len() * T::BITS;
+    pub fn new() -> Self {
+        Self {
+            store: [T::zero(); WORDS],
+            bits: WORDS * T::BITS,
+        }
+    }
+
+    pub fn check(fields: usize) -> Result<(), BitmapError> {
+        let total_bits = WORDS * T::BITS;
         if fields > total_bits {
             return Err(BitmapError::InsufficientSize {
                 have: total_bits,
                 need: fields,
             });
         }
-        Ok(Self {
-            store,
-            bits: fields,
-        })
+        Ok(())
+    }
+
+    pub fn expect(fields: usize) -> Result<(), BitmapError> {
+        let total_bits = WORDS * T::BITS;
+        if fields > total_bits {
+            return Err(BitmapError::InsufficientSize {
+                have: total_bits,
+                need: fields,
+            });
+        }
+        Ok(())
     }
 
     pub fn set(&mut self, index: usize) -> Result<(), BitmapError> {

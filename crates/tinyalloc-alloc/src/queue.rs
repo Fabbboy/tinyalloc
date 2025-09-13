@@ -28,10 +28,10 @@ impl<'mapper> Queue<'mapper> {
     }
 
     pub fn displace(&mut self, segment: NonNull<Segment<'mapper>>, mv: Move) {
-        let _ = self.free_list.remove(segment) ||
-                self.partial_list.remove(segment) ||
-                self.full_list.remove(segment);
-        
+        let _ = self.free_list.remove(segment)
+            || self.partial_list.remove(segment)
+            || self.full_list.remove(segment);
+
         match mv {
             Move::Free => self.free_list.push(segment),
             Move::Partial => self.partial_list.push(segment),

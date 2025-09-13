@@ -4,7 +4,7 @@ use std::ptr::NonNull;
 #[cfg(test)]
 pub mod tests;
 
-#[derive(Debug, Default, Getters, Setters)]
+#[derive(Debug, Getters, Setters)]
 pub struct Link<T>
 where
     T: HasLink<T>,
@@ -21,6 +21,14 @@ impl<T> Link<T>
 where
     T: HasLink<T>,
 {
+    pub fn new() -> Self {
+        Self {
+            next: None,
+            prev: None,
+            owner: None,
+        }
+    }
+
     pub fn clear(&mut self) {
         self.set_next(None);
         self.set_prev(None);

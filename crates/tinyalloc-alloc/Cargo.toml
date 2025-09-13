@@ -10,4 +10,4 @@ tinyalloc-bitmap = { workspace = true }
 
 getset = { workspace = true }
 enumset = { workspace = true }
-heapless = { workspace = true }
+tinyvec = { workspace = true }
