@@ -1,5 +1,5 @@
-use std::ptr::NonNull;
 use getset::{Getters, Setters};
+use std::ptr::NonNull;
 
 #[cfg(test)]
 pub mod tests;
@@ -28,7 +28,9 @@ where
     }
 
     pub fn set_list_owner(&mut self, owner: &List<T>) {
-        self.set_owner(Some(unsafe { NonNull::new_unchecked(owner as *const _ as *mut _) }));
+        self.set_owner(Some(unsafe {
+            NonNull::new_unchecked(owner as *const _ as *mut _)
+        }));
     }
 
     pub fn is_owned_by(&self, owner: &List<T>) -> bool {
@@ -69,9 +71,7 @@ where
     }
 
     pub fn contains(&self, item: NonNull<T>) -> bool {
-        unsafe {
-            item.as_ref().link().is_owned_by(self)
-        }
+        unsafe { item.as_ref().link().is_owned_by(self) }
     }
 
     pub fn push(&mut self, mut item: NonNull<T>) {
@@ -214,11 +214,9 @@ where
             false
         }
     }
-    
+
     pub fn is_linked(&self, item: NonNull<T>) -> bool {
-        unsafe {
-            item.as_ref().link().owner().is_some()
-        }
+        unsafe { item.as_ref().link().owner().is_some() }
     }
 
     pub fn iter<'list>(&'list self) -> Iter<'list, T> {
@@ -274,7 +272,7 @@ where
             unsafe {
                 let current_ref = current.as_ref();
                 self.next = *current_ref.link().next();
-                
+
                 if current_ref.link().is_owned_by(self.list) {
                     return Some(current_ref);
                 }
@@ -295,7 +293,7 @@ where
             unsafe {
                 let current_mut = current.as_mut();
                 self.next = *current_mut.link().next();
-                
+
                 if current_mut.link().is_owned_by(self.list) {
                     return Some(current_mut);
                 }
