@@ -1,37 +1,27 @@
-use crate::{sealed::Sealed, HasLink, Link, List};
-use std::{marker::PhantomData, ptr::NonNull};
+use crate::{HasLink, Link, List};
+use std::ptr::NonNull;
 
-// Create a tag for our test node
-#[derive(Debug)]
-struct TestTag;
-impl Sealed for TestTag {}
-
-#[derive(Debug)]
+#[derive(Debug, Default)]
 struct TestNode {
     value: i32,
-    link: Link<TestTag, TestNode>,
+    link: Link<TestNode>,
 }
 
 impl TestNode {
     fn new(value: i32) -> Box<TestNode> {
         Box::new(TestNode {
             value,
-            link: Link {
-                next: None,
-                prev: None,
-                owner: None,
-                _marker: PhantomData,
-            },
+            link: Link::default(),
         })
     }
 }
 
-impl HasLink<TestTag, TestNode> for TestNode {
-    fn link(&self) -> &Link<TestTag, TestNode> {
+impl HasLink<TestNode> for TestNode {
+    fn link(&self) -> &Link<TestNode> {
         &self.link
     }
 
-    fn link_mut(&mut self) -> &mut Link<TestTag, TestNode> {
+    fn link_mut(&mut self) -> &mut Link<TestNode> {
         &mut self.link
     }
 }
@@ -46,7 +36,7 @@ unsafe fn free_node(node: NonNull<TestNode>) {
 
 #[test]
 fn test_push_and_pop() {
-    let mut list: List<TestTag, TestNode> = List::new();
+    let mut list: List<TestNode> = List::new();
 
     let node1 = create_node(1);
     let node2 = create_node(2);
@@ -73,7 +63,7 @@ fn test_push_and_pop() {
 
 #[test]
 fn test_iter() {
-    let mut list: List<TestTag, TestNode> = List::new();
+    let mut list: List<TestNode> = List::new();
 
     let node1 = create_node(10);
     let node2 = create_node(20);
@@ -95,7 +85,7 @@ fn test_iter() {
 
 #[test]
 fn test_remove() {
-    let mut list: List<TestTag, TestNode> = List::new();
+    let mut list: List<TestNode> = List::new();
 
     let node1 = create_node(1);
     let node2 = create_node(2);
@@ -119,7 +109,7 @@ fn test_remove() {
 
 #[test]
 fn test_insert_operations() {
-    let mut list: List<TestTag, TestNode> = List::new();
+    let mut list: List<TestNode> = List::new();
 
     let node1 = create_node(1);
     let node2 = create_node(2);
@@ -138,3 +128,28 @@ fn test_insert_operations() {
         free_node(node3);
     }
 }
+
+#[test]
+fn test_single_list_membership_only() {
+    let mut list1: List<TestNode> = List::new();
+    let mut list2: List<TestNode> = List::new();
+    
+    let node = create_node(42);
+    
+    list1.push(node);
+    assert!(list1.contains(node));
+    assert!(!list2.contains(node));
+    
+    list2.push(node);
+    
+    assert!(!list1.contains(node));
+    assert!(list2.contains(node));
+    
+    let removed = list2.pop().unwrap();
+    assert_eq!(unsafe { removed.as_ref().value }, 42);
+    
+    unsafe {
+        free_node(removed);
+    }
+}
+

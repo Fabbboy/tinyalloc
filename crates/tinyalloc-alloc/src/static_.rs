@@ -1,6 +1,6 @@
 use std::{
     num::NonZeroUsize,
-    sync::{atomic::{AtomicPtr, Ordering}, RwLock},
+    sync::{atomic::AtomicPtr, RwLock},
 };
 
 use heapless::Vec;

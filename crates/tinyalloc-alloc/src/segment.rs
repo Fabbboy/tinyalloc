@@ -1,27 +1,35 @@
-use std::ptr::NonNull;
 
-use tinyalloc_list::Item;
+use tinyalloc_list::{Link, HasLink};
 
 pub struct Segment<'mapper> {
-    next: Option<NonNull<Segment<'mapper>>>,
-    prev: Option<NonNull<Segment<'mapper>>>,
+    link: Link<Segment<'mapper>>,
     data: &'mapper [u8],
 }
 
-impl<'mapper> Item for Segment<'mapper> {
-    fn next(&self) -> Option<NonNull<Self>> {
-        self.next
+impl<'mapper> Default for Segment<'mapper> {
+    fn default() -> Self {
+        Self {
+            link: Default::default(),
+            data: &[],
+        }
+    }
+}
+
+impl<'mapper> Segment<'mapper> {
+    pub fn new(data: &'mapper [u8]) -> Self {
+        Self {
+            data,
+            ..Default::default()
+        }
+    }
+}
+
+impl<'mapper> HasLink<Segment<'mapper>> for Segment<'mapper> {
+    fn link(&self) -> &Link<Segment<'mapper>> {
+        &self.link
     }
 
-    fn prev(&self) -> Option<NonNull<Segment<'mapper>>> {
-        self.prev
-    }
-
-    fn set_next(&mut self, next: Option<NonNull<Segment<'mapper>>>) {
-        self.next = next;
-    }
-
-    fn set_prev(&mut self, prev: Option<NonNull<Segment<'mapper>>>) {
-        self.prev = prev;
+    fn link_mut(&mut self) -> &mut Link<Segment<'mapper>> {
+        &mut self.link
     }
 }

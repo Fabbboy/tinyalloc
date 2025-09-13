@@ -201,6 +201,9 @@ dependencies = [
 [[package]]
 name = "tinyalloc-list"
 version = "0.1.0"
+dependencies = [
+ "getset",
+]
 
 [[package]]
 name = "tinyalloc-sys"
