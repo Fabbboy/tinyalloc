@@ -5,14 +5,14 @@ use tinyalloc_list::{HasLink, Link};
 use crate::classes::Class;
 
 pub struct Segment<'mapper> {
-    class: Class,
+    class: &'static Class,
     link: Link<Segment<'mapper>>,
     bitmap: Bitmap<usize, 1>,
     slice: Slice<'mapper, u8>,
 }
 
 impl<'mapper> Segment<'mapper> {
-    pub fn new(class: Class, slice: &'mapper mut [u8]) -> Self {
+    pub fn new(class: &'static Class, slice: &'mapper mut [u8]) -> Self {
         let slice = Slice::new(slice);
         Segment {
             class,
