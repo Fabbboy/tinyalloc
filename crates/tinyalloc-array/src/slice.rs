@@ -13,8 +13,9 @@ pub struct Slice<'data, T> {
 }
 
 impl<'data, T> Slice<'data, T> {
-    pub fn new(slice: &'data mut [T]) -> Self {
-        Self { data: slice, len: 0 }
+    pub fn from_slice(slice: &'data mut [T], len: usize) -> Self {
+        debug_assert!(len <= slice.len());
+        Self { data: slice, len }
     }
 
     pub const fn len(&self) -> usize {
@@ -117,9 +118,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_slice_new() {
+    fn test_slice_from_slice() {
         let mut backing = [0i32; 4];
-        let slice = Slice::new(&mut backing);
+        let slice = Slice::from_slice(&mut backing, 0);
         
         assert_eq!(slice.len(), 0);
         assert_eq!(slice.capacity(), 4);
@@ -130,7 +131,7 @@ mod tests {
     #[test]
     fn test_slice_push_pop() {
         let mut backing = [0i32; 3];
-        let mut slice = Slice::new(&mut backing);
+        let mut slice = Slice::from_slice(&mut backing, 0);
         
         assert!(slice.push(1).is_ok());
         assert!(slice.push(2).is_ok());
@@ -146,7 +147,7 @@ mod tests {
     #[test]
     fn test_slice_capacity_exceeded() {
         let mut backing = [0i32; 2];
-        let mut slice = Slice::new(&mut backing);
+        let mut slice = Slice::from_slice(&mut backing, 0);
         
         assert!(slice.push(1).is_ok());
         assert!(slice.push(2).is_ok());
@@ -166,7 +167,7 @@ mod tests {
     #[test]
     fn test_slice_get() {
         let mut backing = [0i32; 3];
-        let mut slice = Slice::new(&mut backing);
+        let mut slice = Slice::from_slice(&mut backing, 0);
         
         slice.push(10).unwrap();
         slice.push(20).unwrap();
@@ -188,7 +189,7 @@ mod tests {
     #[test]
     fn test_slice_clear() {
         let mut backing = [0i32; 3];
-        let mut slice = Slice::new(&mut backing);
+        let mut slice = Slice::from_slice(&mut backing, 0);
         
         slice.push(1).unwrap();
         slice.push(2).unwrap();
@@ -202,7 +203,7 @@ mod tests {
     #[test]
     fn test_slice_deref() {
         let mut backing = [0i32; 3];
-        let mut slice = Slice::new(&mut backing);
+        let mut slice = Slice::from_slice(&mut backing, 0);
         
         slice.push(1).unwrap();
         slice.push(2).unwrap();

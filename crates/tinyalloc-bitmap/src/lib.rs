@@ -1,3 +1,5 @@
+use tinyalloc_array::slice::Slice;
+
 use crate::numeric::{Bits, BitsRequire};
 
 pub mod numeric;
@@ -11,24 +13,15 @@ pub enum BitmapError {
 }
 
 #[derive(Debug)]
-pub struct Bitmap<T, const WORDS: usize>
+pub struct Bitmap<'slice, T>
 where
     T: Bits + BitsRequire,
 {
-    store: [T; WORDS],
+    store: Slice<'slice, T>,
     bits: usize,
 }
 
-impl<T, const WORDS: usize> Default for Bitmap<T, WORDS>
-where
-    T: Bits + BitsRequire,
-{
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl<T, const WORDS: usize> Bitmap<T, WORDS>
+impl<'slice, T> Bitmap<'slice, T>
 where
     T: Bits + BitsRequire,
 {
@@ -36,12 +29,12 @@ where
         (fields + T::BITS - 1) / T::BITS
     }
 
-    pub const fn available() -> usize {
-        WORDS * T::BITS
+    pub fn available(&self) -> usize {
+        self.store.len() * T::BITS
     }
 
-    pub fn store(&self) -> &[T; WORDS] {
-        &self.store
+    pub fn store(&self) -> &[T] {
+        self.store.as_slice()
     }
 
     pub fn bits(&self) -> usize {
@@ -60,15 +53,22 @@ where
         Ok((word_index, bit_index))
     }
 
-    pub fn new() -> Self {
-        Self {
-            store: [T::zero(); WORDS],
-            bits: WORDS * T::BITS,
-        }
+    pub fn zero(store: Slice<'slice, T>) -> Self {
+        let bits = store.len() * T::BITS;
+        let mut bitmap = Self { store, bits };
+        bitmap.clear_all();
+        bitmap
     }
 
-    pub fn check(fields: usize) -> Result<(), BitmapError> {
-        let total_bits = WORDS * T::BITS;
+    pub fn one(store: Slice<'slice, T>) -> Self {
+        let bits = store.len() * T::BITS;
+        let mut bitmap = Self { store, bits };
+        bitmap.set_all();
+        bitmap
+    }
+
+    pub fn check(&self, fields: usize) -> Result<(), BitmapError> {
+        let total_bits = self.store.len() * T::BITS;
         if fields > total_bits {
             return Err(BitmapError::InsufficientSize {
                 have: total_bits,
@@ -78,8 +78,8 @@ where
         Ok(())
     }
 
-    pub fn expect(fields: usize) -> Result<(), BitmapError> {
-        let total_bits = WORDS * T::BITS;
+    pub fn expect(&self, fields: usize) -> Result<(), BitmapError> {
+        let total_bits = self.store.len() * T::BITS;
         if fields > total_bits {
             return Err(BitmapError::InsufficientSize {
                 have: total_bits,

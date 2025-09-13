@@ -1,8 +1,12 @@
 use super::*;
+use tinyalloc_array::slice::Slice;
 
 #[test]
 fn test_basic_bit_operations() {
-    let mut bitmap: Bitmap<u32, 2> = Bitmap::new();
+    let mut storage: [u32; 2] = [0; 2];
+    let len = storage.len();
+    let slice = Slice::from_slice(&mut storage, len);
+    let mut bitmap = Bitmap::zero(slice);
 
     assert!(!bitmap.get(0).unwrap());
     assert!(!bitmap.get(31).unwrap());
@@ -27,7 +31,10 @@ fn test_basic_bit_operations() {
 
 #[test]
 fn test_multi_word_operations() {
-    let mut bitmap: Bitmap<u64, 2> = Bitmap::new();
+    let mut storage: [u64; 2] = [0; 2];
+    let len = storage.len();
+    let slice = Slice::from_slice(&mut storage, len);
+    let mut bitmap = Bitmap::zero(slice);
 
     bitmap.set(0).unwrap();
     bitmap.set(63).unwrap();
@@ -44,7 +51,10 @@ fn test_multi_word_operations() {
 
 #[test]
 fn test_bulk_operations() {
-    let mut bitmap: Bitmap<u32, 3> = Bitmap::new();
+    let mut storage: [u32; 3] = [0; 3];
+    let len = storage.len();
+    let slice = Slice::from_slice(&mut storage, len);
+    let mut bitmap = Bitmap::zero(slice);
 
     bitmap.set(5).unwrap();
     bitmap.set(35).unwrap();
@@ -65,12 +75,15 @@ fn test_bulk_operations() {
     assert!(bitmap.get(32).unwrap());
     assert!(bitmap.get(63).unwrap());
     assert!(bitmap.get(64).unwrap());
-    assert!(bitmap.get(79).unwrap());
+    assert!(bitmap.get(95).unwrap());  // Changed from 79 to 95 since we have 3 * 32 = 96 bits
 }
 
 #[test]
 fn test_search_operations() {
-    let mut bitmap: Bitmap<u32, 2> = Bitmap::new();
+    let mut storage: [u32; 2] = [0; 2];
+    let len = storage.len();
+    let slice = Slice::from_slice(&mut storage, len);
+    let mut bitmap = Bitmap::zero(slice);
 
     assert_eq!(bitmap.find_first_set(), None);
     assert_eq!(bitmap.find_first_clear(), Some(0));
@@ -91,7 +104,10 @@ fn test_search_operations() {
 
 #[test]
 fn test_error_handling() {
-    let mut bitmap: Bitmap<u32, 1> = Bitmap::new();
+    let mut storage: [u32; 1] = [0; 1];
+    let len = storage.len();
+    let slice = Slice::from_slice(&mut storage, len);
+    let mut bitmap = Bitmap::zero(slice);
 
     assert!(bitmap.set(31).is_ok());
     assert!(bitmap.set(32).is_err());
@@ -99,13 +115,16 @@ fn test_error_handling() {
     assert!(bitmap.clear(32).is_err());
     assert!(bitmap.flip(32).is_err());
 
-    let result = Bitmap::<u32, 1>::check(64);
+    let result = bitmap.check(64);
     assert!(result.is_err());
 }
 
 #[test]
 fn test_partial_word_handling() {
-    let mut bitmap: Bitmap<u32, 1> = Bitmap::new();
+    let mut storage: [u32; 1] = [0; 1];
+    let len = storage.len();
+    let slice = Slice::from_slice(&mut storage, len);
+    let mut bitmap = Bitmap::zero(slice);
 
     bitmap.set_all();
     for i in 0..32 {
@@ -123,14 +142,42 @@ fn test_partial_word_handling() {
 
 #[test]
 fn test_different_word_types() {
-    let mut bitmap8: Bitmap<u8, 2> = Bitmap::new();
+    let mut storage8: [u8; 2] = [0; 2];
+    let len8 = storage8.len();
+    let slice8 = Slice::from_slice(&mut storage8, len8);
+    let mut bitmap8 = Bitmap::zero(slice8);
     bitmap8.set(7).unwrap();
     bitmap8.set(8).unwrap();
     assert!(bitmap8.get(7).unwrap());
     assert!(bitmap8.get(8).unwrap());
 
-    let mut bitmap16: Bitmap<u16, 1> = Bitmap::new();
+    let mut storage16: [u16; 1] = [0; 1];
+    let len16 = storage16.len();
+    let slice16 = Slice::from_slice(&mut storage16, len16);
+    let mut bitmap16 = Bitmap::zero(slice16);
     bitmap16.set(9).unwrap();
     assert!(bitmap16.get(9).unwrap());
     assert_eq!(bitmap16.find_first_set(), Some(9));
+}
+
+#[test]
+fn test_zero_and_one_constructors() {
+    let mut storage: [u32; 2] = [0; 2];
+    let len = storage.len();
+    let slice = Slice::from_slice(&mut storage, len);
+    
+    // Test zero constructor
+    let bitmap_zero = Bitmap::zero(slice);
+    assert!(bitmap_zero.is_clear());
+    assert_eq!(bitmap_zero.find_first_set(), None);
+    assert_eq!(bitmap_zero.find_first_clear(), Some(0));
+
+    // Test one constructor
+    let mut storage2: [u32; 2] = [0; 2];
+    let len2 = storage2.len();
+    let slice2 = Slice::from_slice(&mut storage2, len2);
+    let bitmap_one = Bitmap::one(slice2);
+    assert!(!bitmap_one.is_clear());
+    assert_eq!(bitmap_one.find_first_set(), Some(0));
+    assert_eq!(bitmap_one.find_first_clear(), None);
 }
