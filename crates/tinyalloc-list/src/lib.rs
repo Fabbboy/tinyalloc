@@ -1,4 +1,4 @@
-use std::{marker::PhantomData, ptr::NonNull};
+use std::ptr::NonNull;
 use getset::{Getters, Setters};
 
 #[cfg(test)]
@@ -221,17 +221,17 @@ where
         }
     }
 
-    pub fn iter<'list>(&self) -> Iter<'list, T> {
+    pub fn iter<'list>(&'list self) -> Iter<'list, T> {
         Iter {
+            list: self,
             next: self.head,
-            _marker: PhantomData,
         }
     }
 
-    pub fn iter_mut<'list>(&self) -> IterMut<'list, T> {
+    pub fn iter_mut<'list>(&'list self) -> IterMut<'list, T> {
         IterMut {
+            list: self,
             next: self.head,
-            _marker: PhantomData,
         }
     }
 
@@ -244,16 +244,16 @@ pub struct Iter<'list, T>
 where
     T: HasLink<T>,
 {
+    list: &'list List<T>,
     next: Option<NonNull<T>>,
-    _marker: PhantomData<&'list T>,
 }
 
 pub struct IterMut<'list, T>
 where
     T: HasLink<T>,
 {
+    list: &'list List<T>,
     next: Option<NonNull<T>>,
-    _marker: PhantomData<&'list mut T>,
 }
 
 pub struct DrainIter<'list, T>
@@ -270,11 +270,17 @@ where
     type Item = &'list T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.next.map(|current| unsafe {
-            let current_ref = current.as_ref();
-            self.next = *current_ref.link().next();
-            current_ref
-        })
+        while let Some(current) = self.next {
+            unsafe {
+                let current_ref = current.as_ref();
+                self.next = *current_ref.link().next();
+                
+                if current_ref.link().is_owned_by(self.list) {
+                    return Some(current_ref);
+                }
+            }
+        }
+        None
     }
 }
 
@@ -285,11 +291,17 @@ where
     type Item = &'list mut T;
 
     fn next(&mut self) -> Option<Self::Item> {
-        self.next.map(|mut current| unsafe {
-            let current_mut = current.as_mut();
-            self.next = *current_mut.link().next();
-            current_mut
-        })
+        while let Some(mut current) = self.next {
+            unsafe {
+                let current_mut = current.as_mut();
+                self.next = *current_mut.link().next();
+                
+                if current_mut.link().is_owned_by(self.list) {
+                    return Some(current_mut);
+                }
+            }
+        }
+        None
     }
 }
 
