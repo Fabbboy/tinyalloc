@@ -143,6 +143,7 @@ name = "tinyalloc"
 version = "0.1.0"
 dependencies = [
  "tinyalloc-alloc",
+ "tinyalloc-array",
  "tinyalloc-bitmap",
  "tinyalloc-list",
  "tinyalloc-sys",
@@ -154,11 +155,15 @@ version = "0.1.0"
 dependencies = [
  "enumset",
  "getset",
+ "tinyalloc-array",
  "tinyalloc-bitmap",
  "tinyalloc-list",
  "tinyalloc-sys",
- "tinyvec",
 ]
+
+[[package]]
+name = "tinyalloc-array"
+version = "0.1.0"
 
 [[package]]
 name = "tinyalloc-bitmap"
@@ -182,12 +187,6 @@ dependencies = [
  "getset",
  "libc",
 ]
-
-[[package]]
-name = "tinyvec"
-version = "1.10.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bfa5fdc3bce6191a1dbc8c02d5c8bffcf557bafa17c124c5264a458f1b0613fa"
 
 [[package]]
 name = "unicode-ident"
