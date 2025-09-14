@@ -184,7 +184,6 @@ impl<'mapper> Arena<'mapper> {
 mod tests {
   use super::*;
   use crate::config::*;
-  use tinyalloc_sys::GLOBAL_MAPPER;
 
   #[test]
   fn test_arena_construction() {

@@ -122,7 +122,6 @@ mod tests {
 
   use crate::{
     GLOBAL_MAPPER,
-    MapError,
     mapper::Protection,
     posix::{
       PosixMapper,

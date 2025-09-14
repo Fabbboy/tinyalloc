@@ -10,10 +10,11 @@ use std::{
 #[cfg(windows)]
 use enumset::EnumSet;
 
+#[cfg(windows)]
+use crate::mapper::Protection;
 use crate::mapper::{
   Mapper,
   MapperRequires,
-  Protection,
 };
 
 #[cfg(windows)]
