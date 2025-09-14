@@ -2,6 +2,7 @@ use std::sync::{
   RwLock,
   atomic::{
     AtomicPtr,
+    AtomicUsize,
     Ordering,
   },
 };
@@ -14,6 +15,7 @@ use crate::{
     ArenaError,
   },
   config::{
+    ARENA_GROWTH,
     ARENA_INITIAL_SIZE,
     ARENA_LIMIT,
   },
@@ -28,12 +30,17 @@ use crate::{
 
 static ARENAS: RwLock<Array<AtomicPtr<Arena<'static>>, ARENA_LIMIT>> =
   RwLock::new(Array::new());
+static NEXT_ARENA_SIZE: AtomicUsize = AtomicUsize::new(ARENA_INITIAL_SIZE);
 
-pub fn create_arena() -> Result<NonNull<Arena<'static>>, ArenaError> {
-  Arena::new(ARENA_INITIAL_SIZE)
+fn create_arena() -> Result<NonNull<Arena<'static>>, ArenaError> {
+  let size = NEXT_ARENA_SIZE.load(Ordering::Relaxed);
+  let arena = Arena::new(size)?;
+  let next = size.checked_mul(ARENA_GROWTH).unwrap_or(size);
+  NEXT_ARENA_SIZE.store(next, Ordering::Relaxed);
+  Ok(arena)
 }
 
-pub fn add_arena(arena: NonNull<Arena<'static>>) -> Result<(), ArenaError> {
+fn add_arena(arena: NonNull<Arena<'static>>) -> Result<(), ArenaError> {
   let mut arenas = ARENAS.write().unwrap();
   let atomic_ptr = AtomicPtr::new(arena.as_ptr());
   arenas
@@ -41,12 +48,6 @@ pub fn add_arena(arena: NonNull<Arena<'static>>) -> Result<(), ArenaError> {
     .map_err(|_| ArenaError::Insufficient)?;
   Ok(())
 }
-
-pub fn get_arena_count() -> usize {
-  let arenas = ARENAS.read().unwrap();
-  arenas.len()
-}
-
 
 pub fn allocate_segment(
   class: &'static Class,
