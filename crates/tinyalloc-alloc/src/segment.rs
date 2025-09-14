@@ -46,3 +46,150 @@ impl<'mapper> HasLink<Segment<'mapper>> for Segment<'mapper> {
         &mut self.link
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::classes::CLASSES;
+    use crate::config::{SEGMENT_SIZE, SIZES};
+
+    #[test]
+    fn segment_largest_class_utilization() {
+        let mut buffer = vec![0u8; SEGMENT_SIZE];
+        let largest_class = &CLASSES[SIZES - 1];
+        let segment_ptr = Segment::new(largest_class, &mut buffer);
+        let segment = unsafe { segment_ptr.as_ref() };
+
+        let user_space = segment.user.len();
+        let object_size = largest_class.0.0;
+        let max_objects = user_space / object_size;
+        let remainder = user_space % object_size;
+        let utilization = ((user_space - remainder) as f64 / user_space as f64) * 100.0;
+
+        println!(
+            "Largest class: size={}, objects={}, remainder={}, utilization={:.1}%",
+            object_size, max_objects, remainder, utilization
+        );
+
+        assert!(max_objects >= 2, "Should fit at least 2 large objects");
+        assert_eq!(remainder, 30624, "Expected remainder for largest class");
+        assert!(
+            (utilization - 76.6).abs() < 0.1,
+            "Expected ~76.6% utilization"
+        );
+    }
+
+    #[test]
+    fn segment_smallest_class_utilization() {
+        let mut buffer = vec![0u8; SEGMENT_SIZE];
+        let smallest_class = &CLASSES[0];
+        let segment_ptr = Segment::new(smallest_class, &mut buffer);
+        let segment = unsafe { segment_ptr.as_ref() };
+
+        let user_space = segment.user.len();
+        let object_size = smallest_class.0.0;
+        let max_objects = user_space / object_size;
+        let remainder = user_space % object_size;
+
+        println!(
+            "Smallest class: size={}, objects={}, remainder={}",
+            object_size, max_objects, remainder
+        );
+
+        assert_eq!(object_size, 8, "First class should be 8 bytes");
+        assert_eq!(remainder, 0, "Should have perfect fit for 8-byte objects");
+        assert!(max_objects > 16000, "Should fit many small objects");
+    }
+
+    #[test]
+    fn segment_space_utilization_analysis() {
+        let mut perfect_fits = 0;
+        let mut worst_utilization = 100.0;
+        let mut worst_class = 0;
+
+        println!("Class | Size    | Objects | Remainder | Utilization | Bitmap Words");
+        println!("------|---------|---------|-----------|-------------|-------------");
+
+        for (i, class) in CLASSES.iter().enumerate() {
+            let mut buffer = vec![0u8; SEGMENT_SIZE];
+            let segment_ptr = Segment::new(class, &mut buffer);
+            let segment = unsafe { segment_ptr.as_ref() };
+
+            let user_space = segment.user.len();
+            let object_size = class.0.0;
+            let max_objects = user_space / object_size;
+            let remainder = user_space % object_size;
+            let utilization = ((user_space - remainder) as f64 / user_space as f64) * 100.0;
+            let bitmap_words = segment.bitmap.store().len();
+
+            println!(
+                "{:5} | {:7} | {:7} | {:9} | {:10.1}% | {:11}",
+                i, object_size, max_objects, remainder, utilization, bitmap_words
+            );
+
+            if remainder == 0 {
+                perfect_fits += 1;
+            }
+
+            if utilization < worst_utilization {
+                worst_utilization = utilization;
+                worst_class = i;
+            }
+
+            assert!(remainder < object_size);
+            assert!(
+                utilization > 60.0,
+                "Class {} has poor utilization: {:.1}%",
+                i,
+                utilization
+            );
+        }
+
+        println!("\nSummary:");
+        println!("Perfect fits: {}/{}", perfect_fits, SIZES);
+        println!(
+            "Worst utilization: {:.1}% (class {})",
+            worst_utilization, worst_class
+        );
+        println!("Segment size: {} bytes", SEGMENT_SIZE);
+
+        assert!(
+            perfect_fits >= 3,
+            "Should have at least 3 perfect fit classes"
+        );
+        assert!(
+            worst_utilization > 70.0,
+            "Worst case should be > 70% utilization"
+        );
+    }
+
+    #[test]
+    fn segment_bitmap_sizing_correctness() {
+        for class in CLASSES.iter() {
+            let mut buffer = vec![0u8; SEGMENT_SIZE];
+            let segment_ptr = Segment::new(class, &mut buffer);
+            let segment = unsafe { segment_ptr.as_ref() };
+
+            let max_objects = segment.user.len() / class.0.0;
+            let bitmap_words_needed =
+                (max_objects + usize::BITS as usize - 1) / usize::BITS as usize;
+            let actual_bitmap_words = segment.bitmap.store().len();
+
+            assert!(
+                actual_bitmap_words >= bitmap_words_needed,
+                "Bitmap too small: need {} words, have {} for class size {}",
+                bitmap_words_needed,
+                actual_bitmap_words,
+                class.0.0
+            );
+
+            assert!(
+                actual_bitmap_words <= bitmap_words_needed + 16,
+                "Bitmap oversized: need {} words, have {} for class size {}",
+                bitmap_words_needed,
+                actual_bitmap_words,
+                class.0.0
+            );
+        }
+    }
+}
