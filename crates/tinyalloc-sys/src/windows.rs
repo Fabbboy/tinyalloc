@@ -63,10 +63,10 @@ impl WindowsMapper {
   }
 
   fn check_bool(&self, result: i32) -> Result<(), MapError> {
-    if result == 0 { 
-      Err(MapError::ProtectFailed) 
-    } else { 
-      Ok(()) 
+    if result == 0 {
+      Err(MapError::ProtectFailed)
+    } else {
+      Ok(())
     }
   }
 
@@ -94,14 +94,14 @@ impl Mapper for WindowsMapper {
   fn map(&self, size: NonZeroUsize) -> Result<NonNull<[u8]>, MapError> {
     let size = page_align(size.get());
 
-    // Always use MEM_RESERVE_COMMIT with PAGE_NONE initially 
+    // Always use MEM_RESERVE_COMMIT with PAGE_NONE initially
     // This matches the pattern of reserving and committing in one step
     let result = unsafe {
       VirtualAlloc(
-        ptr::null_mut(), 
-        size, 
-        inner::MEM_RESERVE_COMMIT, 
-        inner::PAGE_NONE
+        ptr::null_mut(),
+        size,
+        inner::MEM_RESERVE_COMMIT,
+        inner::PAGE_NONE,
       )
     };
 
@@ -135,7 +135,7 @@ impl Mapper for WindowsMapper {
   ) -> Result<(), MapError> {
     let prot_flags = Self::to_page_protection(prot);
     let mut old_protect = 0;
-    
+
     let result = unsafe {
       VirtualProtect(
         ptr.as_ptr() as *mut c_void,
@@ -162,7 +162,10 @@ mod tests {
 
   #[test]
   fn test_to_prot_all_combinations() {
-    assert_eq!(WindowsMapper::to_page_protection(EnumSet::empty()), inner::PAGE_NONE);
+    assert_eq!(
+      WindowsMapper::to_page_protection(EnumSet::empty()),
+      inner::PAGE_NONE
+    );
     assert_eq!(
       WindowsMapper::to_page_protection(Protection::Read.into()),
       inner::PAGE_R
@@ -171,7 +174,10 @@ mod tests {
       WindowsMapper::to_page_protection(Protection::Write.into()),
       inner::PAGE_RW
     );
-    assert_eq!(WindowsMapper::to_page_protection(EnumSet::all()), inner::PAGE_RW);
+    assert_eq!(
+      WindowsMapper::to_page_protection(EnumSet::all()),
+      inner::PAGE_RW
+    );
   }
 
   #[test]
@@ -200,7 +206,7 @@ mod tests {
   #[test]
   fn test_decommit() {
     let ptr = GLOBAL_MAPPER.map(NonZero::new(4096).unwrap()).unwrap();
-    
+
     // First protect with RW so we can write to it
     GLOBAL_MAPPER.protect(ptr, EnumSet::all()).unwrap();
 

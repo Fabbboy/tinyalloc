@@ -41,4 +41,18 @@ impl<'mapper> Queue<'mapper> {
       Move::Full => self.full_list.push(segment),
     }
   }
+
+  pub fn has_available(&self) -> bool {
+    let free_available = self.free_list.head().is_some();
+    let partial_available = self.partial_list.head().is_some();
+    free_available || partial_available
+  }
+
+  pub fn get_available(&mut self) -> Option<NonNull<Segment<'mapper>>> {
+    self.free_list.pop().or_else(|| self.partial_list.pop())
+  }
+
+  pub fn add_segment(&mut self, segment: NonNull<Segment<'mapper>>) {
+    self.free_list.push(segment);
+  }
 }

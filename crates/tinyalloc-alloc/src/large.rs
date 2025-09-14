@@ -28,9 +28,8 @@ impl<'mapper> Large<'mapper> {
       .get()
       .checked_add(self_size)
       .ok_or(LargeError::SizeOverflow)?;
-    let mut region =
-      Region::new(NonZeroUsize::new(total_size).unwrap())
-        .map_err(LargeError::MapError)?;
+    let mut region = Region::new(NonZeroUsize::new(total_size).unwrap())
+      .map_err(LargeError::MapError)?;
     region.activate().map_err(LargeError::MapError)?;
     let ptr = region.as_ptr();
     let user =

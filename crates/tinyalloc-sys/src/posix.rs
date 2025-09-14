@@ -155,7 +155,6 @@ mod tests {
     GLOBAL_MAPPER.unmap(ptr);
   }
 
-
   #[test]
   fn test_commit_and_protect() {
     let ptr = GLOBAL_MAPPER.map(NonZero::new(4096).unwrap()).unwrap();
