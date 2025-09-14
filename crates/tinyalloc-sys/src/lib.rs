@@ -6,11 +6,12 @@ pub mod mapper;
 pub mod posix;
 pub mod region;
 pub mod size;
+pub mod windows;
 
 #[cfg(unix)]
 static BACKING_MAPPER: PosixMapper = PosixMapper;
 
-#[cfg(unix)]
+#[cfg(any(unix, windows))]
 pub static GLOBAL_MAPPER: &dyn Mapper = &BACKING_MAPPER;
 
 #[derive(Debug)]

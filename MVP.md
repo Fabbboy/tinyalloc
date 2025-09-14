@@ -23,8 +23,9 @@
 **Requirements**: Complete mapper agnosticism across entire codebase
 
 **Tasks**:
-- [ ] Refactor all components to use global `&'static dyn Mapper` reference
 - [ ] Remove generic `<M: Mapper>` parameters from `Heap`, `Arena`, `Segment`, `Large`
+- [ ] **IMPORTANT**: Keep lifetime parameters (e.g., `'mapper`) for slice references
+- [ ] Change `&'mapper M` to `&'mapper dyn Mapper` using `GLOBAL_MAPPER`
 - [ ] Implement mapper selection at startup (POSIX vs Windows)
 - [ ] Global mapper initialization in `static_.rs`
 
@@ -35,7 +36,7 @@
 **Files**: `crates/tinyalloc-sys/src/`
 
 **Tasks**:
-- [ ] Add `winapi` crate dependency (workspace level)
+- [x] Add `winapi` crate dependency (workspace level) - Already completed
 - [ ] Implement `WindowsMapper` struct in new module
 - [ ] VirtualAlloc/VirtualFree operations with proper error mapping
 - [ ] VirtualProtect for memory protection
@@ -129,6 +130,7 @@
 
 ## Success Criteria
 - [ ] **Zero generic mapper parameters** - complete mapper agnosticism
+- [ ] **IMPORTANT**: Lifetime parameters preserved (required for slice references)
 - [ ] **Windows + POSIX support** using winapi crate (not windows-sys)
 - [ ] Global mapper selection at startup
 - [ ] All allocation paths functional on both platforms
