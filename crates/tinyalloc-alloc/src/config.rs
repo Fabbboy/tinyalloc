@@ -33,3 +33,15 @@ pub const LARGE_ALIGN_RATIO: usize = 8;
 pub const fn align_up(size: usize, align: usize) -> usize {
     (size + align - 1) & !(align - 1)
 }
+
+pub fn align_slice(slice: &mut [u8], align: usize) -> &mut [u8] {
+    let start_addr = slice.as_ptr() as usize;
+    let aligned_addr = align_up(start_addr, align);
+    let offset = aligned_addr - start_addr;
+    
+    if offset >= slice.len() {
+        return &mut [];
+    }
+    
+    &mut slice[offset..]
+}

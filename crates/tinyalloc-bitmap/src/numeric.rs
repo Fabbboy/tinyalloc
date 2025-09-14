@@ -23,6 +23,14 @@ where
     fn clear(self, bit: usize) -> Self;
     fn flip(self, bit: usize) -> Self;
     fn get(self, bit: usize) -> bool;
+    
+    fn words(bits: usize) -> usize {
+        (bits + Self::BITS - 1) / Self::BITS
+    }
+    
+    fn bytes(bits: usize) -> usize {
+        Self::words(bits) * core::mem::size_of::<Self>()
+    }
 }
 
 macro_rules! impl_bits {

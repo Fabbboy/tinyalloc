@@ -1,5 +1,7 @@
 use std::array;
 
+use tinyalloc_bitmap::numeric::Bits;
+
 use crate::config::{
     LARGE_ALIGN_RATIO, LARGE_SC_LIMIT, MEDIUM_ALIGN_LIMIT, MEDIUM_SC_LIMIT, MIN_ALIGN, MIN_SIZE,
     SIZES, SMALL_ALIGN_LIMIT, SMALL_SC_LIMIT,
@@ -10,8 +12,35 @@ pub struct Size(pub usize);
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Align(pub usize);
 
+pub struct Segmentation<'mapper, B>
+where
+    B: Bits,
+{
+    pub bitmap: &'mapper mut [B],
+    pub rest: &'mapper mut [u8],
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Class(pub Size, pub Align);
+
+impl Class {
+    pub fn segment<'mapper, B>(&self, heap: &'mapper mut [u8]) -> Segmentation<'mapper, B>
+    where
+        B: Bits,
+    {
+        let objects_per_heap = heap.len() / self.0.0;
+        let bitmap_bits = objects_per_heap;
+        let bitmap_bytes = B::bytes(bitmap_bits);
+        let bitmap_words = B::words(bitmap_bits);
+
+        let (bitmap_slice, rest) = heap.split_at_mut(bitmap_bytes);
+        let bitmap = unsafe {
+            core::slice::from_raw_parts_mut(bitmap_slice.as_mut_ptr() as *mut B, bitmap_words)
+        };
+
+        Segmentation { bitmap, rest }
+    }
+}
 
 const fn size_to_align(size: usize) -> usize {
     if size <= SMALL_ALIGN_LIMIT {

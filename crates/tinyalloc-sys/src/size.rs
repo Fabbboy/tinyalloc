@@ -20,13 +20,13 @@ pub fn page_align_slice(slice: NonNull<[u8]>) -> NonNull<[u8]> {
     let page = page_size();
     let start_addr = slice.as_ptr() as *const u8 as usize;
     let end_addr = start_addr + slice.len();
-    
+
     let aligned_start = start_addr & !(page - 1);
     let aligned_end = (end_addr + page - 1) & !(page - 1);
-    
+
     let aligned_ptr = aligned_start as *mut u8;
     let aligned_size = aligned_end - aligned_start;
-    
+
     unsafe {
         let slice = std::slice::from_raw_parts_mut(aligned_ptr, aligned_size);
         NonNull::new(slice).unwrap()
