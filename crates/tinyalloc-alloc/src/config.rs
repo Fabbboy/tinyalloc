@@ -2,12 +2,7 @@ pub const SIZES: usize = 32;
 pub const ONE: usize = 1;
 pub const WORD: usize = core::mem::size_of::<usize>();
 
-pub const SHIFT: usize = match WORD {
-  8 => 3,
-  4 => 2,
-  _ => panic!("Unsupported word size"),
-};
-
+pub const SHIFT: usize = WORD.trailing_zeros() as usize;
 pub const MAX_ALIGN: usize = 1 << (SIZES - SHIFT - 1);
 pub const MAX_SIZE: usize = MAX_ALIGN << (SIZES - SHIFT - 1);
 pub const MIN_ALIGN: usize = WORD;
