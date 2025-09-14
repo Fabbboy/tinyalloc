@@ -35,6 +35,10 @@ impl<'mapper> Segment<'mapper> {
             NonNull::new_unchecked(segment_ptr)
         }
     }
+
+    pub fn is_full(&self) -> bool {
+        !self.bitmap.is_clear()
+    }
 }
 
 impl<'mapper> HasLink<Segment<'mapper>> for Segment<'mapper> {
