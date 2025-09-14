@@ -1,7 +1,4 @@
-use std::{
-    alloc::{GlobalAlloc, Layout},
-    ptr::NonNull,
-};
+use std::{alloc::Layout, ptr::NonNull};
 
 use tinyalloc_list::List;
 use tinyalloc_sys::mapper::Mapper;
@@ -32,19 +29,6 @@ where
         todo!()
     }
     pub fn deallocate(&mut self, ptr: NonNull<u8>, layout: Layout) {
-        todo!()
-    }
-}
-
-unsafe impl<'mapper, M> GlobalAlloc for Heap<'mapper, M>
-where
-    M: Mapper + ?Sized,
-{
-    unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        todo!()
-    }
-
-    unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
         todo!()
     }
 }

@@ -28,7 +28,6 @@ where
     region: Region<'mapper, M>,
     bitmap: Bitmap<'mapper, usize>,
     user: &'mapper mut [u8],
-    //deprecated: wrong place to keep classes: classes: [Queue<'mapper>; SIZES],
 }
 
 impl<'mapper, M> Arena<'mapper, M>

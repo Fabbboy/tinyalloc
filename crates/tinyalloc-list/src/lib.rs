@@ -58,12 +58,14 @@ where
     fn link_mut(&mut self) -> &mut Link<T>;
 }
 
-#[derive(Debug)]
+#[derive(Debug, Getters)]
 pub struct List<T>
 where
     T: HasLink<T>,
 {
+    #[getset(get = "pub")]
     head: Option<NonNull<T>>,
+    #[getset(get = "pub")]
     tail: Option<NonNull<T>>,
 }
 
