@@ -205,3 +205,15 @@ Based on segment tests, the allocator achieves:
 - **Challenging Cases**: Large objects (131KB) still achieve ~76% utilization
 
 This demonstrates efficient memory usage across the entire size spectrum.
+
+## RULES
+DO NOT...
+- use FQTN ALWAYS import everything
+- place a million comments. Comments explain why not how. Code should be self-explanatory.
+- write long gigantic self contained methods. Break them down into helpers
+- just expose attributes and methods with `pub`. Use `pub(crate)` or `pub(super)` or my absolut favorite for struct fields the dedicated `getset` crate
+- a simple constructor or getter doesnt need 5 tests while a full subsystems isn't satisfiently tested with 4 tests
+- manually add dependencies. Use `cargo add <crate>` or add it to the workspace Cargo.toml if it's a workspace dependency
+- access deep attributes manually use getters and setters they are private for a reason
+- hesitate to propegate `unsafe` 
+- use lifetime inference. Always be explicit with lifetimes
