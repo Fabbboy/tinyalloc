@@ -1,5 +1,3 @@
-use tinyalloc_array::slice::Slice;
-
 use crate::numeric::{Bits, BitsRequire};
 
 pub mod numeric;
@@ -17,7 +15,7 @@ pub struct Bitmap<'slice, T>
 where
     T: Bits + BitsRequire,
 {
-    store: Slice<'slice, T>,
+    store: &'slice mut [T],
     bits: usize,
 }
 
@@ -34,7 +32,7 @@ where
     }
 
     pub fn store(&self) -> &[T] {
-        self.store.as_slice()
+        self.store
     }
 
     pub fn bits(&self) -> usize {
@@ -53,14 +51,14 @@ where
         Ok((word_index, bit_index))
     }
 
-    pub fn zero(store: Slice<'slice, T>) -> Self {
+    pub fn zero(store: &'slice mut [T]) -> Self {
         let bits = store.len() * T::BITS;
         let mut bitmap = Self { store, bits };
         bitmap.clear_all();
         bitmap
     }
 
-    pub fn one(store: Slice<'slice, T>) -> Self {
+    pub fn one(store: &'slice mut [T]) -> Self {
         let bits = store.len() * T::BITS;
         let mut bitmap = Self { store, bits };
         bitmap.set_all();

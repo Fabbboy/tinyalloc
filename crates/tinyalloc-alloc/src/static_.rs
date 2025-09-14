@@ -3,7 +3,7 @@ use std::{
     sync::{RwLock, atomic::AtomicPtr},
 };
 
-use tinyalloc_array::array::Array;
+use tinyalloc_array::Array;
 use tinyalloc_sys::mapper::Mapper;
 
 use crate::{
