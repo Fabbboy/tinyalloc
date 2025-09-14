@@ -35,7 +35,7 @@ mod unix {
   pub const MAP_FLAGS: i32 = libc::MAP_PRIVATE | libc::MAP_ANONYMOUS;
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct PosixMapper;
 
 impl MapperRequires for PosixMapper {}
@@ -155,15 +155,6 @@ mod tests {
     GLOBAL_MAPPER.unmap(ptr);
   }
 
-  #[test]
-  fn test_map_zero_size() {
-    let result = GLOBAL_MAPPER.map(NonZero::new(0).unwrap());
-    assert!(result.is_err());
-
-    if let Err(e) = result {
-      assert!(matches!(e, MapError::InvalidSize));
-    }
-  }
 
   #[test]
   fn test_commit_and_protect() {

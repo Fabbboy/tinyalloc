@@ -7,6 +7,7 @@ use enumset::EnumSet;
 use getset::Getters;
 
 use crate::{
+  GLOBAL_MAPPER,
   MapError,
   mapper::{
     Mapper,
@@ -14,26 +15,20 @@ use crate::{
   },
 };
 
-#[derive(Debug, Getters)]
-pub struct Region<'mapper, M>
-where
-  M: Mapper + ?Sized,
-{
+#[derive(Getters)]
+pub struct Region<'mapper> {
   #[getset(get = "pub")]
   data: NonNull<[u8]>,
-  mapper: &'mapper M,
+  mapper: &'mapper dyn Mapper,
   activate: bool,
 }
 
-impl<'mapper, M> Region<'mapper, M>
-where
-  M: Mapper + ?Sized,
-{
-  pub fn new(mapper: &'mapper M, size: NonZeroUsize) -> Result<Self, MapError> {
-    let data = mapper.map(size)?;
+impl<'mapper> Region<'mapper> {
+  pub fn new(size: NonZeroUsize) -> Result<Self, MapError> {
+    let data = GLOBAL_MAPPER.map(size)?;
     Ok(Self {
       data,
-      mapper,
+      mapper: GLOBAL_MAPPER,
       activate: false,
     })
   }
@@ -84,10 +79,7 @@ where
   }
 }
 
-impl<'mapper, M> Drop for Region<'mapper, M>
-where
-  M: Mapper + ?Sized,
-{
+impl<'mapper> Drop for Region<'mapper> {
   fn drop(&mut self) {
     self.mapper.unmap(self.data);
   }

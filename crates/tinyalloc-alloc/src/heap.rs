@@ -4,7 +4,6 @@ use std::{
 };
 
 use tinyalloc_list::List;
-use tinyalloc_sys::mapper::Mapper;
 
 use crate::{
   classes::class_init,
@@ -13,19 +12,13 @@ use crate::{
   queue::Queue,
 };
 
-pub struct Heap<'mapper, M>
-where
-  M: Mapper + ?Sized,
-{
+pub struct Heap<'mapper> {
   classes: [Queue<'mapper>; SIZES],
-  large: List<Large<'mapper, M>>,
+  large: List<Large<'mapper>>,
 }
 
-impl<'mapper, M> Heap<'mapper, M>
-where
-  M: Mapper + ?Sized,
-{
-  pub fn new(mapper: &'mapper M) -> Self {
+impl<'mapper> Heap<'mapper> {
+  pub fn new() -> Self {
     let classes: [Queue<'mapper>; SIZES] =
       class_init(|class| Queue::new(class));
     Self {
@@ -34,10 +27,10 @@ where
     }
   }
 
-  pub fn allocate(&mut self, layout: Layout) -> Option<NonNull<[u8]>> {
+  pub fn allocate(&mut self, _layout: Layout) -> Option<NonNull<[u8]>> {
     todo!()
   }
-  pub fn deallocate(&mut self, ptr: NonNull<u8>, layout: Layout) {
+  pub fn deallocate(&mut self, _ptr: NonNull<u8>, _layout: Layout) {
     todo!()
   }
 }

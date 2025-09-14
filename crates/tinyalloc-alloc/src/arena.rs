@@ -11,10 +11,7 @@ use tinyalloc_bitmap::{
 
 use tinyalloc_sys::{
   MapError,
-  mapper::{
-    Mapper,
-    Protection,
-  },
+  mapper::Protection,
   region::Region,
 };
 
@@ -33,25 +30,16 @@ pub enum ArenaError {
   SizeIsZero,
 }
 
-pub struct Arena<'mapper, M>
-where
-  M: Mapper + ?Sized,
-{
-  region: Region<'mapper, M>,
+pub struct Arena<'mapper> {
+  region: Region<'mapper>,
   bitmap: Bitmap<'mapper, usize>,
   user: &'mapper mut [u8],
 }
 
-impl<'mapper, M> Arena<'mapper, M>
-where
-  M: Mapper + ?Sized,
-{
-  pub fn new(
-    size: usize,
-    mapper: &'mapper M,
-  ) -> Result<NonNull<Self>, ArenaError> {
+impl<'mapper> Arena<'mapper> {
+  pub fn new(size: usize) -> Result<NonNull<Self>, ArenaError> {
     let nonz = NonZeroUsize::new(size).ok_or(ArenaError::SizeIsZero)?;
-    let region = Region::new(mapper, nonz).map_err(ArenaError::MapError)?;
+    let region = Region::new(nonz).map_err(ArenaError::MapError)?;
 
     let arena_size = core::mem::size_of::<Self>();
     let total_size = align_up(arena_size, WORD);
@@ -130,13 +118,13 @@ mod tests {
 
   #[test]
   fn test_arena_construction() {
-    let arena_result = Arena::new(ARENA_INITIAL_SIZE, GLOBAL_MAPPER);
+    let arena_result = Arena::new(ARENA_INITIAL_SIZE);
     assert!(arena_result.is_ok());
   }
 
   #[test]
   fn test_arena_insufficient_space() {
-    let arena_result = Arena::new(1, GLOBAL_MAPPER);
+    let arena_result = Arena::new(1);
     assert!(matches!(arena_result, Err(ArenaError::Insufficient)));
   }
 }
