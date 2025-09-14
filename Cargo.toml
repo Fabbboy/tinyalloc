@@ -6,7 +6,8 @@ edition = "2024"
 [workspace]
 resolver = "3"
 members = [
-  "crates/tinyalloc-alloc", "crates/tinyalloc-array",
+  "crates/tinyalloc-alloc",
+  "crates/tinyalloc-array",
   "crates/tinyalloc-bitmap",
   "crates/tinyalloc-list",
   "crates/tinyalloc-sys",
@@ -16,6 +17,7 @@ members = [
 getset = "0.1.6"
 libc = "0.2.175"
 enumset = "1.1.10"
+criterion = "0.7.0"
 
 tinyalloc-alloc = { path = "crates/tinyalloc-alloc" }
 tinyalloc-array = { path = "crates/tinyalloc-array" }
@@ -31,9 +33,17 @@ panic = "abort"
 strip = "symbols"
 lto = true
 
+[dev-dependencies]
+libc = { workspace = true }
+criterion = { workspace = true }
+
 [dependencies]
 tinyalloc-alloc = { workspace = true }
 tinyalloc-bitmap = { workspace = true }
 tinyalloc-list = { workspace = true }
 tinyalloc-sys = { workspace = true }
 tinyalloc-array = { workspace = true }
+
+[[bench]]
+name = "bench_sample"
+harness = false

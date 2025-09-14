@@ -2,40 +2,43 @@ use std::ptr::NonNull;
 
 use tinyalloc_list::List;
 
-use crate::{classes::Class, segment::Segment};
+use crate::{
+  classes::Class,
+  segment::Segment,
+};
 
 pub enum Move {
-    Free,
-    Partial,
-    Full,
+  Free,
+  Partial,
+  Full,
 }
 
 pub struct Queue<'mapper> {
-    class: &'static Class,
-    free_list: List<Segment<'mapper>>,
-    partial_list: List<Segment<'mapper>>,
-    full_list: List<Segment<'mapper>>,
+  class: &'static Class,
+  free_list: List<Segment<'mapper>>,
+  partial_list: List<Segment<'mapper>>,
+  full_list: List<Segment<'mapper>>,
 }
 
 impl<'mapper> Queue<'mapper> {
-    pub fn new(class: &'static Class) -> Queue<'mapper> {
-        Queue {
-            class,
-            free_list: List::new(),
-            partial_list: List::new(),
-            full_list: List::new(),
-        }
+  pub fn new(class: &'static Class) -> Queue<'mapper> {
+    Queue {
+      class,
+      free_list: List::new(),
+      partial_list: List::new(),
+      full_list: List::new(),
     }
+  }
 
-    pub fn displace(&mut self, segment: NonNull<Segment<'mapper>>, mv: Move) {
-        let _ = self.free_list.remove(segment)
-            || self.partial_list.remove(segment)
-            || self.full_list.remove(segment);
+  pub fn displace(&mut self, segment: NonNull<Segment<'mapper>>, mv: Move) {
+    let _ = self.free_list.remove(segment)
+      || self.partial_list.remove(segment)
+      || self.full_list.remove(segment);
 
-        match mv {
-            Move::Free => self.free_list.push(segment),
-            Move::Partial => self.partial_list.push(segment),
-            Move::Full => self.full_list.push(segment),
-        }
+    match mv {
+      Move::Free => self.free_list.push(segment),
+      Move::Partial => self.partial_list.push(segment),
+      Move::Full => self.full_list.push(segment),
     }
+  }
 }

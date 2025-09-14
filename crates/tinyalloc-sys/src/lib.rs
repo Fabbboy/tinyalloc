@@ -15,9 +15,9 @@ pub static GLOBAL_MAPPER: &dyn Mapper = &BACKING_MAPPER;
 
 #[derive(Debug)]
 pub enum MapError {
-    InvalidSize,
-    OutOfMemory,
-    CommitFailed,
-    DecommitFailed,
-    ProtectFailed,
+  InvalidSize,
+  OutOfMemory,
+  CommitFailed,
+  DecommitFailed,
+  ProtectFailed,
 }

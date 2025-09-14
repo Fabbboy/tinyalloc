@@ -1,41 +1,51 @@
-use std::{num::NonZeroUsize, ptr::NonNull};
+use std::{
+  num::NonZeroUsize,
+  ptr::NonNull,
+};
 
-use enumset::{EnumSet, EnumSetType};
+use enumset::{
+  EnumSet,
+  EnumSetType,
+};
 
 use crate::MapError;
 
 #[derive(EnumSetType)]
 pub enum Protection {
-    Read,
-    Write,
+  Read,
+  Write,
 }
 
 pub trait MapperRequires
 where
-    Self: Send + Sync + 'static,
+  Self: Send + Sync + 'static,
 {
 }
 
 pub trait Mapper
 where
-    Self: MapperRequires,
+  Self: MapperRequires,
 {
-    fn cptr(&self, rptr: *mut u8) -> *mut libc::c_void {
-        rptr as *mut libc::c_void
-    }
-    fn map(&self, size: NonZeroUsize) -> Result<NonNull<[u8]>, MapError> {
-        _ = size;
-        Err(MapError::OutOfMemory)
-    }
-    fn unmap(&self, ptr: NonNull<[u8]>) {
-        _ = ptr;
-    }
-    fn decommit(&self, ptr: NonNull<[u8]>) -> Result<(), MapError> {
-        _ = ptr;
-        Ok(())
-    }
-    fn protect(&self, ptr: NonNull<[u8]>, prot: EnumSet<Protection>) -> Result<(), MapError> {
-        _ = (ptr, prot);
-        Err(MapError::ProtectFailed)
-    }
+  fn cptr(&self, rptr: *mut u8) -> *mut libc::c_void {
+    rptr as *mut libc::c_void
+  }
+  fn map(&self, size: NonZeroUsize) -> Result<NonNull<[u8]>, MapError> {
+    _ = size;
+    Err(MapError::OutOfMemory)
+  }
+  fn unmap(&self, ptr: NonNull<[u8]>) {
+    _ = ptr;
+  }
+  fn decommit(&self, ptr: NonNull<[u8]>) -> Result<(), MapError> {
+    _ = ptr;
+    Ok(())
+  }
+  fn protect(
+    &self,
+    ptr: NonNull<[u8]>,
+    prot: EnumSet<Protection>,
+  ) -> Result<(), MapError> {
+    _ = (ptr, prot);
+    Err(MapError::ProtectFailed)
+  }
 }
