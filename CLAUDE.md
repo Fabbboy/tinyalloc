@@ -217,3 +217,13 @@ DO NOT...
 - access deep attributes manually use getters and setters they are private for a reason
 - hesitate to propegate `unsafe` 
 - use lifetime inference. Always be explicit with lifetimes
+- use magic numbers. Always use constants with descriptive names
+- use magic constants that are not derived from system properties
+
+ALWAYS...
+- use `NonNull<T>` for pointers that should never be null
+- use `Option<NonNull<T>>` for pointers that can be null
+- use `Result<T, E>` for fallible operations
+- use `NonZero...` types for sizes and counts that should never be zero
+- use `const` for configuration values or comptime functions
+- look at the project first before writing code in 99% of the time code and infrastructure is already there
