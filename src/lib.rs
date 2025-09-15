@@ -5,6 +5,7 @@ use std::{
   },
   cell::UnsafeCell,
   ptr::NonNull,
+  sync::Once,
 };
 
 use tinyalloc_alloc::heap::Heap;

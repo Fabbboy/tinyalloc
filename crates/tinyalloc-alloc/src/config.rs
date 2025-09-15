@@ -11,6 +11,7 @@ pub const MIN_SIZE: usize = MIN_ALIGN;
 pub const ARENA_SHIFT: usize = 23 + SHIFT;
 pub const ARENA_INITIAL_SIZE: usize = 1 << ARENA_SHIFT;
 pub const ARENA_GROWTH: usize = 2;
+pub const ARENA_STEP: usize = 4;
 pub const ARENA_LIMIT: usize = 80;
 
 pub const SEGMENT_SHIFT: usize = 14 + SHIFT;

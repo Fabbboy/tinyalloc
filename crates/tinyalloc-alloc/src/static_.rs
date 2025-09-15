@@ -18,6 +18,7 @@ use crate::{
     ARENA_GROWTH,
     ARENA_INITIAL_SIZE,
     ARENA_LIMIT,
+    ARENA_STEP,
   },
 };
 
@@ -35,13 +36,19 @@ static NEXT_ARENA_SIZE: AtomicUsize = AtomicUsize::new(ARENA_INITIAL_SIZE);
 fn create_arena() -> Result<NonNull<Arena<'static>>, ArenaError> {
   let size = NEXT_ARENA_SIZE.load(Ordering::Relaxed);
   let arena = Arena::new(size)?;
-  let next = size.checked_mul(ARENA_GROWTH).unwrap_or(size);
-  NEXT_ARENA_SIZE.store(next, Ordering::Relaxed);
   Ok(arena)
 }
 
 fn add_arena(arena: NonNull<Arena<'static>>) -> Result<(), ArenaError> {
   let mut arenas = ARENAS.write().unwrap();
+  let arena_count = arenas.len();
+
+  if arena_count > 0 && arena_count % ARENA_STEP == 0 {
+    let current_size = NEXT_ARENA_SIZE.load(Ordering::Relaxed);
+    let next_size = current_size.checked_mul(ARENA_GROWTH).unwrap_or(current_size);
+    NEXT_ARENA_SIZE.store(next_size, Ordering::Relaxed);
+  }
+
   let atomic_ptr = AtomicPtr::new(arena.as_ptr());
   arenas
     .push(atomic_ptr)
