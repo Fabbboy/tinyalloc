@@ -45,6 +45,47 @@ impl<'mapper> Segment<'mapper> {
   pub fn is_full(&self) -> bool {
     !self.bitmap.is_clear()
   }
+
+  fn ptr_from_index(&mut self, bit_index: usize) -> Option<NonNull<u8>> {
+    let offset = bit_index * self.class.size.0;
+    if offset >= self.user.len() {
+      return None;
+    }
+    let ptr = unsafe { self.user.as_ptr().add(offset) };
+    NonNull::new(ptr as *mut u8)
+  }
+
+  fn index_from_ptr(&mut self, ptr: NonNull<u8>) -> Option<usize> {
+    let user_start = self.user.as_mut_ptr() as *mut u8;
+    let user_end = unsafe { user_start.add(self.user.len()) };
+    let ptr_addr = ptr.as_ptr();
+
+    if ptr_addr < user_start || ptr_addr >= user_end {
+      return None;
+    }
+
+    let offset = unsafe { ptr_addr.offset_from(user_start) as usize };
+    let object_size = self.class.size.0;
+    if offset % object_size != 0 {
+      return None;
+    }
+
+    Some(offset / object_size)
+  }
+
+  pub fn alloc(&mut self) -> Option<NonNull<u8>> {
+    let bit_index = self.bitmap.find_first_clear()?;
+    self.bitmap.set(bit_index).ok()?;
+    self.ptr_from_index(bit_index)
+  }
+
+  pub fn dealloc(&mut self, ptr: NonNull<u8>) -> bool {
+    let bit_index = match self.index_from_ptr(ptr) {
+      Some(index) => index,
+      None => return false,
+    };
+    self.bitmap.clear(bit_index).is_ok()
+  }
 }
 
 impl<'mapper> HasLink<Segment<'mapper>> for Segment<'mapper> {
@@ -76,7 +117,7 @@ mod tests {
     let segment = unsafe { segment_ptr.as_ref() };
 
     let user_space = segment.user.len();
-    let object_size = largest_class.0.0;
+    let object_size = largest_class.size.0;
     let max_objects = user_space / object_size;
     let remainder = user_space % object_size;
     let utilization =
@@ -103,7 +144,7 @@ mod tests {
     let segment = unsafe { segment_ptr.as_ref() };
 
     let user_space = segment.user.len();
-    let object_size = smallest_class.0.0;
+    let object_size = smallest_class.size.0;
     let max_objects = user_space / object_size;
     let remainder = user_space % object_size;
 
@@ -136,7 +177,7 @@ mod tests {
       let segment = unsafe { segment_ptr.as_ref() };
 
       let user_space = segment.user.len();
-      let object_size = class.0.0;
+      let object_size = class.size.0;
       let max_objects = user_space / object_size;
       let remainder = user_space % object_size;
       let utilization =
@@ -185,13 +226,36 @@ mod tests {
   }
 
   #[test]
+  fn segment_alloc_dealloc_basic() {
+    let mut buffer = vec![0u8; SEGMENT_SIZE];
+    let class = &CLASSES[0];
+    let mut segment_ptr = Segment::new(class, &mut buffer);
+    let segment = unsafe { segment_ptr.as_mut() };
+    
+    let ptr1 = segment.alloc().expect("Should allocate first object");
+    assert!(!segment.bitmap.is_clear(), "Bitmap should not be clear after allocation");
+    
+    let ptr2 = segment.alloc().expect("Should allocate second object");
+    assert_ne!(ptr1, ptr2, "Should get different pointers");
+    
+    assert!(segment.dealloc(ptr1), "Should successfully deallocate first object");
+    
+    assert!(segment.dealloc(ptr2), "Should successfully deallocate second object");
+    
+    assert!(segment.bitmap.is_clear(), "Bitmap should be clear after all deallocations");
+    
+    let ptr3 = segment.alloc().expect("Should be able to reallocate");
+    assert_eq!(ptr1, ptr3, "Should reuse first slot");
+  }
+
+  #[test]
   fn segment_bitmap_sizing_correctness() {
     for class in CLASSES.iter() {
       let mut buffer = vec![0u8; SEGMENT_SIZE];
       let segment_ptr = Segment::new(class, &mut buffer);
       let segment = unsafe { segment_ptr.as_ref() };
 
-      let max_objects = segment.user.len() / class.0.0;
+      let max_objects = segment.user.len() / class.size.0;
       let bitmap_words_needed =
         (max_objects + usize::BITS as usize - 1) / usize::BITS as usize;
       let actual_bitmap_words = segment.bitmap.store().len();
@@ -201,7 +265,7 @@ mod tests {
         "Bitmap too small: need {} words, have {} for class size {}",
         bitmap_words_needed,
         actual_bitmap_words,
-        class.0.0
+        class.size.0
       );
 
       assert!(
@@ -209,7 +273,7 @@ mod tests {
         "Bitmap oversized: need {} words, have {} for class size {}",
         bitmap_words_needed,
         actual_bitmap_words,
-        class.0.0
+        class.size.0
       );
     }
   }

@@ -27,10 +27,23 @@ where
   pub rest: &'mapper mut [u8],
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Class(pub Size, pub Align);
+#[derive(Debug, Clone, Copy, PartialEq)]
+//Cannot use getset as getset does NOT produce const getters
+pub struct Class {
+  pub size: Size,
+  pub align: Align,
+  pub id: usize,
+}
 
 impl Class {
+  pub const fn new(size: usize, align: usize, id: usize) -> Self {
+    Self {
+      size: Size(size),
+      align: Align(align),
+      id,
+    }
+  }
+
   pub fn segment<'mapper, B>(
     &self,
     heap: &'mapper mut [u8],
@@ -38,7 +51,7 @@ impl Class {
   where
     B: Bits,
   {
-    let objects_per_heap = heap.len() / self.0.0;
+    let objects_per_heap = heap.len() / self.size.0;
     let bitmap_bits = objects_per_heap;
     let bitmap_bytes = B::bytes(bitmap_bits);
     let bitmap_words = B::words(bitmap_bits);
@@ -68,13 +81,13 @@ const fn size_to_align(size: usize) -> usize {
 }
 
 const fn classes() -> [Class; SIZES] {
-  let mut classes = [Class(Size(0), Align(0)); SIZES];
+  let mut classes = [Class::new(0, 0, 0); SIZES];
   let mut i = 0;
   let mut size = MIN_SIZE;
 
   while i < SIZES {
     let align = size_to_align(size);
-    classes[i] = Class(Size(size), Align(align));
+    classes[i] = Class::new(size, align, i);
 
     if size < SMALL_SC_LIMIT {
       size += align;
@@ -97,7 +110,7 @@ pub const fn find_class(size: usize) -> Option<&'static Class> {
   let mut i = 0;
   while i < SIZES {
     let class = &CLASSES[i];
-    if size <= class.0.0 {
+    if size <= class.size.0 {
       return Some(class);
     }
     i += 1;
