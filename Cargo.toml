@@ -52,3 +52,7 @@ harness = false
 [[bench]]
 name = "allocator_bench"
 harness = false
+
+[[bench]]
+name = "comparison_bench"
+harness = false
