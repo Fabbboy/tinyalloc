@@ -3,6 +3,7 @@ use std::array;
 use tinyalloc_bitmap::numeric::Bits;
 
 use crate::config::{
+  align_up,
   LARGE_ALIGN_RATIO,
   LARGE_SC_LIMIT,
   MEDIUM_ALIGN_LIMIT,
@@ -88,7 +89,7 @@ const fn classes() -> [Class; SIZES] {
   while i < SIZES {
     let align = size_to_align(size);
     // Ensure size is a multiple of alignment
-    let aligned_size = ((size + align - 1) / align) * align;
+    let aligned_size = align_up(size, align);
     classes[i] = Class::new(aligned_size, align, i);
 
     if size < SMALL_SC_LIMIT {
