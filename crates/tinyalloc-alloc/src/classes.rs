@@ -112,8 +112,6 @@ pub const fn find_class(size: usize) -> Option<&'static Class> {
     return None;
   }
 
-  // Optimized linear search - for small arrays (32 elements) this is faster than binary search
-  // due to better cache locality and no division/branching overhead
   let mut i = 0;
   while i < SIZES {
     if size <= CLASSES[i].size.0 {
