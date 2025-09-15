@@ -43,7 +43,17 @@ impl<'mapper> Segment<'mapper> {
   }
 
   pub fn is_full(&self) -> bool {
-    !self.bitmap.is_clear()
+    self.bitmap.find_first_clear().is_none()
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.bitmap.is_clear()
+  }
+
+  pub fn contains_ptr(&self, ptr: NonNull<u8>) -> bool {
+    let user_start = self.user.as_ptr() as *mut u8;
+    let user_end = unsafe { user_start.add(self.user.len()) };
+    ptr.as_ptr() >= user_start && ptr.as_ptr() < user_end
   }
 
   fn ptr_from_index(&mut self, bit_index: usize) -> Option<NonNull<u8>> {

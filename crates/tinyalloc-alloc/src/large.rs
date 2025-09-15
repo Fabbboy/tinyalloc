@@ -1,4 +1,7 @@
-use std::num::NonZeroUsize;
+use std::{
+  num::NonZeroUsize,
+  ptr::NonNull,
+};
 
 use getset::Getters;
 use tinyalloc_list::{
@@ -19,13 +22,12 @@ pub enum LargeError {
 #[derive(Getters)]
 pub struct Large<'mapper> {
   region: Region<'mapper>,
-  #[getset(get = "pub")]
-  user: &'mapper mut [u8],
+  pub user: &'mapper mut [u8],
   link: Link<Large<'mapper>>,
 }
 
 impl<'mapper> Large<'mapper> {
-  pub fn new(size: NonZeroUsize) -> Result<Self, LargeError> {
+  pub fn new(size: NonZeroUsize) -> Result<NonNull<Self>, LargeError> {
     let self_size = core::mem::size_of::<Self>();
     let total_size = size
       .get()
@@ -37,11 +39,27 @@ impl<'mapper> Large<'mapper> {
     let ptr = region.as_ptr();
     let user =
       unsafe { std::slice::from_raw_parts_mut(ptr.add(self_size), size.get()) };
-    Ok(Self {
+
+    let large = Self {
       region,
       user,
       link: Link::new(),
-    })
+    };
+
+    let large_ptr = ptr as *mut Self;
+    unsafe { large_ptr.write(large) };
+
+    NonNull::new(large_ptr).ok_or(LargeError::SizeOverflow)
+  }
+
+  pub fn user_slice(&self) -> NonNull<[u8]> {
+    NonNull::new(self.user as *const [u8] as *mut [u8]).unwrap()
+  }
+
+  pub fn contains_ptr(&self, ptr: NonNull<u8>) -> bool {
+    let user_start = self.user.as_ptr() as *mut u8;
+    let user_end = unsafe { user_start.add(self.user.len()) };
+    ptr.as_ptr() >= user_start && ptr.as_ptr() < user_end
   }
 }
 
