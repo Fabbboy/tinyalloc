@@ -2,6 +2,7 @@
 name = "tinyalloc"
 version = "0.1.0"
 edition = "2024"
+build = "build.rs"
 
 [workspace]
 resolver = "3"
@@ -33,6 +34,9 @@ crate-type = ["cdylib", "staticlib", "rlib"]
 panic = "abort"
 strip = "symbols"
 lto = true
+
+[build-dependencies]
+cbindgen = "0.29.0"
 
 [dev-dependencies]
 libc = { workspace = true }

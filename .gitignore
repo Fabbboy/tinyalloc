@@ -1,1 +1,10 @@
 target/
+tinyalloc
+*.exe
+*.dll
+*.so
+*.dylib
+*.pdb
+*.lib
+*.obj
+*.o
