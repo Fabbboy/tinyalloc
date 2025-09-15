@@ -1,5 +1,6 @@
 use std::num::NonZeroUsize;
 
+use getset::Getters;
 use tinyalloc_list::{
   HasLink,
   Link,
@@ -15,8 +16,10 @@ pub enum LargeError {
   SizeOverflow,
 }
 
+#[derive(Getters)]
 pub struct Large<'mapper> {
   region: Region<'mapper>,
+  #[getset(get = "pub")]
   user: &'mapper mut [u8],
   link: Link<Large<'mapper>>,
 }

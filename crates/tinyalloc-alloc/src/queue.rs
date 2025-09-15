@@ -56,3 +56,17 @@ impl<'mapper> Queue<'mapper> {
     self.free_list.push(segment);
   }
 }
+
+impl<'mapper> Drop for Queue<'mapper> {
+  fn drop(&mut self) {
+    for segment in self.free_list.drain() {
+      let _ = segment;
+    }
+    for segment in self.partial_list.drain() {
+      let _ = segment;
+    }
+    for segment in self.full_list.drain() {
+      let _ = segment;
+    }
+  }
+}

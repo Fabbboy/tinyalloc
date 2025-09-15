@@ -21,6 +21,7 @@ use crate::{
   config::{
     SEGMENT_SIZE,
     WORD,
+    align_slice,
     align_up,
   },
   segment::Segment,
@@ -64,9 +65,8 @@ impl<'mapper> Arena<'mapper> {
       )
       .map_err(ArenaError::MapError)?;
 
-    let aligned_rest =
-      crate::config::align_slice(rest, core::mem::align_of::<usize>());
-    let segments_possible = aligned_rest.len() / crate::config::SEGMENT_SIZE;
+    let aligned_rest = align_slice(rest, core::mem::align_of::<usize>());
+    let segments_possible = aligned_rest.len() / SEGMENT_SIZE;
     if segments_possible == 0 {
       return Err(ArenaError::Insufficient);
     }
