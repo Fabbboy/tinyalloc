@@ -36,10 +36,6 @@ impl IniSection {
   fn add_property(&mut self, key: String, value: String) {
     self.properties.insert(key, value);
   }
-
-  fn get_property(&self, key: &str) -> Option<&String> {
-    self.properties.get(key)
-  }
 }
 
 #[derive(Debug, Default)]
@@ -51,11 +47,6 @@ struct IniParser {
 impl IniParser {
   fn new() -> Self {
     Self::default()
-  }
-
-  fn clear(&mut self) {
-    self.sections.clear();
-    self.global_properties.clear();
   }
 
   fn parse_line(
@@ -141,10 +132,6 @@ impl IniParser {
     }
 
     Ok(())
-  }
-
-  fn get_section(&self, name: &str) -> Option<&IniSection> {
-    self.sections.get(name)
   }
 
   fn get_global_property(&self, key: &str) -> Option<&String> {
