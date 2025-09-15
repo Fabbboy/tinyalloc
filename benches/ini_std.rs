@@ -153,99 +153,15 @@ impl IniParser {
 const SAMPLE_INI: &[u8] = include_bytes!("sample.ini");
 
 fn bench_ini_parsing_std(c: &mut Criterion) {
-  let mut group = c.benchmark_group("ini_parsing_std");
-
-  group.bench_function("parse_fresh", |b| {
+  c.bench_function("ini_parse_std", |b| {
     b.iter(|| {
       let mut parser = IniParser::new();
       let cursor = Cursor::new(SAMPLE_INI);
       parser.parse(black_box(cursor)).unwrap();
-
-      // Access some data to ensure it's not optimized away
-      let _ = black_box(parser.get_global_property("debug"));
-      let _ = black_box(parser.get_section("database"));
-    });
-  });
-
-  group.bench_function("parse_reuse", |b| {
-    let mut parser = IniParser::new();
-    b.iter(|| {
-      parser.clear();
-      let cursor = Cursor::new(SAMPLE_INI);
-      parser.parse(black_box(cursor)).unwrap();
-
-      // Access some data to ensure it's not optimized away
-      let _ = black_box(parser.get_global_property("debug"));
-      let _ = black_box(parser.get_section("database"));
-    });
-  });
-
-  group.finish();
-}
-
-fn bench_property_access_std(c: &mut Criterion) {
-  let mut parser = IniParser::new();
-  let cursor = Cursor::new(SAMPLE_INI);
-  parser.parse(cursor).unwrap();
-
-  c.bench_function("property_access_global_std", |b| {
-    b.iter(|| {
       black_box(parser.get_global_property("debug"));
-      black_box(parser.get_global_property("log_level"));
-      black_box(parser.get_global_property("max_connections"));
-    });
-  });
-
-  c.bench_function("property_access_section_std", |b| {
-    b.iter(|| {
-      if let Some(db_section) = parser.get_section("database") {
-        black_box(db_section.get_property("host"));
-        black_box(db_section.get_property("port"));
-        black_box(db_section.get_property("user"));
-      }
     });
   });
 }
 
-fn bench_line_parsing_std(c: &mut Criterion) {
-  let mut parser = IniParser::new();
-  let mut current_section = None;
-
-  c.bench_function("parse_section_header_std", |b| {
-    b.iter(|| {
-      black_box(IniParser::parse_section_header("[database]"));
-      black_box(IniParser::parse_section_header("[cache]"));
-      black_box(IniParser::parse_section_header("[logging]"));
-    });
-  });
-
-  c.bench_function("parse_property_std", |b| {
-    b.iter(|| {
-      black_box(IniParser::parse_property("host = localhost"));
-      black_box(IniParser::parse_property("port=5432"));
-      black_box(IniParser::parse_property("enabled = true"));
-    });
-  });
-
-  c.bench_function("parse_line_complete_std", |b| {
-    b.iter(|| {
-      parser
-        .parse_line(black_box("host = localhost"), &mut current_section)
-        .unwrap();
-      parser
-        .parse_line(black_box("[section]"), &mut current_section)
-        .unwrap();
-      parser
-        .parse_line(black_box("# comment"), &mut current_section)
-        .unwrap();
-    });
-  });
-}
-
-criterion_group!(
-  benches,
-  bench_ini_parsing_std,
-  bench_property_access_std,
-  bench_line_parsing_std
-);
+criterion_group!(benches, bench_ini_parsing_std);
 criterion_main!(benches);
