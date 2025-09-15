@@ -23,9 +23,13 @@ impl<'mapper> Segment<'mapper> {
     let self_size = core::mem::size_of::<Self>();
     let (segment_slice, rest) = slice.split_at_mut(self_size);
 
-    let aligned_rest = align_slice(rest, core::mem::align_of::<usize>());
-    let segmentation = class.segment::<usize>(aligned_rest);
+    // Align for bitmap first (usize alignment)
+    let bitmap_aligned = align_slice(rest, core::mem::align_of::<usize>());
+    let segmentation = class.segment::<usize>(bitmap_aligned);
     let bitmap = Bitmap::zero(segmentation.bitmap);
+
+    // Then align user space for the class alignment
+    let user_aligned = align_slice(segmentation.rest, class.align.0);
 
     let segment_ptr = segment_slice.as_mut_ptr() as *mut Self;
     unsafe {
@@ -35,7 +39,7 @@ impl<'mapper> Segment<'mapper> {
           class,
           link: Link::new(),
           bitmap,
-          user: segmentation.rest,
+          user: user_aligned,
         },
       );
       NonNull::new_unchecked(segment_ptr)

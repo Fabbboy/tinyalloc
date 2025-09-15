@@ -66,7 +66,7 @@ impl<'mapper> Heap<'mapper> {
     &mut self,
     layout: Layout,
   ) -> Result<NonNull<[u8]>, HeapError> {
-    let class = find_class(layout.size()).ok_or(HeapError::InvalidSize)?;
+    let class = find_class(layout.size(), layout.align()).ok_or(HeapError::InvalidSize)?;
     let queue = &mut self.classes[class.id];
 
     let ptr = queue
@@ -114,7 +114,7 @@ impl<'mapper> Heap<'mapper> {
     ptr: NonNull<u8>,
     layout: Layout,
   ) -> Result<(), HeapError> {
-    let class = find_class(layout.size()).ok_or(HeapError::InvalidSize)?;
+    let class = find_class(layout.size(), layout.align()).ok_or(HeapError::InvalidSize)?;
 
     let queue = &mut self.classes[class.id];
     if queue.deallocate(ptr) {

@@ -87,7 +87,9 @@ const fn classes() -> [Class; SIZES] {
 
   while i < SIZES {
     let align = size_to_align(size);
-    classes[i] = Class::new(size, align, i);
+    // Ensure size is a multiple of alignment
+    let aligned_size = ((size + align - 1) / align) * align;
+    classes[i] = Class::new(aligned_size, align, i);
 
     if size < SMALL_SC_LIMIT {
       size += align;
@@ -107,15 +109,16 @@ const fn classes() -> [Class; SIZES] {
 pub static CLASSES: [Class; SIZES] = classes();
 
 #[inline(always)]
-pub const fn find_class(size: usize) -> Option<&'static Class> {
+pub const fn find_class(size: usize, align: usize) -> Option<&'static Class> {
   if size == 0 {
     return None;
   }
 
   let mut i = 0;
   while i < SIZES {
-    if size <= CLASSES[i].size.0 {
-      return Some(&CLASSES[i]);
+    let class = &CLASSES[i];
+    if size <= class.size.0 && align <= class.align.0 {
+      return Some(class);
     }
     i += 1;
   }
