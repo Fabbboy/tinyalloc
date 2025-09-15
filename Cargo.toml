@@ -56,3 +56,11 @@ harness = false
 [[bench]]
 name = "comparison_bench"
 harness = false
+
+[[bench]]
+name = "ini_std"
+harness = false
+
+[[bench]]
+name = "ini_tiny"
+harness = false
