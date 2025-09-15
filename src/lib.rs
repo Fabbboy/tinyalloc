@@ -8,7 +8,7 @@ use std::{
 };
 
 use tinyalloc_alloc::heap::Heap;
-mod ffi; 
+mod ffi;
 
 thread_local! {
     static GLOBAL_HEAP: UnsafeCell<Heap<'static>> = UnsafeCell::new(Heap::new());

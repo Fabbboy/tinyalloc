@@ -45,6 +45,22 @@ pub extern "C" fn malloc(size: usize) -> *mut c_void {
 }
 
 #[unsafe(no_mangle)]
+pub extern "C" fn calloc(num: usize, size: usize) -> *mut c_void {
+  let total_size = num.checked_mul(size);
+  if total_size.is_none() {
+    return std::ptr::null_mut();
+  }
+  let total_size = total_size.unwrap();
+  let ptr = malloc(total_size);
+  if !ptr.is_null() {
+    unsafe {
+      std::ptr::write_bytes(ptr, 0, total_size);
+    }
+  }
+  ptr
+}
+
+#[unsafe(no_mangle)]
 pub extern "C" fn free(ptr: *mut c_void) {
   if ptr.is_null() {
     return;
@@ -58,4 +74,33 @@ pub extern "C" fn free(ptr: *mut c_void) {
   unsafe {
     GLOBAL_ALLOCATOR.dealloc(header_ptr as *mut u8, header.layout);
   }
+}
+
+#[unsafe(no_mangle)]
+pub extern "C" fn realloc(ptr: *mut c_void, size: usize) -> *mut c_void {
+  if ptr.is_null() {
+    return malloc(size);
+  }
+
+  let header_ptr = unsafe { (ptr as *mut Header).offset(-1) };
+  let header_ref = unsafe { &*header_ptr };
+  if header_ref.magic != MAGIC {
+    return std::ptr::null_mut();
+  }
+
+  let new_ptr = malloc(size);
+  if new_ptr.is_null() {
+    return std::ptr::null_mut();
+  }
+
+  let available = header_ref
+    .layout
+    .size()
+    .saturating_sub(std::mem::size_of::<Header>());
+  let copy_size = std::cmp::min(size, available);
+  unsafe {
+    std::ptr::copy_nonoverlapping(ptr, new_ptr, copy_size);
+  }
+  free(ptr);
+  new_ptr
 }

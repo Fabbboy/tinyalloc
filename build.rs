@@ -1,4 +1,7 @@
-use cbindgen::{Config, Language};
+use cbindgen::{
+  Config,
+  Language,
+};
 
 extern crate cbindgen;
 

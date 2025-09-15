@@ -26,6 +26,7 @@ use std::ptr::NonNull;
 
 use crate::{
   classes::Class,
+  config::SEGMENT_SIZE,
   segment::Segment,
 };
 
@@ -104,4 +105,35 @@ pub fn deallocate_segment(
   }
 
   Err(ArenaError::Insufficient)
+}
+
+pub fn segment_from_ptr(ptr: NonNull<u8>) -> Option<NonNull<Segment<'static>>> {
+  let arenas = ARENAS.read().unwrap();
+  let addr = ptr.as_ptr() as usize;
+
+  for i in 0..arenas.len() {
+    let arena_ptr = unsafe { arenas.get_unchecked(i) }.load(Ordering::Acquire);
+    if arena_ptr.is_null() {
+      continue;
+    }
+
+    let arena = unsafe { &*arena_ptr };
+    let start = arena.user_start() as usize;
+    let end = start.checked_add(arena.user_len())?;
+    if addr < start || addr >= end {
+      continue;
+    }
+
+    let offset = addr - start;
+    let segment_index = offset / SEGMENT_SIZE;
+    let segment_base = start + (segment_index * SEGMENT_SIZE);
+    let segment_ptr = segment_base as *mut Segment<'static>;
+    if let Some(segment_nn) = NonNull::new(segment_ptr) {
+      if unsafe { segment_nn.as_ref() }.contains_ptr(ptr) {
+        return Some(segment_nn);
+      }
+    }
+  }
+
+  None
 }

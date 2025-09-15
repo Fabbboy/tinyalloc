@@ -5,7 +5,10 @@ use tinyalloc_list::List;
 use crate::{
   classes::Class,
   segment::Segment,
-  static_::allocate_segment,
+  static_::{
+    allocate_segment,
+    segment_from_ptr,
+  },
 };
 
 pub enum Move {
@@ -87,27 +90,7 @@ impl<'mapper> Queue<'mapper> {
     &self,
     ptr: NonNull<u8>,
   ) -> Option<NonNull<Segment<'mapper>>> {
-    // Simple approach: check each list sequentially
-    if let Some(seg) = self.find_in_list(&self.free_list, ptr) {
-      return Some(seg);
-    }
-    if let Some(seg) = self.find_in_list(&self.partial_list, ptr) {
-      return Some(seg);
-    }
-    self.find_in_list(&self.full_list, ptr)
-  }
-
-  fn find_in_list(
-    &self,
-    list: &List<Segment<'mapper>>,
-    ptr: NonNull<u8>,
-  ) -> Option<NonNull<Segment<'mapper>>> {
-    for segment in list.iter() {
-      if segment.contains_ptr(ptr) {
-        return NonNull::new(segment as *const _ as *mut _);
-      }
-    }
-    None
+    segment_from_ptr(ptr).map(|segment| segment.cast())
   }
 
   fn update_segment_state(&mut self, segment: NonNull<Segment<'mapper>>) {
