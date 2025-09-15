@@ -57,15 +57,29 @@ where
     Ok((word_index, bit_index))
   }
 
-  pub fn zero(store: &'slice mut [T]) -> Self {
-    let bits = store.len() * T::BITS;
+  pub fn zero(store: &'slice mut [T], bits: usize) -> Self {
+    let available = store.len() * T::BITS;
+    assert!(
+      bits <= available,
+      "bitmap requires {} bits but storage only holds {}",
+      bits,
+      available
+    );
+    let bits = core::cmp::min(bits, available);
     let mut bitmap = Self { store, bits };
     bitmap.clear_all();
     bitmap
   }
 
-  pub fn one(store: &'slice mut [T]) -> Self {
-    let bits = store.len() * T::BITS;
+  pub fn one(store: &'slice mut [T], bits: usize) -> Self {
+    let available = store.len() * T::BITS;
+    assert!(
+      bits <= available,
+      "bitmap requires {} bits but storage only holds {}",
+      bits,
+      available
+    );
+    let bits = core::cmp::min(bits, available);
     let mut bitmap = Self { store, bits };
     bitmap.set_all();
     bitmap

@@ -7,7 +7,10 @@ use tinyalloc_list::{
 };
 
 use crate::{
-  classes::Class,
+  classes::{
+    Class,
+    Segmentation,
+  },
   config::align_slice,
 };
 
@@ -23,13 +26,19 @@ impl<'mapper> Segment<'mapper> {
     let self_size = core::mem::size_of::<Self>();
     let (segment_slice, rest) = slice.split_at_mut(self_size);
 
-    // Align for bitmap first (usize alignment)
-    let bitmap_aligned = align_slice(rest, core::mem::align_of::<usize>());
-    let segmentation = class.segment::<usize>(bitmap_aligned);
-    let bitmap = Bitmap::zero(segmentation.bitmap);
 
-    // Then align user space for the class alignment
-    let user_aligned = align_slice(segmentation.rest, class.align.0);
+    let Segmentation {
+      bitmap: bitmap_slice,
+      rest: bitmap_rest,
+    } = class.segment::<usize>(rest); 
+    let user_aligned = align_slice(bitmap_rest, class.align.0);
+    let object_capacity = user_aligned.len() / class.size.0;
+    assert!(
+      object_capacity > 0,
+      "segment for class {} must have room for at least one object",
+      class.id
+    );
+    let bitmap = Bitmap::zero(bitmap_slice, object_capacity);
 
     let segment_ptr = segment_slice.as_mut_ptr() as *mut Self;
     unsafe {
@@ -63,6 +72,15 @@ impl<'mapper> Segment<'mapper> {
   fn ptr_from_index(&mut self, bit_index: usize) -> Option<NonNull<u8>> {
     let offset = bit_index * self.class.size.0;
     if offset >= self.user.len() {
+      return None;
+    }
+
+    let end = match offset.checked_add(self.class.size.0) {
+      Some(end) => end,
+      None => return None,
+    };
+
+    if end > self.user.len() {
       return None;
     }
     let ptr = unsafe { self.user.as_ptr().add(offset) };
@@ -245,19 +263,31 @@ mod tests {
     let class = &CLASSES[0];
     let mut segment_ptr = Segment::new(class, &mut buffer);
     let segment = unsafe { segment_ptr.as_mut() };
-    
+
     let ptr1 = segment.alloc().expect("Should allocate first object");
-    assert!(!segment.bitmap.is_clear(), "Bitmap should not be clear after allocation");
-    
+    assert!(
+      !segment.bitmap.is_clear(),
+      "Bitmap should not be clear after allocation"
+    );
+
     let ptr2 = segment.alloc().expect("Should allocate second object");
     assert_ne!(ptr1, ptr2, "Should get different pointers");
-    
-    assert!(segment.dealloc(ptr1), "Should successfully deallocate first object");
-    
-    assert!(segment.dealloc(ptr2), "Should successfully deallocate second object");
-    
-    assert!(segment.bitmap.is_clear(), "Bitmap should be clear after all deallocations");
-    
+
+    assert!(
+      segment.dealloc(ptr1),
+      "Should successfully deallocate first object"
+    );
+
+    assert!(
+      segment.dealloc(ptr2),
+      "Should successfully deallocate second object"
+    );
+
+    assert!(
+      segment.bitmap.is_clear(),
+      "Bitmap should be clear after all deallocations"
+    );
+
     let ptr3 = segment.alloc().expect("Should be able to reallocate");
     assert_eq!(ptr1, ptr3, "Should reuse first slot");
   }

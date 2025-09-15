@@ -1,7 +1,8 @@
 use std::{
   num::NonZeroUsize,
   ptr::NonNull,
-  slice, sync::Mutex,
+  slice,
+  sync::Mutex,
 };
 
 use enumset::enum_set;
@@ -39,7 +40,7 @@ pub struct Arena<'mapper> {
   bitmap: Bitmap<'mapper, usize>,
   user: &'mapper mut [u8],
   segment_count: usize,
-  lock: Mutex<()>
+  lock: Mutex<()>,
 }
 
 impl<'mapper> Arena<'mapper> {
@@ -83,7 +84,7 @@ impl<'mapper> Arena<'mapper> {
         bitmap_words,
       )
     };
-    let bitmap = Bitmap::zero(bitmap_storage);
+    let bitmap = Bitmap::zero(bitmap_storage, bitmap_bits);
 
     let arena = Self {
       region,
@@ -106,7 +107,7 @@ impl<'mapper> Arena<'mapper> {
     class: &'static Class,
   ) -> Result<NonNull<Segment<'mapper>>, ArenaError> {
     let _guard = self.lock.lock().unwrap();
-    
+
     let free_bit = self.bitmap.find_first_clear();
     let segment_index = match free_bit {
       Some(index) => index,
@@ -144,7 +145,7 @@ impl<'mapper> Arena<'mapper> {
     segment: NonNull<Segment<'mapper>>,
   ) -> Result<(), ArenaError> {
     let _guard = self.lock.lock().unwrap();
-    
+
     let segment_ptr = segment.as_ptr() as *mut u8;
     let user_start = self.user.as_ptr() as *mut u8;
 

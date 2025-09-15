@@ -3,7 +3,6 @@ use std::array;
 use tinyalloc_bitmap::numeric::Bits;
 
 use crate::config::{
-  align_up,
   LARGE_ALIGN_RATIO,
   LARGE_SC_LIMIT,
   MEDIUM_ALIGN_LIMIT,
@@ -13,6 +12,8 @@ use crate::config::{
   SIZES,
   SMALL_ALIGN_LIMIT,
   SMALL_SC_LIMIT,
+  align_slice,
+  align_up,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -52,12 +53,13 @@ impl Class {
   where
     B: Bits,
   {
-    let objects_per_heap = heap.len() / self.size.0;
+    let aligned = align_slice(heap, core::mem::align_of::<B>());
+    let objects_per_heap = aligned.len() / self.size.0;
     let bitmap_bits = objects_per_heap;
     let bitmap_bytes = B::bytes(bitmap_bits);
     let bitmap_words = B::words(bitmap_bits);
 
-    let (bitmap_slice, rest) = heap.split_at_mut(bitmap_bytes);
+    let (bitmap_slice, rest) = aligned.split_at_mut(bitmap_bytes);
     let bitmap = unsafe {
       core::slice::from_raw_parts_mut(
         bitmap_slice.as_mut_ptr() as *mut B,
@@ -88,9 +90,12 @@ const fn classes() -> [Class; SIZES] {
 
   while i < SIZES {
     let align = size_to_align(size);
-    // Ensure size is a multiple of alignment
     let aligned_size = align_up(size, align);
     classes[i] = Class::new(aligned_size, align, i);
+
+    if i == SIZES - 1 {
+      break;
+    }
 
     if size < SMALL_SC_LIMIT {
       size += align;
@@ -104,6 +109,14 @@ const fn classes() -> [Class; SIZES] {
 
     i += 1;
   }
+
+  let last = SIZES - 1;
+  if classes[last].size.0 < LARGE_SC_LIMIT {
+    let align = size_to_align(LARGE_SC_LIMIT);
+    let aligned_size = align_up(LARGE_SC_LIMIT, align);
+    classes[last] = Class::new(aligned_size, align, last);
+  }
+
   classes
 }
 
