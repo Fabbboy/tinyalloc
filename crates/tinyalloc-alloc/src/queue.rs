@@ -84,9 +84,10 @@ impl<'mapper> Queue<'mapper> {
   }
 
   fn find_segment_with_ptr(
-    &mut self,
+    &self,
     ptr: NonNull<u8>,
   ) -> Option<NonNull<Segment<'mapper>>> {
+    // Simple approach: check each list sequentially
     if let Some(seg) = self.find_in_list(&self.free_list, ptr) {
       return Some(seg);
     }
