@@ -67,7 +67,7 @@ impl<'mapper> Large<'mapper> {
     let page_start = page_align_ptr(ptr.as_ptr());
     let large_ptr = page_start as *mut Self;
     let large_nn = NonNull::new(large_ptr)?;
-    
+
     let large = unsafe { large_nn.as_ref() };
     if large.contains_ptr(ptr) {
       Some(large_nn)

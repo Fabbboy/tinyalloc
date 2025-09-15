@@ -57,32 +57,35 @@ where
     Ok((word_index, bit_index))
   }
 
-  pub fn zero(store: &'slice mut [T], bits: usize) -> Self {
+  pub fn zero(
+    store: &'slice mut [T],
+    bits: usize,
+  ) -> Result<Self, BitmapError> {
     let available = store.len() * T::BITS;
-    assert!(
-      bits <= available,
-      "bitmap requires {} bits but storage only holds {}",
-      bits,
-      available
-    );
-    let bits = core::cmp::min(bits, available);
+    if bits > available {
+      return Err(BitmapError::InsufficientSize {
+        have: available,
+        need: bits,
+      });
+    }
+
     let mut bitmap = Self { store, bits };
     bitmap.clear_all();
-    bitmap
+    Ok(bitmap)
   }
 
-  pub fn one(store: &'slice mut [T], bits: usize) -> Self {
+  pub fn one(store: &'slice mut [T], bits: usize) -> Result<Self, BitmapError> {
     let available = store.len() * T::BITS;
-    assert!(
-      bits <= available,
-      "bitmap requires {} bits but storage only holds {}",
-      bits,
-      available
-    );
-    let bits = core::cmp::min(bits, available);
+    if bits > available {
+      return Err(BitmapError::InsufficientSize {
+        have: available,
+        need: bits,
+      });
+    }
+
     let mut bitmap = Self { store, bits };
     bitmap.set_all();
-    bitmap
+    Ok(bitmap)
   }
 
   pub fn check(&self, fields: usize) -> Result<(), BitmapError> {

@@ -66,7 +66,8 @@ impl<'mapper> Heap<'mapper> {
     &mut self,
     layout: Layout,
   ) -> Result<NonNull<[u8]>, HeapError> {
-    let class = find_class(layout.size(), layout.align()).ok_or(HeapError::InvalidSize)?;
+    let class = find_class(layout.size(), layout.align())
+      .ok_or(HeapError::InvalidSize)?;
     let queue = &mut self.classes[class.id];
 
     let ptr = queue
@@ -84,9 +85,9 @@ impl<'mapper> Heap<'mapper> {
     let size =
       NonZeroUsize::new(layout.size()).ok_or(HeapError::InvalidSize)?;
     let large_ptr = Large::new(size).map_err(HeapError::Large)?;
-    
+
     let slice_ptr = unsafe { large_ptr.as_ref() }.user_slice();
-    
+
     self.large.push(large_ptr);
     Ok(slice_ptr)
   }
@@ -114,7 +115,8 @@ impl<'mapper> Heap<'mapper> {
     ptr: NonNull<u8>,
     layout: Layout,
   ) -> Result<(), HeapError> {
-    let class = find_class(layout.size(), layout.align()).ok_or(HeapError::InvalidSize)?;
+    let class = find_class(layout.size(), layout.align())
+      .ok_or(HeapError::InvalidSize)?;
 
     let queue = &mut self.classes[class.id];
     if queue.deallocate(ptr) {
@@ -125,8 +127,9 @@ impl<'mapper> Heap<'mapper> {
   }
 
   fn dealloc_large(&mut self, ptr: NonNull<u8>) -> Result<(), HeapError> {
-    let large_nn = Large::from_user_ptr(ptr).ok_or(HeapError::InvalidPointer)?;
-    
+    let large_nn =
+      Large::from_user_ptr(ptr).ok_or(HeapError::InvalidPointer)?;
+
     if self.large.remove(large_nn) {
       unsafe { core::ptr::drop_in_place(large_nn.as_ptr()) };
       Ok(())

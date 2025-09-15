@@ -45,7 +45,9 @@ fn add_arena(arena: NonNull<Arena<'static>>) -> Result<(), ArenaError> {
 
   if arena_count > 0 && arena_count % ARENA_STEP == 0 {
     let current_size = NEXT_ARENA_SIZE.load(Ordering::Relaxed);
-    let next_size = current_size.checked_mul(ARENA_GROWTH).unwrap_or(current_size);
+    let next_size = current_size
+      .checked_mul(ARENA_GROWTH)
+      .unwrap_or(current_size);
     NEXT_ARENA_SIZE.store(next_size, Ordering::Relaxed);
   }
 

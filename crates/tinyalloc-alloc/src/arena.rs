@@ -8,6 +8,7 @@ use std::{
 use enumset::enum_set;
 use tinyalloc_bitmap::{
   Bitmap,
+  BitmapError,
   numeric::Bits,
 };
 
@@ -25,7 +26,10 @@ use crate::{
     align_slice,
     align_up,
   },
-  segment::Segment,
+  segment::{
+    Segment,
+    SegmentError,
+  },
 };
 
 #[derive(Debug)]
@@ -33,6 +37,8 @@ pub enum ArenaError {
   MapError(MapError),
   Insufficient,
   SizeIsZero,
+  Bitmap(BitmapError),
+  Segment(SegmentError),
 }
 
 pub struct Arena<'mapper> {
@@ -84,7 +90,8 @@ impl<'mapper> Arena<'mapper> {
         bitmap_words,
       )
     };
-    let bitmap = Bitmap::zero(bitmap_storage, bitmap_bits);
+    let bitmap =
+      Bitmap::zero(bitmap_storage, bitmap_bits).map_err(ArenaError::Bitmap)?;
 
     let arena = Self {
       region,
@@ -134,7 +141,8 @@ impl<'mapper> Arena<'mapper> {
       )
       .map_err(ArenaError::MapError)?;
 
-    let segment = Segment::new(class, segment_slice);
+    let segment =
+      Segment::new(class, segment_slice).map_err(ArenaError::Segment)?;
     let _ = self.bitmap.set(segment_index);
 
     Ok(segment)
