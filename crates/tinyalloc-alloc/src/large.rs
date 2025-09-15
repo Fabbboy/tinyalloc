@@ -11,6 +11,7 @@ use tinyalloc_list::{
 use tinyalloc_sys::{
   MapError,
   region::Region,
+  size::page_align_ptr,
 };
 
 #[derive(Debug)]
@@ -21,7 +22,7 @@ pub enum LargeError {
 
 #[derive(Getters)]
 pub struct Large<'mapper> {
-  region: Region<'mapper>,
+  _region: Region<'mapper>,
   pub user: &'mapper mut [u8],
   link: Link<Large<'mapper>>,
 }
@@ -41,7 +42,7 @@ impl<'mapper> Large<'mapper> {
       unsafe { std::slice::from_raw_parts_mut(ptr.add(self_size), size.get()) };
 
     let large = Self {
-      region,
+      _region: region,
       user,
       link: Link::new(),
     };
@@ -60,6 +61,19 @@ impl<'mapper> Large<'mapper> {
     let user_start = self.user.as_ptr() as *mut u8;
     let user_end = unsafe { user_start.add(self.user.len()) };
     ptr.as_ptr() >= user_start && ptr.as_ptr() < user_end
+  }
+
+  pub fn from_user_ptr(ptr: NonNull<u8>) -> Option<NonNull<Self>> {
+    let page_start = page_align_ptr(ptr.as_ptr());
+    let large_ptr = page_start as *mut Self;
+    let large_nn = NonNull::new(large_ptr)?;
+    
+    let large = unsafe { large_nn.as_ref() };
+    if large.contains_ptr(ptr) {
+      Some(large_nn)
+    } else {
+      None
+    }
   }
 }
 

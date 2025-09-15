@@ -125,22 +125,11 @@ impl<'mapper> Heap<'mapper> {
   }
 
   fn dealloc_large(&mut self, ptr: NonNull<u8>) -> Result<(), HeapError> {
-    let mut to_remove = None;
+    let large_nn = Large::from_user_ptr(ptr).ok_or(HeapError::InvalidPointer)?;
     
-    for large_ptr in self.large.iter() {
-      if large_ptr.contains_ptr(ptr) {
-        to_remove = Some(NonNull::new(large_ptr as *const _ as *mut _).unwrap());
-        break;
-      }
-    }
-    
-    if let Some(large_nn) = to_remove {
-      if self.large.remove(large_nn) {
-        unsafe { core::ptr::drop_in_place(large_nn.as_ptr()) };
-        Ok(())
-      } else {
-        Err(HeapError::InvalidPointer)
-      }
+    if self.large.remove(large_nn) {
+      unsafe { core::ptr::drop_in_place(large_nn.as_ptr()) };
+      Ok(())
     } else {
       Err(HeapError::InvalidPointer)
     }
