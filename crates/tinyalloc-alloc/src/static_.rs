@@ -1,12 +1,10 @@
-use std::sync::{
-  RwLock,
-  atomic::{
-    AtomicPtr,
-    AtomicUsize,
-    Ordering,
-  },
+use std::sync::atomic::{
+  AtomicPtr,
+  AtomicUsize,
+  Ordering,
 };
 
+use parking_lot::RwLock;
 use tinyalloc_array::Array;
 
 use crate::{
@@ -41,7 +39,7 @@ fn create_arena() -> Result<NonNull<Arena<'static>>, ArenaError> {
 }
 
 fn add_arena(arena: NonNull<Arena<'static>>) -> Result<(), ArenaError> {
-  let mut arenas = ARENAS.write().unwrap();
+  let mut arenas = ARENAS.write();
   let arena_count = arenas.len();
 
   if arena_count > 0 && arena_count % ARENA_STEP == 0 {
@@ -62,7 +60,7 @@ fn add_arena(arena: NonNull<Arena<'static>>) -> Result<(), ArenaError> {
 pub fn allocate_segment(
   class: &'static Class,
 ) -> Result<NonNull<Segment<'static>>, ArenaError> {
-  let arenas = ARENAS.read().unwrap();
+  let arenas = ARENAS.read();
 
   for i in 0..arenas.len() {
     let arena_ptr = unsafe { arenas.get_unchecked(i) }.load(Ordering::Acquire);
@@ -88,7 +86,7 @@ pub fn allocate_segment(
 pub fn deallocate_segment(
   segment: NonNull<Segment<'static>>,
 ) -> Result<(), ArenaError> {
-  let arenas = ARENAS.read().unwrap();
+  let arenas = ARENAS.read();
   let segment_ptr = segment.as_ptr() as *const u8;
 
   for i in 0..arenas.len() {
@@ -108,7 +106,7 @@ pub fn deallocate_segment(
 }
 
 pub fn segment_from_ptr(ptr: NonNull<u8>) -> Option<NonNull<Segment<'static>>> {
-  let arenas = ARENAS.read().unwrap();
+  let arenas = ARENAS.read();
   let addr = ptr.as_ptr() as usize;
 
   for i in 0..arenas.len() {

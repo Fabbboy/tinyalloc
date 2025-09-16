@@ -11,4 +11,4 @@ tinyalloc-array = { workspace = true }
 
 getset = { workspace = true }
 enumset = { workspace = true }
-
+parking_lot = { workspace = true }
