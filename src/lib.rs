@@ -15,7 +15,7 @@ use tinyalloc_alloc::heap::Heap;
 mod ffi;
 
 thread_local! {
-    static GLOBAL_HEAP: UnsafeCell<Heap<'static>> = UnsafeCell::new(Heap::new());
+    static LOCAL_HEAP: UnsafeCell<Heap<'static>> = UnsafeCell::new(Heap::new());
 }
 
 struct BootstrapHeap {
@@ -44,7 +44,7 @@ impl BootstrapHeap {
 static BOOTSTRAP_HEAP: OnceLock<BootstrapHeap> = OnceLock::new();
 
 fn with_heap<R>(f: impl FnOnce(&mut Heap<'static>) -> R) -> R {
-  match GLOBAL_HEAP.try_with(|heap| heap.get() as *mut Heap<'static>) {
+  match LOCAL_HEAP.try_with(|heap| heap.get() as *mut Heap<'static>) {
     Ok(ptr) => {
       let heap = unsafe { &mut *ptr };
       f(heap)
