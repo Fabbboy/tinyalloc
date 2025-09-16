@@ -104,3 +104,21 @@ pub extern "C" fn realloc(ptr: *mut c_void, size: usize) -> *mut c_void {
   free(ptr);
   new_ptr
 }
+
+#[unsafe(no_mangle)]
+pub extern "C" fn malloc_usable_size(ptr: *mut c_void) -> usize {
+  if ptr.is_null() {
+    return 0;
+  }
+
+  let header_ptr = unsafe { (ptr as *mut Header).offset(-1) };
+  let header_ref = unsafe { &*header_ptr };
+  if header_ref.magic != MAGIC {
+    return 0;
+  }
+
+  header_ref
+    .layout
+    .size()
+    .saturating_sub(std::mem::size_of::<Header>())
+}

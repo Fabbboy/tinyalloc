@@ -20,4 +20,6 @@ void free(void *ptr);
 
 void *realloc(void *ptr, size_t size);
 
+size_t malloc_usable_size(void *ptr);
+
 #endif  /* TINYALLOC_H */
