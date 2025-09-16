@@ -720,10 +720,6 @@ dependencies = [
  "criterion",
  "libc",
  "tinyalloc-alloc",
- "tinyalloc-array",
- "tinyalloc-bitmap",
- "tinyalloc-list",
- "tinyalloc-sys",
 ]
 
 [[package]]
@@ -740,6 +736,10 @@ dependencies = [
 
 [[package]]
 name = "tinyalloc-array"
+version = "0.1.0"
+
+[[package]]
+name = "tinyalloc-barrier"
 version = "0.1.0"
 
 [[package]]

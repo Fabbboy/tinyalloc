@@ -12,6 +12,7 @@ members = [
   "crates/tinyalloc-bitmap",
   "crates/tinyalloc-list",
   "crates/tinyalloc-sys",
+  "crates/tinyalloc-barrier",
 ]
 
 [workspace.dependencies]
@@ -26,6 +27,7 @@ tinyalloc-array = { path = "crates/tinyalloc-array" }
 tinyalloc-bitmap = { path = "crates/tinyalloc-bitmap" }
 tinyalloc-list = { path = "crates/tinyalloc-list" }
 tinyalloc-sys = { path = "crates/tinyalloc-sys" }
+tinyalloc-barrier = { path = "crates/tinyalloc-barrier" }
 
 [lib]
 crate-type = ["cdylib", "staticlib", "rlib"]
@@ -44,10 +46,6 @@ criterion = { workspace = true }
 
 [dependencies]
 tinyalloc-alloc = { workspace = true }
-tinyalloc-bitmap = { workspace = true }
-tinyalloc-list = { workspace = true }
-tinyalloc-sys = { workspace = true }
-tinyalloc-array = { workspace = true }
 
 [[bench]]
 name = "bench_sample"
