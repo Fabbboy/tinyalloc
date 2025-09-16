@@ -25,6 +25,11 @@ pub const SMALL_ALIGN_LIMIT: usize = SMALL_SC_LIMIT / 4;
 pub const MEDIUM_ALIGN_LIMIT: usize = MEDIUM_SC_LIMIT / 8;
 pub const LARGE_ALIGN_RATIO: usize = 8;
 
+pub const FFI_MAGIC: u32 = 0xDEADBEEF;
+pub const FFI_MIN_USER_ALIGN: usize = WORD;
+pub const FFI_MAX_USER_ALIGN: usize = WORD * 2;
+pub const FFI_MAX_SIZE_THRESHOLD: usize = WORD * 2;
+
 pub const fn align_up(size: usize, align: usize) -> usize {
   (size + align - 1) & !(align - 1)
 }

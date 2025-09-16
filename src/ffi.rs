@@ -7,11 +7,12 @@ use std::{
 };
 
 use crate::TinyAlloc;
-
-const MAGIC: u32 = 0xDEADBEEF;
-const MIN_USER_ALIGN: usize = 8;
-const LARGE_USER_ALIGN: usize = 16;
-const LARGE_SIZE_THRESHOLD: usize = 16;
+use tinyalloc_alloc::config::{
+  FFI_MAGIC,
+  FFI_MAX_SIZE_THRESHOLD,
+  FFI_MAX_USER_ALIGN,
+  FFI_MIN_USER_ALIGN,
+};
 
 #[repr(C)]
 struct Header {
@@ -23,10 +24,10 @@ struct Header {
 static GLOBAL_ALLOCATOR: TinyAlloc = TinyAlloc;
 
 fn calculate_user_alignment(size: usize) -> usize {
-  if size >= LARGE_SIZE_THRESHOLD {
-    LARGE_USER_ALIGN
+  if size >= FFI_MAX_SIZE_THRESHOLD {
+    FFI_MAX_USER_ALIGN
   } else {
-    MIN_USER_ALIGN
+    FFI_MIN_USER_ALIGN
   }
 }
 
@@ -38,20 +39,23 @@ fn calculate_allocation_layout(size: usize) -> (Layout, u16) {
   let total_size = user_offset + size;
   let alloc_align = std::cmp::max(std::mem::align_of::<Header>(), user_align);
 
-  let layout = unsafe {
-    Layout::from_size_align_unchecked(total_size, alloc_align)
-  };
+  let layout =
+    unsafe { Layout::from_size_align_unchecked(total_size, alloc_align) };
 
   (layout, user_offset as u16)
 }
 
-fn write_header_and_get_user_ptr(ptr: *mut u8, layout: Layout, user_offset: u16) -> *mut c_void {
+fn write_header_and_get_user_ptr(
+  ptr: *mut u8,
+  layout: Layout,
+  user_offset: u16,
+) -> *mut c_void {
   let header_ptr = ptr as *mut Header;
   unsafe {
     header_ptr.write(Header {
       layout,
       user_offset,
-      magic: MAGIC,
+      magic: FFI_MAGIC,
     });
 
     let user_ptr = ptr.add(user_offset as usize);
@@ -67,14 +71,16 @@ fn find_header(user_ptr: *mut c_void) -> Option<*mut Header> {
   let ptr = user_ptr as *mut u8;
   let header_size = std::mem::size_of::<Header>();
 
-  for &user_align in &[MIN_USER_ALIGN, LARGE_USER_ALIGN] {
+  for &user_align in &[FFI_MIN_USER_ALIGN, FFI_MAX_USER_ALIGN] {
     let padding = (user_align - (header_size % user_align)) % user_align;
     let expected_offset = header_size + padding;
 
     let header_ptr = unsafe { ptr.sub(expected_offset) } as *mut Header;
     let header = unsafe { header_ptr.read() };
 
-    if header.magic == MAGIC && header.user_offset as usize == expected_offset {
+    if header.magic == FFI_MAGIC
+      && header.user_offset as usize == expected_offset
+    {
       return Some(header_ptr);
     }
   }
@@ -150,7 +156,10 @@ pub extern "C" fn realloc(ptr: *mut c_void, size: usize) -> *mut c_void {
     return std::ptr::null_mut();
   }
 
-  let available = header.layout.size().saturating_sub(header.user_offset as usize);
+  let available = header
+    .layout
+    .size()
+    .saturating_sub(header.user_offset as usize);
   let copy_size = std::cmp::min(size, available);
 
   unsafe {
@@ -169,5 +178,8 @@ pub extern "C" fn malloc_usable_size(ptr: *mut c_void) -> usize {
   };
 
   let header = unsafe { header_ptr.read() };
-  header.layout.size().saturating_sub(header.user_offset as usize)
+  header
+    .layout
+    .size()
+    .saturating_sub(header.user_offset as usize)
 }
