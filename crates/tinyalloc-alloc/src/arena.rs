@@ -1,9 +1,11 @@
 use std::{
+  cell::UnsafeCell,
   num::NonZeroUsize,
   ptr::NonNull,
   slice,
-  sync::Mutex,
 };
+
+use parking_lot::Mutex;
 
 use enumset::enum_set;
 use tinyalloc_bitmap::{
@@ -43,8 +45,8 @@ pub enum ArenaError {
 
 pub struct Arena<'mapper> {
   region: Region<'mapper>,
-  bitmap: Bitmap<'mapper, usize>,
-  user: &'mapper mut [u8],
+  bitmap: UnsafeCell<Bitmap<'mapper, usize>>,
+  user: UnsafeCell<&'mapper mut [u8]>,
   segment_count: usize,
   lock: Mutex<()>,
 }
@@ -95,8 +97,8 @@ impl<'mapper> Arena<'mapper> {
 
     let arena = Self {
       region,
-      bitmap,
-      user: user_space,
+      bitmap: UnsafeCell::new(bitmap),
+      user: UnsafeCell::new(user_space),
       segment_count: segments_possible,
       lock: Mutex::new(()),
     };
@@ -110,23 +112,26 @@ impl<'mapper> Arena<'mapper> {
   }
 
   pub fn allocate(
-    &mut self,
+    &self,
     class: &'static Class,
   ) -> Result<NonNull<Segment<'mapper>>, ArenaError> {
-    let _guard = self.lock.lock().unwrap();
+    let _guard = self.lock.lock();
 
-    let free_bit = self.bitmap.find_first_clear();
+    let bitmap = unsafe { &mut *self.bitmap.get() };
+    let user = unsafe { &mut *self.user.get() };
+
+    let free_bit = bitmap.find_first_clear();
     let segment_index = match free_bit {
       Some(index) => index,
       None => return Err(ArenaError::Insufficient),
     };
 
     let segment_offset = segment_index * SEGMENT_SIZE;
-    if segment_offset + SEGMENT_SIZE > self.user.len() {
+    if segment_offset + SEGMENT_SIZE > user.len() {
       return Err(ArenaError::Insufficient);
     }
 
-    let user_ptr = self.user.as_mut_ptr();
+    let user_ptr = user.as_mut_ptr();
     let segment_slice = unsafe {
       slice::from_raw_parts_mut(user_ptr.add(segment_offset), SEGMENT_SIZE)
     };
@@ -143,19 +148,22 @@ impl<'mapper> Arena<'mapper> {
 
     let segment =
       Segment::new(class, segment_slice).map_err(ArenaError::Segment)?;
-    let _ = self.bitmap.set(segment_index);
+    let _ = bitmap.set(segment_index);
 
     Ok(segment)
   }
 
   pub fn deallocate(
-    &mut self,
+    &self,
     segment: NonNull<Segment<'mapper>>,
   ) -> Result<(), ArenaError> {
-    let _guard = self.lock.lock().unwrap();
+    let _guard = self.lock.lock();
+
+    let bitmap = unsafe { &mut *self.bitmap.get() };
+    let user = unsafe { &*self.user.get() };
 
     let segment_ptr = segment.as_ptr() as *mut u8;
-    let user_start = self.user.as_ptr() as *mut u8;
+    let user_start = user.as_ptr() as *mut u8;
 
     if segment_ptr < user_start {
       return Err(ArenaError::Insufficient);
@@ -177,22 +185,25 @@ impl<'mapper> Arena<'mapper> {
       .region
       .partial(segment_range, enum_set!())
       .map_err(ArenaError::MapError)?;
-    let _ = self.bitmap.clear(segment_index);
+    let _ = bitmap.clear(segment_index);
 
     Ok(())
   }
 
   pub fn has_space(&self) -> bool {
-    let _guard = self.lock.lock().unwrap();
-    self.bitmap.find_first_clear().is_some()
+    let _guard = self.lock.lock();
+    let bitmap = unsafe { &*self.bitmap.get() };
+    bitmap.find_first_clear().is_some()
   }
 
   pub fn user_start(&self) -> *const u8 {
-    self.user.as_ptr()
+    let user = unsafe { &*self.user.get() };
+    user.as_ptr()
   }
 
   pub fn user_len(&self) -> usize {
-    self.user.len()
+    let user = unsafe { &*self.user.get() };
+    user.len()
   }
 }
 
