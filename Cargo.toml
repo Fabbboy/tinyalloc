@@ -48,7 +48,7 @@ tinyalloc-alloc = { workspace = true }
 spin = { workspace = true }
 
 [features]
-default = ["ffi"]
+default = []
 ffi = []
 
 [[bench]]
