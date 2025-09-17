@@ -1,5 +1,8 @@
-use std::alloc::Layout;
 use crate::TinyAlloc;
+use std::{
+  alloc::Layout,
+  mem,
+};
 /*
 C11 (N1570 Committee Draft — freely accessible)
 
@@ -36,19 +39,43 @@ ISO 9899
 // else return valid memory
 // you'll need metadata for pointers use this struct:
 // based of c11 standard alignment is **VERY** important
+// layout: [Metadata | padding/alignment | user data (aligned pointer!!!!!) | Trailer (aligned!!!!!)]
+
+const METADATA_CANARY: u32 = 0xDEADBEEF;
+const TRAILER_CANARY: u32 = 0xBEEFDEAD;
+
 #[repr(C)]
 struct Metadata {
   ptr: *mut u8,
-  canary: u32,  //DEADBEEFDEAD
+  canary: u32,    //DEADBEEFDEAD
   layout: Layout, // full size + align
-  uoffset: u32, 
-  ualign: u32, 
+  uoffset: u32,
+  ualign: u32,
+}
+
+impl Metadata {
+  const SELF_SIZE: usize = mem::size_of::<Metadata>();
+
+  fn new(ptr: *mut u8, layout: Layout, uoffset: u32, ualign: u32) -> Self {
+    Self {
+      ptr,
+      canary: METADATA_CANARY,
+      layout,
+      uoffset,
+      ualign,
+    }
+  }
 }
 
 #[repr(C)]
-struct Trailer { // located at aligned((usize)ptr + (layout.size - user.size))
+struct Trailer {
+  // located at aligned((usize)ptr + (layout.size - user.size))
   canary: u32,  // BEEFDEADBEEF
-  uoffset: u32  // compare with metadata uoffset or use idk
+  uoffset: u32, // compare with metadata uoffset or use idk
+}
+
+impl Trailer {
+  const SELF_SIZE: usize = mem::size_of::<Trailer>();
 }
 
 // TinyAlloc is a small wrapper around thread_local heaps just accept it
