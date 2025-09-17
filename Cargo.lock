@@ -744,6 +744,7 @@ dependencies = [
  "cbindgen",
  "criterion",
  "libc",
+ "spin",
  "tinyalloc-alloc",
 ]
 

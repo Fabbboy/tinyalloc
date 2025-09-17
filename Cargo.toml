@@ -45,7 +45,7 @@ criterion = { workspace = true }
 
 [dependencies]
 tinyalloc-alloc = { workspace = true }
-libc = { workspace = true }
+spin = { workspace = true }
 
 [features]
 default = ["ffi"]

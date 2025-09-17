@@ -5,12 +5,10 @@ use std::{
   },
   cell::UnsafeCell,
   ptr::NonNull,
-  sync::{
-    Mutex,
-    OnceLock,
-  },
+  sync::OnceLock,
 };
 
+use spin::Mutex;
 use tinyalloc_alloc::heap::Heap;
 
 use crate::init::{
@@ -42,7 +40,7 @@ impl BootstrapHeap {
   }
 
   fn with<R>(&self, f: impl FnOnce(&mut Heap<'static>) -> R) -> R {
-    let _guard = self.lock.lock().unwrap();
+    let _guard = self.lock.lock();
     let heap = unsafe { &mut *self.heap.get() };
     f(heap)
   }

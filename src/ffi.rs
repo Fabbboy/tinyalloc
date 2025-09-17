@@ -2,6 +2,7 @@ use crate::TinyAlloc;
 use std::{
   alloc::Layout,
   mem,
+  ptr::{self, NonNull},
 };
 /*
 C11 (N1570 Committee Draft — freely accessible)
