@@ -36,3 +36,6 @@ ISO 9899
 // based of c11 standard alignment is **VERY** important
 #[repr(C)]
 struct Metadata {}
+
+// TinyAlloc is a small wrapper around thread_local heaps just accept it
+static GLOBAL_ALLOCATOR: TinyAlloc = TinyAlloc;
