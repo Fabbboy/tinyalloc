@@ -12,14 +12,4 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-void *malloc(size_t size);
-
-void *calloc(size_t num, size_t size);
-
-void free(void *ptr);
-
-void *realloc(void *ptr, size_t size);
-
-size_t malloc_usable_size(void *ptr);
-
 #endif  /* TINYALLOC_H */
