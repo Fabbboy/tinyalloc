@@ -48,6 +48,10 @@ criterion = { workspace = true }
 [dependencies]
 tinyalloc-alloc = { workspace = true }
 
+[features]
+default = []
+ffi = []
+
 [[bench]]
 name = "bench_sample"
 harness = false

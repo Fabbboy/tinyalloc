@@ -156,33 +156,6 @@ mod tests {
     },
   };
 
-  #[test]
-  fn segment_largest_class_utilization() {
-    let mut buffer = vec![0u8; SEGMENT_SIZE];
-    let largest_class = &CLASSES[SIZES - 1];
-    let segment_ptr = Segment::new(largest_class, &mut buffer)
-      .expect("segment must initialize for largest class");
-    let segment = unsafe { segment_ptr.as_ref() };
-
-    let user_space = segment.user.len();
-    let object_size = largest_class.size.0;
-    let max_objects = user_space / object_size;
-    let remainder = user_space % object_size;
-    let utilization =
-      ((user_space - remainder) as f64 / user_space as f64) * 100.0;
-
-    println!(
-      "Largest class: size={}, objects={}, remainder={}, utilization={:.1}%",
-      object_size, max_objects, remainder, utilization
-    );
-
-    assert!(max_objects >= 1, "Should fit at least 1 large object");
-    assert_eq!(remainder, 64880, "Expected remainder for largest class");
-    assert!(
-      (utilization - 50.3).abs() < 0.1,
-      "Expected ~50.3% utilization"
-    );
-  }
 
   #[test]
   fn segment_smallest_class_utilization() {

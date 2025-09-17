@@ -12,6 +12,7 @@ use std::{
 };
 
 use tinyalloc_alloc::heap::Heap;
+#[cfg(feature = "ffi")]
 mod ffi;
 
 thread_local! {
