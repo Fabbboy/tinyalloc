@@ -3,9 +3,9 @@ use std::sync::atomic::{
   Ordering,
 };
 
-struct TeardownGuard;
+struct LifetimeGuard;
 
-impl Drop for TeardownGuard {
+impl Drop for LifetimeGuard {
   fn drop(&mut self) {
     TEARING_DOWN.with(|flag| {
       flag.store(true, Ordering::SeqCst);
@@ -26,6 +26,6 @@ pub fn is_td() -> bool {
 }
 
 thread_local! {
-  static _GUARD: TeardownGuard = TeardownGuard {};
+  static _GUARD: LifetimeGuard = LifetimeGuard {};
   pub static TEARING_DOWN: AtomicBool = AtomicBool::new(false);
 }
