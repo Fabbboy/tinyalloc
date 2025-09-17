@@ -206,6 +206,20 @@ Based on segment tests, the allocator achieves:
 
 This demonstrates efficient memory usage across the entire size spectrum.
 
+## Platforms
+
+### WSL - Ubuntu
+**Memory Layout Characteristics:**
+- Word size: 8 bytes, Word alignment: 8 bytes
+- Segment struct size: 72 bytes
+- Large object alignment behavior: Consistent user offset of 41648 bytes for 65536-byte alignment
+- Test failure pattern: `segment_largest_class_utilization` fails with remainder=64736 vs expected 64880
+- Root cause: Platform-specific heap allocation patterns cause different alignment requirements
+- Buffer addresses show heap allocator reuse pattern (same address across allocations)
+- Utilization impact: 50.3% for largest size class (65536 bytes in 131072-byte segments)
+
+**Analysis Tool:** Use `alignment_analyzer.rs` to compare alignment behavior across platforms.
+
 ## RULES
 DO NOT...
 - use FQTN ALWAYS import everything
