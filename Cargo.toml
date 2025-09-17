@@ -12,7 +12,6 @@ members = [
   "crates/tinyalloc-bitmap",
   "crates/tinyalloc-list",
   "crates/tinyalloc-sys",
-  "crates/tinyalloc-barrier",
 ]
 
 [workspace.dependencies]

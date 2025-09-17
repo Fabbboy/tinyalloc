@@ -765,10 +765,6 @@ name = "tinyalloc-array"
 version = "0.1.0"
 
 [[package]]
-name = "tinyalloc-barrier"
-version = "0.1.0"
-
-[[package]]
 name = "tinyalloc-bitmap"
 version = "0.1.0"
 dependencies = [
