@@ -218,6 +218,13 @@ This demonstrates efficient memory usage across the entire size spectrum.
 - Buffer addresses show heap allocator reuse pattern (same address across allocations)
 - Utilization impact: 50.3% for largest size class (65536 bytes in 131072-byte segments)
 
+**Runtime Behavior:**
+- ✅ Single-threaded allocation/deallocation: Works perfectly
+- ✅ Multi-threaded same-thread allocation/deallocation: Works perfectly
+- ✅ Node.js script execution with `LD_PRELOAD`: Works perfectly
+- ✅ Node.js REPL with `LD_PRELOAD`: Works perfectly
+- ✅ Cross-thread deallocation: Safely returns `InvalidPointer` errors
+
 **Analysis Tool:** Use `alignment_analyzer.rs` to compare alignment behavior across platforms.
 
 ## RULES
