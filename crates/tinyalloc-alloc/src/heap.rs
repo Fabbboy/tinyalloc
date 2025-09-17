@@ -2,8 +2,16 @@ use std::{
   alloc::Layout,
   num::NonZeroUsize,
   ptr::NonNull,
+  thread::{
+    self,
+    ThreadId,
+  },
 };
 
+use getset::{
+  CloneGetters,
+  Getters,
+};
 use tinyalloc_list::List;
 
 use crate::{
@@ -31,7 +39,10 @@ pub enum HeapError {
   InvalidPointer,
 }
 
+#[derive(CloneGetters)]
 pub struct Heap<'mapper> {
+  #[getset(get_clone = "pub")]
+  thread: ThreadId,
   classes: [Queue<'mapper>; SIZES],
   large: List<Large<'mapper>>,
 }
@@ -41,6 +52,7 @@ impl<'mapper> Heap<'mapper> {
     let classes: [Queue<'mapper>; SIZES] =
       class_init(|class| Queue::new(class));
     Self {
+      thread: thread::current().id(),
       classes,
       large: List::new(),
     }
@@ -73,14 +85,14 @@ impl<'mapper> Heap<'mapper> {
     let ptr = queue
       .allocate()
       .ok_or(HeapError::Arena(ArenaError::Insufficient))?;
-    
+
     debug_assert!(
       ptr.as_ptr() as usize % layout.align() == 0,
       "Allocated pointer {:p} does not meet alignment requirement {}",
       ptr.as_ptr(),
       layout.align()
     );
-    
+
     let slice =
       unsafe { core::slice::from_raw_parts_mut(ptr.as_ptr(), layout.size()) };
     NonNull::new(slice as *mut [u8]).ok_or(HeapError::InvalidPointer)
@@ -95,7 +107,7 @@ impl<'mapper> Heap<'mapper> {
     let large_ptr = Large::new(size).map_err(HeapError::Large)?;
 
     let slice_ptr = unsafe { large_ptr.as_ref() }.user_slice();
-    
+
     debug_assert!(
       slice_ptr.as_ptr() as *const u8 as usize % layout.align() == 0,
       "Large allocated pointer {:p} does not meet alignment requirement {}",

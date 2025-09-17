@@ -6,8 +6,13 @@ use std::{
   cell::UnsafeCell,
   ptr::NonNull,
   sync::OnceLock,
+  thread::{
+    self,
+    ThreadId,
+  },
 };
 
+use getset::CloneGetters;
 use spin::Mutex;
 use tinyalloc_alloc::heap::Heap;
 
@@ -21,6 +26,32 @@ mod init;
 
 thread_local! {
     static LOCAL_HEAP: UnsafeCell<Heap<'static>> = UnsafeCell::new(Heap::new());
+}
+
+#[derive(CloneGetters)]
+struct Header {
+  #[getset(get_clone = "pub")]
+  thread: ThreadId,
+  #[getset(get_clone = "pub")]
+  heap: NonNull<Heap<'static>>,
+}
+
+impl Header {
+  fn new(heap: &mut Heap<'static>) -> Self {
+    Self {
+      thread: thread::current().id(),
+      heap: NonNull::new(heap as *mut Heap<'static>).unwrap(),
+    }
+  }
+
+  fn from_ptr(ptr: *mut u8) -> Option<&'static mut Self> {
+    if ptr.is_null() {
+      return None;
+    }
+
+    let header_ptr = unsafe { (ptr as *mut Header).offset(-1) };
+    unsafe { header_ptr.as_mut() }
+  }
 }
 
 struct BootstrapHeap {
