@@ -21,14 +21,13 @@ libc = "0.2.175"
 enumset = "1.1.10"
 criterion = "0.7.0"
 windows-sys = "0.59.0"
-parking_lot = "0.12.4"
+spin = "0.10.0"
 
 tinyalloc-alloc = { path = "crates/tinyalloc-alloc" }
 tinyalloc-array = { path = "crates/tinyalloc-array" }
 tinyalloc-bitmap = { path = "crates/tinyalloc-bitmap" }
 tinyalloc-list = { path = "crates/tinyalloc-list" }
 tinyalloc-sys = { path = "crates/tinyalloc-sys" }
-tinyalloc-barrier = { path = "crates/tinyalloc-barrier" }
 
 [lib]
 crate-type = ["cdylib", "staticlib", "rlib"]

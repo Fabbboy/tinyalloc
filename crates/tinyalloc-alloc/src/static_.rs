@@ -4,7 +4,7 @@ use std::sync::atomic::{
   Ordering,
 };
 
-use parking_lot::RwLock;
+use spin::RwLock;
 use tinyalloc_array::Array;
 
 use crate::{

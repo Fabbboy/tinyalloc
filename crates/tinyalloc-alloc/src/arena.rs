@@ -5,7 +5,7 @@ use std::{
   slice,
 };
 
-use parking_lot::Mutex;
+use spin::Mutex;
 
 use enumset::enum_set;
 use tinyalloc_bitmap::{
