@@ -47,9 +47,10 @@ criterion = { workspace = true }
 
 [dependencies]
 tinyalloc-alloc = { workspace = true }
+libc = { workspace = true }
 
 [features]
-default = []
+default = ["ffi"]
 ffi = []
 
 [[bench]]
