@@ -218,14 +218,28 @@ This demonstrates efficient memory usage across the entire size spectrum.
 - Buffer addresses show heap allocator reuse pattern (same address across allocations)
 - Utilization impact: 50.3% for largest size class (65536 bytes in 131072-byte segments)
 
-**Runtime Behavior:**
+**Analysis Tool:** Use `alignment_analyzer.rs` to compare alignment behavior across platforms.
+
+## Runtime Behavior
+
+**Core Functionality:**
 - ✅ Single-threaded allocation/deallocation: Works perfectly
 - ✅ Multi-threaded same-thread allocation/deallocation: Works perfectly
-- ✅ Node.js script execution with `LD_PRELOAD`: Works perfectly
-- ✅ Node.js REPL with `LD_PRELOAD`: Works perfectly
 - ✅ Cross-thread deallocation: Safely returns `InvalidPointer` errors
 
-**Analysis Tool:** Use `alignment_analyzer.rs` to compare alignment behavior across platforms.
+**Program Compatibility (with `--features ffi` and `LD_PRELOAD`):**
+- ✅ Simple tools: `echo`, `ldd`, `tree` work perfectly
+- ✅ Network operations: `curl` (including HTTPS requests) works
+- ✅ Filesystem operations: `tree /usr` (heavy traversal) works
+- ✅ Interpreters: Python REPL works
+- ✅ Node.js scripts: Work perfectly
+- ❌ Node.js persistent modes: REPL and `pnpm` segfault
+- ❌ Debuggers: `gdb` segfaults
+
+**Testing Notes:**
+- Previous testing without `--features ffi` was using glibc malloc (not TinyAlloc)
+- Issue appears to be specific to certain programs rather than platform-dependent
+- Bug manifests in Node.js persistent/interactive modes and debugger tools
 
 ## RULES
 DO NOT...
