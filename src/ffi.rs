@@ -28,3 +28,11 @@ ISO 9899
 
 // this is rust edition 2024 so #[no_mangle] is an error
 // new api: #[unsafe(no_mangle)] just accept it
+// if internal allocation fails call libc::abort this is important as any form of printf/panic/assert will not work if malloc fails
+// in api missuse follow c11 standard
+// in internal errors call libc::abort
+// else return valid memory
+// you'll need metadata for pointers use this struct:
+// based of c11 standard alignment is **VERY** important
+#[repr(C)]
+struct Metadata {}
