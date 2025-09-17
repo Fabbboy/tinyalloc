@@ -74,9 +74,7 @@ unsafe impl GlobalAlloc for TinyAlloc {
   unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
     with_heap(|heap| unsafe {
       let _ = heap.deallocate(
-        NonNull::new_unchecked(
-          core::slice::from_raw_parts_mut(ptr, layout.size()).as_mut_ptr(),
-        ),
+        NonNull::new_unchecked(ptr),
         layout,
       );
     })

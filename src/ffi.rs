@@ -37,5 +37,7 @@ ISO 9899
 #[repr(C)]
 struct Metadata {}
 
+use crate::TinyAlloc;
+
 // TinyAlloc is a small wrapper around thread_local heaps just accept it
 static GLOBAL_ALLOCATOR: TinyAlloc = TinyAlloc;
