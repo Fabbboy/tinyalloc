@@ -1,3 +1,5 @@
+use std::alloc::Layout;
+use crate::TinyAlloc;
 /*
 C11 (N1570 Committee Draft — freely accessible)
 
