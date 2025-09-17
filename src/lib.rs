@@ -14,6 +14,7 @@ use std::{
 use tinyalloc_alloc::heap::Heap;
 #[cfg(feature = "ffi")]
 mod ffi;
+mod init;
 
 thread_local! {
     static LOCAL_HEAP: UnsafeCell<Heap<'static>> = UnsafeCell::new(Heap::new());
