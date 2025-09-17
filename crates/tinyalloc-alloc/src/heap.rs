@@ -8,10 +8,7 @@ use std::{
   },
 };
 
-use getset::{
-  CloneGetters,
-  Getters,
-};
+use getset::CloneGetters;
 use tinyalloc_list::List;
 
 use crate::{
