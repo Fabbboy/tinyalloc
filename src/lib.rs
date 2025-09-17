@@ -12,6 +12,11 @@ use std::{
 };
 
 use tinyalloc_alloc::heap::Heap;
+
+use crate::init::{
+  is_td,
+  td_register,
+};
 #[cfg(feature = "ffi")]
 mod ffi;
 mod init;
@@ -46,6 +51,12 @@ impl BootstrapHeap {
 static BOOTSTRAP_HEAP: OnceLock<BootstrapHeap> = OnceLock::new();
 
 fn with_heap<R>(f: impl FnOnce(&mut Heap<'static>) -> R) -> R {
+  td_register();
+  if is_td() {
+    let bootstrap = BOOTSTRAP_HEAP.get_or_init(BootstrapHeap::new);
+    return bootstrap.with(f);
+  }
+
   match LOCAL_HEAP.try_with(|heap| heap.get() as *mut Heap<'static>) {
     Ok(ptr) => {
       let heap = unsafe { &mut *ptr };
@@ -74,10 +85,7 @@ unsafe impl GlobalAlloc for TinyAlloc {
 
   unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
     with_heap(|heap| unsafe {
-      let _ = heap.deallocate(
-        NonNull::new_unchecked(ptr),
-        layout,
-      );
+      let _ = heap.deallocate(NonNull::new_unchecked(ptr), layout);
     })
   }
 }
