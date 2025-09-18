@@ -99,7 +99,7 @@ tinyalloc/
 - Size class resolution and initialization
 
 **Size Class System:**
-- 32 size classes with logarithmic scaling
+- 84 size classes with logarithmic scaling
 - Small objects: 8 bytes to 256 bytes (MIN_ALIGN increments)
 - Medium objects: up to 32KB (2x alignment increments)
 - Large objects: up to 256KB (4x alignment increments)
@@ -107,8 +107,8 @@ tinyalloc/
 
 **Configuration Constants:**
 - `ARENA_INITIAL_SIZE`: 64MB (2^26 bytes)
-- `SEGMENT_SIZE`: 128KB (2^17 bytes) 
-- `SIZES`: 32 size classes
+- `SEGMENT_SIZE`: 512KB (2^19 bytes)
+- `SIZES`: 84 size classes
 - Alignment ratios for different size categories
 
 **Testing:** 

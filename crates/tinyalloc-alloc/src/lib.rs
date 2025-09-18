@@ -1,3 +1,4 @@
+pub mod allocation;
 pub mod arena;
 pub mod classes;
 pub mod config;
@@ -6,4 +7,3 @@ pub mod large;
 pub mod queue;
 pub mod segment;
 pub mod static_;
-pub mod allocation;

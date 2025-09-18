@@ -3,7 +3,10 @@ use std::{
     GlobalAlloc,
     Layout,
   },
-  cell::{Cell, UnsafeCell},
+  cell::{
+    Cell,
+    UnsafeCell,
+  },
   num::NonZeroUsize,
   ptr::NonNull,
   sync::OnceLock,
@@ -114,7 +117,7 @@ impl TinyAlloc {
       Some(result)
     }) {
       Ok(result) => result,
-      Err(_) => None, // TLS not available
+      Err(_) => None,
     }
   }
 
@@ -139,18 +142,24 @@ impl TinyAlloc {
 unsafe impl GlobalAlloc for TinyAlloc {
   unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
     let total_size = Allocation::total_size(layout);
-    let total_layout = unsafe {
-      Layout::from_size_align_unchecked(total_size, layout.align())
-    };
+    let total_layout =
+      unsafe { Layout::from_size_align_unchecked(total_size, layout.align()) };
 
-    if let Some(ptr) = self.recursion_guard(|| {
-      with_heap(|heap| {
-        heap.allocate(total_layout).ok().map(|mem| {
-          let heap_ptr = heap as *mut Heap<'static>;
-          self.write_allocation(AllocationOwner::Heap(heap_ptr), total_layout, mem)
+    if let Some(ptr) = self
+      .recursion_guard(|| {
+        with_heap(|heap| {
+          heap.allocate(total_layout).ok().map(|mem| {
+            let heap_ptr = heap as *mut Heap<'static>;
+            self.write_allocation(
+              AllocationOwner::Heap(heap_ptr),
+              total_layout,
+              mem,
+            )
+          })
         })
       })
-    }).flatten() {
+      .flatten()
+    {
       return ptr;
     }
 
@@ -160,7 +169,11 @@ unsafe impl GlobalAlloc for TinyAlloc {
     };
 
     match self.os_alloc(size) {
-      Ok(os_mem) => self.write_allocation(AllocationOwner::Mapper(os_mem), total_layout, os_mem),
+      Ok(os_mem) => self.write_allocation(
+        AllocationOwner::Mapper(os_mem),
+        total_layout,
+        os_mem,
+      ),
       Err(_) => std::ptr::null_mut(),
     }
   }
@@ -173,7 +186,7 @@ unsafe impl GlobalAlloc for TinyAlloc {
 
     let allocation_ref = unsafe { &*allocation };
 
-    if let Some(mapped_slice) = unsafe { allocation_ref.map_range() } { 
+    if let Some(mapped_slice) = unsafe { allocation_ref.map_range() } {
       self.os_dealloc(mapped_slice);
       return;
     }

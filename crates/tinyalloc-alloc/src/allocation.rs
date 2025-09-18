@@ -13,8 +13,8 @@ use tinyalloc_list::{
 
 use crate::{
   config::{
-    align_up,
     MAX_ALIGN,
+    align_up,
   },
   heap::Heap,
 };

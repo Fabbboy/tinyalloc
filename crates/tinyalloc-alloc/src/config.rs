@@ -1,4 +1,4 @@
-pub const SIZES: usize = 32;
+pub const SIZES: usize = 84;
 pub const ONE: usize = 1;
 pub const WORD: usize = core::mem::size_of::<usize>();
 pub const MAX_ALIGN: usize = if WORD == 8 { 16 } else { 8 };
@@ -13,12 +13,12 @@ pub const ARENA_GROWTH: usize = 2;
 pub const ARENA_STEP: usize = 4;
 pub const ARENA_LIMIT: usize = 80;
 
-pub const SEGMENT_SHIFT: usize = 14 + SHIFT;
+pub const SEGMENT_SHIFT: usize = 16 + SHIFT;
 pub const SEGMENT_SIZE: usize = 1 << SEGMENT_SHIFT;
 
 pub const SMALL_SC_LIMIT: usize = 1 << (SHIFT + 5);
 pub const MEDIUM_SC_LIMIT: usize = 1 << (SHIFT + 10);
-pub const LARGE_SC_LIMIT: usize = 1 << (SHIFT + 13);
+pub const LARGE_SC_LIMIT: usize = 1 << (SHIFT + 15);
 
 pub const SMALL_ALIGN_LIMIT: usize = SMALL_SC_LIMIT / 4;
 pub const MEDIUM_ALIGN_LIMIT: usize = MEDIUM_SC_LIMIT / 8;

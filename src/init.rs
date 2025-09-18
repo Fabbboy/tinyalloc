@@ -7,7 +7,8 @@ struct LifetimeGuard;
 
 impl Drop for LifetimeGuard {
   fn drop(&mut self) {
-    TEARING_DOWN.with(|flag| { // if this fails we have a bigger problem
+    TEARING_DOWN.with(|flag| {
+      // if this fails we have a bigger problem
       flag.store(true, Ordering::SeqCst);
     });
   }

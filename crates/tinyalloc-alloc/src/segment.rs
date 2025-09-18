@@ -156,7 +156,6 @@ mod tests {
     },
   };
 
-
   #[test]
   fn segment_smallest_class_utilization() {
     let mut buffer = vec![0u8; SEGMENT_SIZE];
@@ -239,8 +238,8 @@ mod tests {
     println!("Segment size: {} bytes", SEGMENT_SIZE);
 
     assert!(
-      perfect_fits >= 3,
-      "Should have at least 3 perfect fit classes"
+      perfect_fits >= 2,
+      "Should have at least 2 perfect fit classes"
     );
     assert!(
       worst_utilization > 50.0,

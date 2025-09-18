@@ -1,8 +1,12 @@
 use std::{
-  alloc::Layout, num::NonZeroUsize, ptr::NonNull, sync::OnceLock, thread::{
+  alloc::Layout,
+  num::NonZeroUsize,
+  ptr::NonNull,
+  sync::OnceLock,
+  thread::{
     self,
     ThreadId,
-  }
+  },
 };
 
 use getset::Getters;
@@ -10,16 +14,21 @@ use spin::RwLock;
 use tinyalloc_list::List;
 
 use crate::{
-  allocation::Allocation, arena::ArenaError, classes::{
+  allocation::Allocation,
+  arena::ArenaError,
+  classes::{
     class_init,
     find_class,
-  }, config::{
+  },
+  config::{
     LARGE_SC_LIMIT,
     SIZES,
-  }, large::{
+  },
+  large::{
     Large,
     LargeError,
-  }, queue::Queue
+  },
+  queue::Queue,
 };
 
 #[derive(Debug)]

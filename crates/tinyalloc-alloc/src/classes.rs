@@ -110,11 +110,9 @@ const fn classes() -> [Class; SIZES] {
   }
 
   let last = SIZES - 1;
-  if classes[last].size.0 < LARGE_SC_LIMIT {
-    let align = size_to_align(LARGE_SC_LIMIT);
-    let aligned_size = align_up(LARGE_SC_LIMIT, align);
-    classes[last] = Class::new(aligned_size, align, last);
-  }
+  let align = size_to_align(LARGE_SC_LIMIT);
+  let aligned_size = align_up(LARGE_SC_LIMIT, align);
+  classes[last] = Class::new(aligned_size, align, last);
 
   classes
 }
