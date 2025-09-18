@@ -743,10 +743,10 @@ version = "0.1.0"
 dependencies = [
  "cbindgen",
  "criterion",
- "getset",
  "libc",
  "spin",
  "tinyalloc-alloc",
+ "tinyalloc-sys",
 ]
 
 [[package]]

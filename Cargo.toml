@@ -46,7 +46,7 @@ criterion = { workspace = true }
 [dependencies]
 tinyalloc-alloc = { workspace = true }
 spin = { workspace = true }
-getset = { workspace = true }
+tinyalloc-sys = { workspace = true }
 
 [features]
 default = []

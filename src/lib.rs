@@ -2,13 +2,9 @@ use std::{
   alloc::{
     GlobalAlloc,
     Layout,
-  },
-  cell::UnsafeCell,
-  ptr::NonNull,
-  sync::OnceLock,
-  thread::{
+  }, cell::UnsafeCell, num::NonZeroUsize, ptr::NonNull, sync::OnceLock, thread::{
     self,
-  },
+  }
 };
 
 use spin::Mutex;
@@ -19,6 +15,7 @@ use tinyalloc_alloc::{
   },
   heap::Heap,
 };
+use tinyalloc_sys::{mapper::Protection, MapError, GLOBAL_MAPPER};
 
 use crate::init::{
   is_td,
@@ -78,6 +75,18 @@ fn with_heap<R>(f: impl FnOnce(&mut Heap<'static>) -> R) -> R {
 }
 
 pub struct TinyAlloc;
+
+impl TinyAlloc{
+  pub unsafe fn os_alloc(&self, size: NonZeroUsize) -> Result<NonNull<[u8]>, MapError> {
+    let mapped = GLOBAL_MAPPER.map(size)?;
+    GLOBAL_MAPPER.protect(mapped, Protection::Read | Protection::Write)?;
+    Ok(mapped)
+  }
+
+  pub unsafe fn os_dealloc(&self, ptr: NonNull<[u8]>)  {
+    GLOBAL_MAPPER.unmap(ptr)
+  }
+}
 
 unsafe impl GlobalAlloc for TinyAlloc {
   unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
