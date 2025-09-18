@@ -1,5 +1,8 @@
 use std::{
-  alloc::Layout, mem, ptr::NonNull, thread::ThreadId
+  alloc::Layout,
+  mem,
+  ptr::NonNull,
+  thread::ThreadId,
 };
 
 use getset::CloneGetters;
@@ -10,8 +13,8 @@ use tinyalloc_list::{
 
 use crate::{
   config::{
-    MAX_ALIGN,
     align_up,
+    MAX_ALIGN,
   },
   heap::Heap,
 };
@@ -65,14 +68,27 @@ impl<'mapper> Allocation<'mapper> {
       return None;
     }
 
-    let max_header_end = user_addr - MAX_ALIGN + 1;
-    let header_start = max_header_end - mem::size_of::<Self>();
+    let header_size = mem::size_of::<Self>();
+    let max_header_end = match user_addr.checked_sub(MAX_ALIGN - 1) {
+      Some(end) => end,
+      None => return None,
+    };
+
+    let header_start = match max_header_end.checked_sub(header_size) {
+      Some(start) => start,
+      None => return None,
+    };
+
+    if header_start % mem::align_of::<Self>() != 0 {
+      return None;
+    }
+
     let header_ptr = header_start as *mut Self;
 
     if header_ptr.is_null() {
       return None;
     }
- 
+
     let allocation = unsafe { &*header_ptr };
     if allocation.canary != ALLOCATION_CANARY {
       return None;
@@ -96,16 +112,14 @@ impl<'mapper> Allocation<'mapper> {
 
   pub unsafe fn heap_ptr(&self) -> Option<&Heap<'mapper>> {
     match self.owned {
-      AllocationOwner::Heap(heap_ptr) =>  Some(unsafe { &*heap_ptr }),
+      AllocationOwner::Heap(heap_ptr) => Some(unsafe { &*heap_ptr }),
       AllocationOwner::Mapper(_) => None,
     }
   }
 
   pub unsafe fn map_range(&self) -> Option<NonNull<[u8]>> {
     match self.owned {
-      AllocationOwner::Mapper(ref slice_ptr) => {
-        Some(*slice_ptr)
-      }
+      AllocationOwner::Mapper(ref slice_ptr) => Some(*slice_ptr),
       AllocationOwner::Heap(_) => None,
     }
   }

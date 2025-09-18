@@ -1,4 +1,8 @@
-use tinyalloc_alloc::config::{align_up, MIN_ALIGN};
+use tinyalloc_alloc::config::{
+  align_up,
+  MAX_ALIGN,
+  MIN_ALIGN,
+};
 
 use crate::TinyAlloc;
 use std::{
@@ -15,7 +19,7 @@ const METADATA_CANARY: u32 = 0xDEADBEEF;
 const TRAILER_CANARY: u32 = 0xBEEFDEAD;
 
 static GLOBAL_ALLOCATOR: TinyAlloc = TinyAlloc;
-const ZERO_SIZE_PTR: *mut u8 = MIN_ALIGN as *mut u8;
+const ZERO_SIZE_PTR: *mut u8 = MAX_ALIGN as *mut u8;
 
 #[repr(C)]
 struct Metadata {
@@ -53,17 +57,38 @@ impl Metadata {
       return None;
     }
 
-    unsafe {
-      let metadata_ptr = user_ptr.sub(mem::size_of::<usize>()) as *const usize;
-      let offset = *metadata_ptr as usize;
-      let metadata_ptr = user_ptr.sub(offset) as *const Self;
-      let metadata = &*metadata_ptr;
+    let user_addr = user_ptr as usize;
+    if user_addr < mem::size_of::<usize>() {
+      return None;
+    }
 
-      if metadata.is_valid() {
-        Some(metadata)
-      } else {
-        None
-      }
+    let marker_addr = user_addr - mem::size_of::<usize>();
+    if marker_addr % mem::align_of::<usize>() != 0 {
+      return None;
+    }
+
+    let marker_ptr = marker_addr as *const usize;
+    let offset = unsafe { ptr::read(marker_ptr) as usize };
+    if offset == 0 || offset > user_addr {
+      return None;
+    }
+
+    let header_addr = match user_addr.checked_sub(offset) {
+      Some(addr) => addr,
+      None => return None,
+    };
+
+    if header_addr % mem::align_of::<Self>() != 0 {
+      return None;
+    }
+
+    let metadata_ptr = header_addr as *const Self;
+    let metadata = unsafe { &*metadata_ptr };
+
+    if metadata.is_valid() {
+      Some(metadata)
+    } else {
+      None
     }
   }
 }
@@ -106,12 +131,11 @@ impl Allocator {
       return Some((Layout::from_size_align(MIN_ALIGN, MIN_ALIGN).ok()?, 0));
     }
 
-    let user_align = align.max(MIN_ALIGN);
+    let user_align = align.max(MAX_ALIGN);
     let metadata_end = Metadata::SELF_SIZE;
+    let marker_end = metadata_end.checked_add(mem::size_of::<usize>())?;
 
-    let user_offset = align_up(metadata_end, user_align);
-
-    let user_start = user_offset + mem::size_of::<usize>();
+    let user_start = align_up(marker_end, user_align);
     let user_end = user_start.checked_add(size)?;
 
     let trailer_start = align_up(user_end, Trailer::ALIGN);
@@ -334,4 +358,21 @@ pub unsafe extern "C" fn realloc(ptr: *mut c_void, size: usize) -> *mut c_void {
   unsafe { Allocator::deallocate_with_metadata(user_ptr) };
 
   new_ptr as *mut c_void
+}
+
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn malloc_usable_size(ptr: *mut c_void) -> usize {
+  let user_ptr = ptr as *mut u8;
+
+  if user_ptr.is_null() || user_ptr == ZERO_SIZE_PTR {
+    return 0;
+  }
+
+  let metadata =
+    match unsafe { Allocator::validate_and_extract_metadata(user_ptr) } {
+      Some(meta) => meta,
+      None => return 0,
+    };
+
+  Allocator::calculate_user_size(metadata)
 }
