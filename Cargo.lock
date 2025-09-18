@@ -769,10 +769,6 @@ version = "0.1.0"
 [[package]]
 name = "tinyalloc-bitmap"
 version = "0.1.0"
-dependencies = [
- "getset",
- "tinyalloc-array",
-]
 
 [[package]]
 name = "tinyalloc-list"

@@ -20,24 +20,29 @@ where
 {
   store: &'slice mut [T],
   bits: usize,
+  used: usize,
 }
 
 impl<'slice, T> Bitmap<'slice, T>
 where
   T: Bits + BitsRequire,
 {
+  #[inline(always)]
   pub const fn words(fields: usize) -> usize {
     (fields + T::BITS - 1) / T::BITS
   }
 
+  #[inline(always)]
   pub fn available(&self) -> usize {
     self.store.len() * T::BITS
   }
 
+  #[inline(always)]
   pub fn store(&self) -> &[T] {
     self.store
   }
 
+  #[inline(always)]
   pub fn bits(&self) -> usize {
     self.bits
   }
@@ -69,7 +74,11 @@ where
       });
     }
 
-    let mut bitmap = Self { store, bits };
+    let mut bitmap = Self {
+      store,
+      bits,
+      used: 0,
+    };
     bitmap.clear_all();
     Ok(bitmap)
   }
@@ -83,7 +92,11 @@ where
       });
     }
 
-    let mut bitmap = Self { store, bits };
+    let mut bitmap = Self {
+      store,
+      bits,
+      used: 0,
+    };
     bitmap.set_all();
     Ok(bitmap)
   }
@@ -99,35 +112,37 @@ where
     Ok(())
   }
 
-  pub fn expect(&self, fields: usize) -> Result<(), BitmapError> {
-    let total_bits = self.store.len() * T::BITS;
-    if fields > total_bits {
-      return Err(BitmapError::InsufficientSize {
-        have: total_bits,
-        need: fields,
-      });
-    }
-    Ok(())
-  }
-
+  #[inline]
   pub fn set(&mut self, index: usize) -> Result<(), BitmapError> {
     let (word_index, bit_index) = self.position(index)?;
     self.store[word_index] = self.store[word_index].set(bit_index);
+    self.used += 1;
     Ok(())
   }
 
+  #[inline]
   pub fn clear(&mut self, index: usize) -> Result<(), BitmapError> {
     let (word_index, bit_index) = self.position(index)?;
     self.store[word_index] = self.store[word_index].clear(bit_index);
+    self.used -= 1;
     Ok(())
   }
 
+  #[inline]
   pub fn flip(&mut self, index: usize) -> Result<(), BitmapError> {
-    let (word_index, bit_index) = self.position(index)?;
-    self.store[word_index] = self.store[word_index].flip(bit_index);
+    let (wi, bi) = self.position(index)?;
+    let old = self.store[wi];
+    let new = old.flip(bi);
+    match (old == T::zero(), new == T::zero()) {
+      (true, false) => self.used += 1,
+      (false, true) => self.used -= 1,
+      _ => {}
+    }
+    self.store[wi] = new;
     Ok(())
   }
 
+  #[inline]
   pub fn get(&self, index: usize) -> Result<bool, BitmapError> {
     let (word_index, bit_index) = self.position(index)?;
     Ok(self.store[word_index].get(bit_index))
@@ -137,6 +152,7 @@ where
     for word in self.store.iter_mut() {
       *word = T::zero();
     }
+    self.used = 0;
   }
 
   pub fn set_all(&mut self) {
@@ -151,6 +167,7 @@ where
       let mask = T::max() >> (T::BITS - remaining_bits);
       self.store[full_words] = mask;
     }
+    self.used = self.bits;
   }
 
   pub fn find_first_set(&self) -> Option<usize> {
@@ -180,7 +197,8 @@ where
     None
   }
 
+  #[inline]
   pub fn is_clear(&self) -> bool {
-    self.find_first_set().is_none()
+    self.used == 0
   }
 }
