@@ -8,6 +8,7 @@ use std::{
 use spin::Mutex;
 
 use enumset::enum_set;
+use tinyalloc_array::Array;
 use tinyalloc_bitmap::{
   Bitmap,
   BitmapError,
@@ -23,6 +24,7 @@ use tinyalloc_sys::{
 use crate::{
   classes::Class,
   config::{
+    CACHE_SIZE,
     SEGMENT_SIZE,
     WORD,
     align_slice,
@@ -48,6 +50,7 @@ pub struct Arena<'mapper> {
   bitmap: UnsafeCell<Bitmap<'mapper, usize>>,
   user: UnsafeCell<&'mapper mut [u8]>,
   segment_count: usize,
+  cache: UnsafeCell<Array<usize, CACHE_SIZE>>,
   lock: Mutex<()>,
 }
 
@@ -100,6 +103,7 @@ impl<'mapper> Arena<'mapper> {
       bitmap: UnsafeCell::new(bitmap),
       user: UnsafeCell::new(user_space),
       segment_count: segments_possible,
+      cache: UnsafeCell::new(Array::new()),
       lock: Mutex::new(()),
     };
 
@@ -119,11 +123,16 @@ impl<'mapper> Arena<'mapper> {
 
     let bitmap = unsafe { &mut *self.bitmap.get() };
     let user = unsafe { &mut *self.user.get() };
+    let cache = unsafe { &mut *self.cache.get() };
 
-    let free_bit = bitmap.find_first_clear();
-    let segment_index = match free_bit {
-      Some(index) => index,
-      None => return Err(ArenaError::Insufficient),
+    let segment_index = if let Some(cached_index) = cache.pop() {
+      cached_index
+    } else {
+      let free_bit = bitmap.find_first_clear();
+      match free_bit {
+        Some(index) => index,
+        None => return Err(ArenaError::Insufficient),
+      }
     };
 
     let segment_offset = segment_index * SEGMENT_SIZE;
@@ -161,6 +170,7 @@ impl<'mapper> Arena<'mapper> {
 
     let bitmap = unsafe { &mut *self.bitmap.get() };
     let user = unsafe { &*self.user.get() };
+    let cache = unsafe { &mut *self.cache.get() };
 
     let segment_ptr = segment.as_ptr() as *mut u8;
     let user_start = user.as_ptr() as *mut u8;
@@ -185,6 +195,7 @@ impl<'mapper> Arena<'mapper> {
       .region
       .partial(segment_range, enum_set!())
       .map_err(ArenaError::MapError)?;
+    let _ = cache.push(segment_index);
     let _ = bitmap.clear(segment_index);
 
     Ok(())
@@ -193,7 +204,8 @@ impl<'mapper> Arena<'mapper> {
   pub fn has_space(&self) -> bool {
     let _guard = self.lock.lock();
     let bitmap = unsafe { &*self.bitmap.get() };
-    bitmap.find_first_clear().is_some()
+    let cache = unsafe { &*self.cache.get() };
+    !cache.is_empty() || bitmap.find_first_clear().is_some()
   }
 
   pub fn user_start(&self) -> *const u8 {
@@ -211,7 +223,7 @@ impl<'mapper> Drop for Arena<'mapper> {
   fn drop(&mut self) {
     let _guard = self.lock.lock();
     let bitmap = unsafe { &mut *self.bitmap.get() };
-    
+
     while let Some(segment_index) = bitmap.find_first_set() {
       let _ = bitmap.clear(segment_index);
     }
