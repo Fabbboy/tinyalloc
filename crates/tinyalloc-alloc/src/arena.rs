@@ -207,6 +207,17 @@ impl<'mapper> Arena<'mapper> {
   }
 }
 
+impl<'mapper> Drop for Arena<'mapper> {
+  fn drop(&mut self) {
+    let _guard = self.lock.lock();
+    let bitmap = unsafe { &mut *self.bitmap.get() };
+    
+    while let Some(segment_index) = bitmap.find_first_set() {
+      let _ = bitmap.clear(segment_index);
+    }
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;

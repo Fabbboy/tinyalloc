@@ -145,6 +145,14 @@ impl<'mapper> HasLink<Segment<'mapper>> for Segment<'mapper> {
   }
 }
 
+impl<'mapper> Drop for Segment<'mapper> {
+  fn drop(&mut self) {
+    while let Some(index) = self.bitmap.find_first_set() {
+      let _ = self.bitmap.clear(index);
+    }
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;

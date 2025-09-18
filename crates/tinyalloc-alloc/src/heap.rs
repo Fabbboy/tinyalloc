@@ -241,6 +241,15 @@ impl<'mapper> Heap<'mapper> {
 
 impl<'mapper> Drop for Heap<'mapper> {
   fn drop(&mut self) {
+    let mut guard = self.remote.write();
+    while let Some(allocation) = guard.pop() {
+      let (header_ptr, layout) = self.extract_info(allocation);
+      drop(guard);
+      let _ = self.deallocate_internal(header_ptr, layout);
+      guard = self.remote.write();
+    }
+    drop(guard);
+
     for large in self.large.drain() {
       let _ = unsafe { core::ptr::drop_in_place(large.as_ptr()) };
     }
