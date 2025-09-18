@@ -12,13 +12,16 @@ use tinyalloc_list::{
 };
 
 use crate::{
-  config::{align_up, MAX_ALIGN},
+  config::{
+    MAX_ALIGN,
+    align_up,
+  },
   heap::Heap,
 };
 
 #[derive(Clone)]
 pub enum AllocationOwner<'mapper> {
-  Heap(NonNull<Heap<'mapper>>),
+  Heap(*mut Heap<'mapper>),
   Mapper,
 }
 
@@ -29,9 +32,9 @@ pub struct Allocation<'mapper> {
   #[getset(get_clone = "pub")]
   full: Layout,
   #[getset(get_clone = "pub")]
-  alloc_ptr: NonNull<u8>,
+  alloc_ptr: *mut u8,
   #[getset(get_clone = "pub")]
-  user_ptr: NonNull<u8>,
+  user_ptr: *mut u8,
   link: Link<Allocation<'mapper>>,
 }
 
@@ -39,14 +42,14 @@ impl<'mapper> Allocation<'mapper> {
   pub fn new(
     owned: AllocationOwner<'mapper>,
     full: Layout,
-    ptr: NonNull<u8>,
-    user: NonNull<u8>,
+    alloc_ptr: *mut u8,
+    user_ptr: *mut u8,
   ) -> Self {
     Self {
       owned,
       full,
-      alloc_ptr: ptr,
-      user_ptr: user,
+      alloc_ptr,
+      user_ptr,
       link: Link::new(),
     }
   }
@@ -68,10 +71,6 @@ impl<'mapper> Allocation<'mapper> {
     NonNull::new(header_ptr)
   }
 
-  pub fn get_user_ptr(&self) -> *mut u8 {
-    self.user_ptr().as_ptr()
-  }
-
   pub fn total_size(user_layout: Layout) -> usize {
     let header_size = mem::size_of::<Self>();
     let user_size = user_layout.size();
@@ -85,15 +84,18 @@ impl<'mapper> Allocation<'mapper> {
     user_addr as *mut u8
   }
 
-  pub fn heap_ptr(&self) -> Option<NonNull<Heap<'mapper>>> {
-    match &self.owned {
-      AllocationOwner::Heap(heap_ptr) => Some(*heap_ptr),
+  pub unsafe fn heap_ptr(&self) -> Option<&Heap<'mapper>> {
+    match self.owned {
+      AllocationOwner::Heap(heap_ptr) =>  Some(unsafe { &*heap_ptr }),
       AllocationOwner::Mapper => None,
     }
   }
 
   pub fn thread(&self) -> Option<ThreadId> {
-    self.heap_ptr().map(|heap_ptr| unsafe { heap_ptr.as_ref().thread() })
+    match unsafe { self.heap_ptr() } {
+      Some(heap) => Some(heap.thread()),
+      None => None,
+    }
   }
 }
 

@@ -87,27 +87,27 @@ unsafe impl GlobalAlloc for TinyAlloc {
         Layout::from_size_align_unchecked(total_size, layout.align())
       };
 
-      let mut mem= match heap.allocate(total_layout) {
+      let mut mem = match heap.allocate(total_layout) {
         Ok(mem) => mem,
         Err(_) => return std::ptr::null_mut(),
       };
 
       unsafe {
         let header_ptr = mem.as_mut().as_mut_ptr() as *mut Allocation;
-        let user_ptr = NonNull::new_unchecked(Allocation::calc_user_ptr(header_ptr));
+        let user_raw_ptr = Allocation::calc_user_ptr(header_ptr);
 
-        let heap_ptr = NonNull::new_unchecked(heap as *mut Heap<'static>);
-        let alloc_ptr = NonNull::new_unchecked(header_ptr as *mut u8);
+        let heap_ptr = heap as *mut Heap<'static>;
+        let alloc_ptr = header_ptr as *mut u8;
 
         let allocation = Allocation::new(
           AllocationOwner::Heap(heap_ptr),
           total_layout,
           alloc_ptr,
-          user_ptr,
+          user_raw_ptr,
         );
 
         header_ptr.write(allocation);
-        user_ptr.as_ptr()
+        user_raw_ptr
       }
     })
   }
@@ -119,8 +119,8 @@ unsafe impl GlobalAlloc for TinyAlloc {
     };
 
     let allocation_ref = unsafe { allocation.as_ref() };
-    let heap_ptr = match allocation_ref.heap_ptr() {
-      Some(heap_ptr) => heap_ptr,
+    let heap = match unsafe { allocation_ref.heap_ptr() } {
+      Some(heap) => heap,
       None => return,
     };
 
@@ -128,9 +128,10 @@ unsafe impl GlobalAlloc for TinyAlloc {
     let total_layout = allocation_ref.full();
 
     if let Some(bootstrap) = BOOTSTRAP_HEAP.get() {
-      if heap_ptr.as_ptr() as *const _ == bootstrap.heap.get() {
+      if heap as *const _ == bootstrap.heap.get() {
         bootstrap.with(|heap| unsafe {
-          let _ = heap.deallocate(NonNull::new_unchecked(header_ptr), total_layout);
+          let _ =
+            heap.deallocate(NonNull::new_unchecked(header_ptr), total_layout);
         });
         return;
       }
@@ -138,15 +139,13 @@ unsafe impl GlobalAlloc for TinyAlloc {
 
     if allocation_ref.thread() == Some(thread::current().id()) {
       with_heap(|heap| unsafe {
-        let _ = heap.deallocate(NonNull::new_unchecked(header_ptr), total_layout);
+        let _ =
+          heap.deallocate(NonNull::new_unchecked(header_ptr), total_layout);
       })
     } else {
-      unsafe {
-        let heap = &*heap_ptr.as_ptr();
-        let remote_list = heap.remote();
-        let mut remote_guard = remote_list.write();
-        remote_guard.push(allocation);
-      }
+      let remote_list = heap.remote();
+      let mut remote_guard = remote_list.write();
+      remote_guard.push(allocation);
     }
   }
 }
