@@ -1,4 +1,5 @@
 use getset::{
+  CloneGetters,
   Getters,
   Setters,
 };
@@ -61,7 +62,7 @@ where
   fn link_mut(&mut self) -> &mut Link<T>;
 }
 
-#[derive(Debug, Getters)]
+#[derive(Debug, Getters, CloneGetters)]
 pub struct List<T>
 where
   T: HasLink<T>,
@@ -70,6 +71,8 @@ where
   head: Option<NonNull<T>>,
   #[getset(get = "pub")]
   tail: Option<NonNull<T>>,
+  #[getset(get_clone = "pub")]
+  count: usize,
 }
 
 impl<T> List<T>
@@ -80,7 +83,12 @@ where
     Self {
       head: None,
       tail: None,
+      count: 0,
     }
+  }
+
+  pub fn is_empty(&self) -> bool {
+    self.count() == 0
   }
 
   pub fn contains(&self, item: NonNull<T>) -> bool {
@@ -101,6 +109,7 @@ where
       }
 
       self.tail = Some(item);
+      self.count += 1;
     }
   }
 
@@ -118,6 +127,7 @@ where
       }
 
       self.head = Some(item);
+      self.count += 1;
     }
   }
 
@@ -134,6 +144,7 @@ where
       }
 
       head.as_mut().link_mut().clear();
+      self.count -= 1;
 
       head
     })
@@ -152,6 +163,7 @@ where
       }
 
       tail.as_mut().link_mut().clear();
+      self.count -= 1;
 
       tail
     })
@@ -178,6 +190,7 @@ where
       } else {
         self.head = Some(new_item);
       }
+      self.count += 1;
     }
   }
 
@@ -202,6 +215,7 @@ where
       } else {
         self.tail = Some(new_item);
       }
+      self.count += 1;
     }
   }
 
@@ -224,6 +238,7 @@ where
       }
 
       link.clear();
+      self.count -= 1;
     }
   }
 

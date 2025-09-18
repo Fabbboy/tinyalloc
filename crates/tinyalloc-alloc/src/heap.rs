@@ -22,6 +22,9 @@ use crate::{
   },
   config::{
     LARGE_SC_LIMIT,
+    REMOTE_BATCH_SIZE,
+    REMOTE_CHECK_FREQUENCY,
+    REMOTE_MAX_BATCH,
     SIZES,
   },
   large::{
@@ -46,6 +49,7 @@ pub struct Heap<'mapper> {
   large: List<Large<'mapper>>,
   #[getset(get = "pub")]
   remote: RwLock<List<Allocation<'mapper>>>,
+  operations: usize,
 }
 
 impl<'mapper> Heap<'mapper> {
@@ -57,6 +61,7 @@ impl<'mapper> Heap<'mapper> {
       classes,
       large: List::new(),
       remote: RwLock::new(List::new()),
+      operations: 0,
     }
   }
 
@@ -68,6 +73,9 @@ impl<'mapper> Heap<'mapper> {
     &mut self,
     layout: Layout,
   ) -> Result<NonNull<[u8]>, HeapError> {
+    self.operations = self.operations.wrapping_add(1);
+    self.process_remote()?;
+
     let size = layout.size();
 
     if size == 0 {
@@ -116,17 +124,10 @@ impl<'mapper> Heap<'mapper> {
     ptr: NonNull<u8>,
     layout: Layout,
   ) -> Result<(), HeapError> {
-    let size = layout.size();
+    self.operations = self.operations.wrapping_add(1);
+    self.process_remote()?;
 
-    if size == 0 {
-      return Err(HeapError::InvalidSize);
-    }
-
-    if size > LARGE_SC_LIMIT {
-      return self.dealloc_large(ptr);
-    }
-
-    self.dealloc_small(ptr, layout)
+    self.deallocate_internal(ptr, layout)
   }
 
   fn dealloc_small(
@@ -155,5 +156,116 @@ impl<'mapper> Heap<'mapper> {
     } else {
       Err(HeapError::InvalidPointer)
     }
+  }
+
+  fn process_remote(&mut self) -> Result<(), HeapError> {
+    if !self.should_process_remote()? {
+      return Ok(());
+    }
+
+    self.process_remote_batch()
+  }
+
+  fn should_process_remote(&self) -> Result<bool, HeapError> {
+    let remote_len = {
+      let guard = self.remote.read();
+      guard.count()
+    };
+
+    if remote_len == 0 {
+      return Ok(false);
+    }
+
+    let should_process = remote_len >= REMOTE_BATCH_SIZE
+      || self.operations % REMOTE_CHECK_FREQUENCY == 0;
+
+    Ok(should_process)
+  }
+
+  fn process_remote_batch(&mut self) -> Result<(), HeapError> {
+    let mut guard = match self.remote.try_write() {
+      Some(guard) => guard,
+      None => return Ok(()),
+    };
+
+    let mut processed = 0;
+    while processed < REMOTE_MAX_BATCH && !guard.is_empty() {
+      if let Some(allocation_nn) = guard.pop() {
+        let (header_ptr, layout) = self.extract_allocation_info(allocation_nn);
+
+        drop(guard);
+
+        self.deallocate_internal(header_ptr, layout)?;
+
+        guard = match self.remote.try_write() {
+          Some(guard) => guard,
+          None => return Ok(()),
+        };
+
+        processed += 1;
+      }
+    }
+
+    Ok(())
+  }
+
+  fn extract_allocation_info(
+    &self,
+    allocation_nn: NonNull<Allocation<'mapper>>,
+  ) -> (NonNull<u8>, Layout) {
+    let allocation_ref = unsafe { allocation_nn.as_ref() };
+    let header_ptr = unsafe { NonNull::new_unchecked(allocation_nn.as_ptr() as *mut u8) };
+    let layout = allocation_ref.full();
+    (header_ptr, layout)
+  }
+
+  fn deallocate_internal(
+    &mut self,
+    ptr: NonNull<u8>,
+    layout: Layout,
+  ) -> Result<(), HeapError> {
+    let size = layout.size();
+
+    if size == 0 {
+      return Err(HeapError::InvalidSize);
+    }
+
+    if size > LARGE_SC_LIMIT {
+      return self.dealloc_large(ptr);
+    }
+
+    self.dealloc_small(ptr, layout)
+  }
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+
+  #[test]
+  fn test_empty_remote_list() {
+    let heap = Heap::new();
+    assert!(!heap.should_process_remote().unwrap());
+    assert_eq!(heap.remote.read().count(), 0);
+  }
+
+  #[test]
+  fn test_operation_counter_increment() {
+    let mut heap = Heap::new();
+    let layout = Layout::from_size_align(8, 8).unwrap();
+
+    let initial_ops = heap.operations;
+    let _ = heap.allocate(layout);
+    assert_eq!(heap.operations, initial_ops + 1);
+  }
+
+  #[test]
+  fn test_should_process_remote_logic() {
+    let mut heap = Heap::new();
+
+    assert!(!heap.should_process_remote().unwrap());
+
+    heap.operations = REMOTE_CHECK_FREQUENCY;
+    assert!(!heap.should_process_remote().unwrap());
   }
 }
