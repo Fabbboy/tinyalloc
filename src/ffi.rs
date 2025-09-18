@@ -1,16 +1,20 @@
 use tinyalloc_alloc::config::{
-  align_up,
   MAX_ALIGN,
   MIN_ALIGN,
+  align_up,
 };
 
 use crate::TinyAlloc;
+use core::ffi::{
+  c_int,
+  c_void,
+};
 use std::{
   alloc::{
     GlobalAlloc,
     Layout,
   },
-  ffi::c_void,
+  convert::TryFrom,
   mem,
   ptr,
 };
@@ -207,15 +211,18 @@ impl Allocator {
     let user_ptr = unsafe { base_ptr.add(user_offset) };
 
     unsafe {
-      Self::write_metadata(
-        base_ptr,
-        total_layout,
-        user_offset as u32,
-        align as u32,
-      );
+      let user_offset_u32 = match u32::try_from(user_offset) {
+        Ok(value) => value,
+        Err(_) => return ptr::null_mut(),
+      };
+      let align_u32 = match u32::try_from(align) {
+        Ok(value) => value,
+        Err(_) => return ptr::null_mut(),
+      };
+      Self::write_metadata(base_ptr, total_layout, user_offset_u32, align_u32);
       Self::write_offset_marker(user_ptr, user_offset);
       let trailer_start = Self::calculate_trailer_start(user_ptr, size);
-      Self::write_trailer(trailer_start, user_offset as u32);
+      Self::write_trailer(trailer_start, user_offset_u32);
     }
 
     user_ptr
@@ -273,9 +280,9 @@ impl Allocator {
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn malloc(size: usize) -> *mut c_void {
-  unsafe {
-    Allocator::allocate_with_metadata(size, MIN_ALIGN, false) as *mut c_void
-  }
+  let ptr =
+    unsafe { Allocator::allocate_with_metadata(size, MIN_ALIGN, false) };
+  ptr as *mut c_void
 }
 
 #[unsafe(no_mangle)]
@@ -285,10 +292,9 @@ pub unsafe extern "C" fn calloc(nmemb: usize, size: usize) -> *mut c_void {
     None => return ptr::null_mut(),
   };
 
-  unsafe {
-    Allocator::allocate_with_metadata(total_size, MIN_ALIGN, true)
-      as *mut c_void
-  }
+  let ptr =
+    unsafe { Allocator::allocate_with_metadata(total_size, MIN_ALIGN, true) };
+  ptr as *mut c_void
 }
 
 #[unsafe(no_mangle)]
@@ -299,7 +305,7 @@ pub unsafe extern "C" fn free(ptr: *mut c_void) {
     return;
   }
 
-  unsafe { Allocator::deallocate_with_metadata(user_ptr) };
+  let _ = unsafe { Allocator::deallocate_with_metadata(user_ptr) };
 }
 
 #[unsafe(no_mangle)]
@@ -315,9 +321,56 @@ pub unsafe extern "C" fn aligned_alloc(
     return ptr::null_mut();
   }
 
-  unsafe {
-    Allocator::allocate_with_metadata(size, alignment, false) as *mut c_void
+  let ptr =
+    unsafe { Allocator::allocate_with_metadata(size, alignment, false) };
+  ptr as *mut c_void
+}
+
+#[cfg(unix)]
+#[unsafe(no_mangle)]
+pub unsafe extern "C" fn posix_memalign(
+  memptr: *mut *mut c_void,
+  alignment: usize,
+  size: usize,
+) -> c_int {
+  if memptr.is_null() {
+    return libc::EINVAL;
   }
+
+  if alignment == 0 {
+    unsafe {
+      *memptr = ptr::null_mut();
+    }
+    return libc::EINVAL;
+  }
+
+  if !alignment.is_power_of_two() {
+    unsafe {
+      *memptr = ptr::null_mut();
+    }
+    return libc::EINVAL;
+  }
+
+  if alignment % mem::size_of::<*mut c_void>() != 0 {
+    unsafe {
+      *memptr = ptr::null_mut();
+    }
+    return libc::EINVAL;
+  }
+
+  let ptr =
+    unsafe { Allocator::allocate_with_metadata(size, alignment, false) };
+  if ptr.is_null() {
+    unsafe {
+      *memptr = ptr::null_mut();
+    }
+    return libc::ENOMEM;
+  }
+
+  unsafe {
+    *memptr = ptr as *mut c_void;
+  }
+  0
 }
 
 #[unsafe(no_mangle)]
@@ -345,6 +398,7 @@ pub unsafe extern "C" fn realloc(ptr: *mut c_void, size: usize) -> *mut c_void {
 
   let old_size = Allocator::calculate_user_size(metadata);
   let old_align = metadata.ualign as usize;
+  let copy_size = old_size.min(size);
 
   let new_ptr =
     unsafe { Allocator::allocate_with_metadata(size, old_align, false) };
@@ -352,10 +406,9 @@ pub unsafe extern "C" fn realloc(ptr: *mut c_void, size: usize) -> *mut c_void {
     return ptr::null_mut();
   }
 
-  let copy_size = old_size.min(size);
   unsafe { ptr::copy_nonoverlapping(user_ptr, new_ptr, copy_size) };
 
-  unsafe { Allocator::deallocate_with_metadata(user_ptr) };
+  let _ = unsafe { Allocator::deallocate_with_metadata(user_ptr) };
 
   new_ptr as *mut c_void
 }

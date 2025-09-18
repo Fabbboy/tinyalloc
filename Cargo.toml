@@ -47,10 +47,11 @@ criterion = { workspace = true }
 tinyalloc-alloc = { workspace = true }
 spin = { workspace = true }
 tinyalloc-sys = { workspace = true }
+libc = { workspace = true, optional = true }
 
 [features]
 default = []
-ffi = []
+ffi = ["libc"]
 
 [[bench]]
 name = "bench_sample"
