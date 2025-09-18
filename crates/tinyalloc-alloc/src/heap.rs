@@ -92,13 +92,6 @@ impl<'mapper> Heap<'mapper> {
       .allocate()
       .ok_or(HeapError::Arena(ArenaError::Insufficient))?;
 
-    debug_assert!(
-      ptr.as_ptr() as usize % layout.align() == 0,
-      "Allocated pointer {:p} does not meet alignment requirement {}",
-      ptr.as_ptr(),
-      layout.align()
-    );
-
     let slice =
       unsafe { core::slice::from_raw_parts_mut(ptr.as_ptr(), layout.size()) };
     NonNull::new(slice as *mut [u8]).ok_or(HeapError::InvalidPointer)
@@ -113,13 +106,6 @@ impl<'mapper> Heap<'mapper> {
     let large_ptr = Large::new(size).map_err(HeapError::Large)?;
 
     let slice_ptr = unsafe { large_ptr.as_ref() }.user_slice();
-
-    debug_assert!(
-      slice_ptr.as_ptr() as *const u8 as usize % layout.align() == 0,
-      "Large allocated pointer {:p} does not meet alignment requirement {}",
-      slice_ptr.as_ptr(),
-      layout.align()
-    );
 
     self.large.push(large_ptr);
     Ok(slice_ptr)

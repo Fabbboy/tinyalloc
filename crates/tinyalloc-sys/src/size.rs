@@ -37,6 +37,10 @@ pub fn page_size() -> usize {
   page_helper()
 }
 
+pub const fn cache_line_size() -> usize {
+  cache_line()
+}
+
 #[cfg(unix)]
 fn page_helper() -> usize {
   static PAGE_SIZE: OnceLock<usize> = OnceLock::new();
@@ -46,6 +50,31 @@ fn page_helper() -> usize {
 #[cfg(not(unix))]
 fn page_helper() -> usize {
   4096
+}
+
+#[cfg(target_arch = "x86_64")]
+const fn cache_line() -> usize {
+  64
+}
+
+#[cfg(target_arch = "aarch64")]
+const fn cache_line() -> usize {
+  64
+}
+
+#[cfg(target_arch = "x86")]
+const fn cache_line() -> usize {
+  32
+}
+
+#[cfg(target_arch = "arm")]
+const fn cache_line() -> usize {
+  32
+}
+
+#[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64", target_arch = "x86", target_arch = "arm")))]
+const fn cache_line() -> usize {
+  core::mem::size_of::<usize>() * 2
 }
 
 #[cfg(unix)]

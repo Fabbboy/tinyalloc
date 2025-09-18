@@ -280,8 +280,9 @@ impl Allocator {
 
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn malloc(size: usize) -> *mut c_void {
+  let align = if size >= 1024 { MAX_ALIGN } else { MIN_ALIGN };
   let ptr =
-    unsafe { Allocator::allocate_with_metadata(size, MIN_ALIGN, false) };
+    unsafe { Allocator::allocate_with_metadata(size, align, false) };
   ptr as *mut c_void
 }
 
@@ -292,8 +293,9 @@ pub unsafe extern "C" fn calloc(nmemb: usize, size: usize) -> *mut c_void {
     None => return ptr::null_mut(),
   };
 
+  let align = if total_size >= 1024 { MAX_ALIGN } else { MIN_ALIGN };
   let ptr =
-    unsafe { Allocator::allocate_with_metadata(total_size, MIN_ALIGN, true) };
+    unsafe { Allocator::allocate_with_metadata(total_size, align, true) };
   ptr as *mut c_void
 }
 

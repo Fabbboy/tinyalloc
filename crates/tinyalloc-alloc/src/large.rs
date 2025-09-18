@@ -11,8 +11,10 @@ use tinyalloc_list::{
 use tinyalloc_sys::{
   MapError,
   region::Region,
-  size::page_align_ptr,
+  size::{page_align_ptr, cache_line_size},
 };
+
+use crate::config::align_up;
 
 #[derive(Debug)]
 pub enum LargeError {
@@ -30,16 +32,18 @@ pub struct Large<'mapper> {
 impl<'mapper> Large<'mapper> {
   pub fn new(size: NonZeroUsize) -> Result<NonNull<Self>, LargeError> {
     let self_size = core::mem::size_of::<Self>();
+    let cache_line = cache_line_size();
+    let user_offset = align_up(self_size, cache_line);
     let total_size = size
       .get()
-      .checked_add(self_size)
+      .checked_add(user_offset)
       .ok_or(LargeError::SizeOverflow)?;
     let mut region = Region::new(NonZeroUsize::new(total_size).unwrap())
       .map_err(LargeError::MapError)?;
     region.activate().map_err(LargeError::MapError)?;
     let ptr = region.as_ptr();
     let user =
-      unsafe { std::slice::from_raw_parts_mut(ptr.add(self_size), size.get()) };
+      unsafe { std::slice::from_raw_parts_mut(ptr.add(user_offset), size.get()) };
 
     let large = Self {
       _region: region,
