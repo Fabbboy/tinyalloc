@@ -188,6 +188,10 @@ impl<'mapper> Arena<'mapper> {
       return Err(ArenaError::Insufficient);
     }
 
+    if !bitmap.get(segment_index).unwrap_or(false) {
+      return Err(ArenaError::Insufficient);
+    }
+
     let segment_slice =
       unsafe { slice::from_raw_parts_mut(segment_ptr, SEGMENT_SIZE) };
     let segment_range = NonNull::new(segment_slice as *mut [u8]).unwrap();
