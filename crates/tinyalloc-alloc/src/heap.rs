@@ -74,7 +74,7 @@ impl<'mapper> Heap<'mapper> {
     layout: Layout,
   ) -> Result<NonNull<[u8]>, HeapError> {
     self.operations = self.operations.wrapping_add(1);
-    self.process_remote()?;
+    self.free_remote()?;
 
     let size = layout.size();
 
@@ -125,7 +125,7 @@ impl<'mapper> Heap<'mapper> {
     layout: Layout,
   ) -> Result<(), HeapError> {
     self.operations = self.operations.wrapping_add(1);
-    self.process_remote()?;
+    self.free_remote()?;
 
     self.deallocate_internal(ptr, layout)
   }
@@ -158,15 +158,15 @@ impl<'mapper> Heap<'mapper> {
     }
   }
 
-  fn process_remote(&mut self) -> Result<(), HeapError> {
-    if !self.should_process_remote()? {
+  fn free_remote(&mut self) -> Result<(), HeapError> {
+    if !self.should_free_remote()? {
       return Ok(());
     }
 
-    self.process_remote_batch()
+    self.free_remote_batched()
   }
 
-  fn should_process_remote(&self) -> Result<bool, HeapError> {
+  fn should_free_remote(&self) -> Result<bool, HeapError> {
     let remote_len = {
       let guard = self.remote.read();
       guard.count()
@@ -182,7 +182,7 @@ impl<'mapper> Heap<'mapper> {
     Ok(should_process)
   }
 
-  fn process_remote_batch(&mut self) -> Result<(), HeapError> {
+  fn free_remote_batched(&mut self) -> Result<(), HeapError> {
     let mut guard = match self.remote.try_write() {
       Some(guard) => guard,
       None => return Ok(()),
@@ -191,7 +191,7 @@ impl<'mapper> Heap<'mapper> {
     let mut processed = 0;
     while processed < REMOTE_MAX_BATCH && !guard.is_empty() {
       if let Some(allocation_nn) = guard.pop() {
-        let (header_ptr, layout) = self.extract_allocation_info(allocation_nn);
+        let (header_ptr, layout) = self.extract_info(allocation_nn);
 
         drop(guard);
 
@@ -209,12 +209,13 @@ impl<'mapper> Heap<'mapper> {
     Ok(())
   }
 
-  fn extract_allocation_info(
+  fn extract_info(
     &self,
     allocation_nn: NonNull<Allocation<'mapper>>,
   ) -> (NonNull<u8>, Layout) {
     let allocation_ref = unsafe { allocation_nn.as_ref() };
-    let header_ptr = unsafe { NonNull::new_unchecked(allocation_nn.as_ptr() as *mut u8) };
+    let header_ptr =
+      unsafe { NonNull::new_unchecked(allocation_nn.as_ptr() as *mut u8) };
     let layout = allocation_ref.full();
     (header_ptr, layout)
   }
@@ -238,6 +239,14 @@ impl<'mapper> Heap<'mapper> {
   }
 }
 
+impl<'mapper> Drop for Heap<'mapper> {
+  fn drop(&mut self) {
+    for large in self.large.drain() {
+      let _ = unsafe { core::ptr::drop_in_place(large.as_ptr()) };
+    }
+  }
+}
+
 #[cfg(test)]
 mod tests {
   use super::*;
@@ -245,7 +254,7 @@ mod tests {
   #[test]
   fn test_empty_remote_list() {
     let heap = Heap::new();
-    assert!(!heap.should_process_remote().unwrap());
+    assert!(!heap.should_free_remote().unwrap());
     assert_eq!(heap.remote.read().count(), 0);
   }
 
@@ -263,9 +272,9 @@ mod tests {
   fn test_should_process_remote_logic() {
     let mut heap = Heap::new();
 
-    assert!(!heap.should_process_remote().unwrap());
+    assert!(!heap.should_free_remote().unwrap());
 
     heap.operations = REMOTE_CHECK_FREQUENCY;
-    assert!(!heap.should_process_remote().unwrap());
+    assert!(!heap.should_free_remote().unwrap());
   }
 }
