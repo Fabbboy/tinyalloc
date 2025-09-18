@@ -1,10 +1,9 @@
 pub const SIZES: usize = 32;
 pub const ONE: usize = 1;
 pub const WORD: usize = core::mem::size_of::<usize>();
+pub const MAX_ALIGN: usize = if WORD == 8 { 16 } else { 8 };
 
 pub const SHIFT: usize = WORD.trailing_zeros() as usize;
-pub const MAX_ALIGN: usize = 1 << (SIZES - SHIFT - 1);
-pub const MAX_SIZE: usize = MAX_ALIGN << (SIZES - SHIFT - 1);
 pub const MIN_ALIGN: usize = WORD;
 pub const MIN_SIZE: usize = MIN_ALIGN;
 

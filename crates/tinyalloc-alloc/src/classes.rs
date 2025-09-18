@@ -30,7 +30,6 @@ where
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-//Cannot use getset as getset does NOT produce const getters
 pub struct Class {
   pub size: Size,
   pub align: Align,

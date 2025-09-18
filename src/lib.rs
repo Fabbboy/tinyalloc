@@ -16,11 +16,9 @@ use std::{
 use getset::CloneGetters;
 use spin::Mutex;
 use tinyalloc_alloc::{
-  config::align_up,
+  config::{align_up, MAX_ALIGN},
   heap::Heap,
 };
-
-const USER_ALIGN: usize = if mem::size_of::<usize>() == 8 { 16 } else { 8 };
 
 use crate::init::{
   is_td,
@@ -52,7 +50,7 @@ impl Header {
 
   fn user_ptr(&self) -> *mut u8 {
     let header_addr = self as *const Self as usize;
-    let user_addr = align_up(header_addr + mem::size_of::<Self>(), USER_ALIGN);
+    let user_addr = align_up(header_addr + mem::size_of::<Self>(), MAX_ALIGN);
     user_addr as *mut u8
   }
 
@@ -62,11 +60,11 @@ impl Header {
     }
 
     let user_addr = ptr as usize;
-    if user_addr < mem::size_of::<Self>() + USER_ALIGN {
+    if user_addr < mem::size_of::<Self>() + MAX_ALIGN {
       return None;
     }
 
-    let max_header_end = user_addr - USER_ALIGN + 1;
+    let max_header_end = user_addr - MAX_ALIGN + 1;
     let header_start = max_header_end - mem::size_of::<Self>();
     let header_ptr = header_start as *mut Self;
 
@@ -76,7 +74,7 @@ impl Header {
   fn total_size(layout: Layout) -> usize {
     let header_size = mem::size_of::<Self>();
     let user_size = layout.size();
-    let padding = USER_ALIGN - 1;
+    let padding = MAX_ALIGN - 1;
     header_size + padding + user_size
   }
 }

@@ -9,23 +9,20 @@ use std::{
 };
 
 use getset::CloneGetters;
+use spin::RwLock;
 use tinyalloc_list::List;
 
 use crate::{
-  arena::ArenaError,
-  classes::{
+  allocation::Allocation, arena::ArenaError, classes::{
     class_init,
     find_class,
-  },
-  config::{
+  }, config::{
     LARGE_SC_LIMIT,
     SIZES,
-  },
-  large::{
+  }, large::{
     Large,
     LargeError,
-  },
-  queue::Queue,
+  }, queue::Queue
 };
 
 #[derive(Debug)]
@@ -42,6 +39,7 @@ pub struct Heap<'mapper> {
   thread: ThreadId,
   classes: [Queue<'mapper>; SIZES],
   large: List<Large<'mapper>>,
+  _remote: RwLock<List<Allocation<'mapper>>>,
 }
 
 impl<'mapper> Heap<'mapper> {
@@ -52,6 +50,7 @@ impl<'mapper> Heap<'mapper> {
       thread: thread::current().id(),
       classes,
       large: List::new(),
+      _remote: RwLock::new(List::new()),
     }
   }
 
