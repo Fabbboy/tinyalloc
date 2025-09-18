@@ -87,7 +87,7 @@ unsafe impl GlobalAlloc for TinyAlloc {
         Layout::from_size_align_unchecked(total_size, layout.align())
       };
 
-      let mut mem: NonNull<[u8]> = match heap.allocate(total_layout) {
+      let mut mem= match heap.allocate(total_layout) {
         Ok(mem) => mem,
         Err(_) => return std::ptr::null_mut(),
       };
