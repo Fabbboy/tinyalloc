@@ -188,7 +188,7 @@ impl Allocator {
     unsafe { ptr::write(trailer_start as *mut Trailer, trailer) };
   }
 
-  unsafe fn allocate_with_metadata(
+  unsafe fn allocate(
     size: usize,
     align: usize,
     zero_init: bool,
@@ -255,7 +255,7 @@ impl Allocator {
     unsafe { GLOBAL_ALLOCATOR.dealloc(ptr, layout) };
   }
 
-  unsafe fn deallocate_with_metadata(user_ptr: *mut u8) -> bool {
+  unsafe fn deallocate(user_ptr: *mut u8) -> bool {
     if user_ptr == ZERO_SIZE_PTR {
       return true;
     }
@@ -281,8 +281,7 @@ impl Allocator {
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn malloc(size: usize) -> *mut c_void {
   let align = if size >= 1024 { MAX_ALIGN } else { MIN_ALIGN };
-  let ptr =
-    unsafe { Allocator::allocate_with_metadata(size, align, false) };
+  let ptr = unsafe { Allocator::allocate(size, align, false) };
   ptr as *mut c_void
 }
 
@@ -293,9 +292,13 @@ pub unsafe extern "C" fn calloc(nmemb: usize, size: usize) -> *mut c_void {
     None => return ptr::null_mut(),
   };
 
-  let align = if total_size >= 1024 { MAX_ALIGN } else { MIN_ALIGN };
+  let align = if total_size >= 1024 {
+    MAX_ALIGN
+  } else {
+    MIN_ALIGN
+  };
   let ptr =
-    unsafe { Allocator::allocate_with_metadata(total_size, align, true) };
+    unsafe { Allocator::allocate(total_size, align, true) };
   ptr as *mut c_void
 }
 
@@ -307,7 +310,7 @@ pub unsafe extern "C" fn free(ptr: *mut c_void) {
     return;
   }
 
-  let _ = unsafe { Allocator::deallocate_with_metadata(user_ptr) };
+  let _ = unsafe { Allocator::deallocate(user_ptr) };
 }
 
 #[unsafe(no_mangle)]
@@ -324,7 +327,7 @@ pub unsafe extern "C" fn aligned_alloc(
   }
 
   let ptr =
-    unsafe { Allocator::allocate_with_metadata(size, alignment, false) };
+    unsafe { Allocator::allocate(size, alignment, false) };
   ptr as *mut c_void
 }
 
@@ -361,7 +364,7 @@ pub unsafe extern "C" fn posix_memalign(
   }
 
   let ptr =
-    unsafe { Allocator::allocate_with_metadata(size, alignment, false) };
+    unsafe { Allocator::allocate(size, alignment, false) };
   if ptr.is_null() {
     unsafe {
       *memptr = ptr::null_mut();
@@ -403,14 +406,14 @@ pub unsafe extern "C" fn realloc(ptr: *mut c_void, size: usize) -> *mut c_void {
   let copy_size = old_size.min(size);
 
   let new_ptr =
-    unsafe { Allocator::allocate_with_metadata(size, old_align, false) };
+    unsafe { Allocator::allocate(size, old_align, false) };
   if new_ptr.is_null() {
     return ptr::null_mut();
   }
 
   unsafe { ptr::copy_nonoverlapping(user_ptr, new_ptr, copy_size) };
 
-  let _ = unsafe { Allocator::deallocate_with_metadata(user_ptr) };
+  let _ = unsafe { Allocator::deallocate(user_ptr) };
 
   new_ptr as *mut c_void
 }
