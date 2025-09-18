@@ -4,6 +4,7 @@ pub mod classes;
 pub mod config;
 pub mod heap;
 pub mod large;
+pub mod metrics;
 pub mod queue;
 pub mod segment;
 pub mod static_;

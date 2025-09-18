@@ -15,17 +15,16 @@ use crate::{
     Class,
     Segmentation,
   },
-  config::{
-    CACHE_SIZE,
-    align_slice,
-  },
+  config::align_slice,
 };
+
+pub const SEGMENT_CACHE_SIZE: usize = 12;
 
 pub struct Segment<'mapper> {
   class: &'static Class,
   link: Link<Segment<'mapper>>,
   bitmap: Bitmap<'mapper, usize>,
-  cache: Array<usize, CACHE_SIZE>,
+  cache: Array<usize, SEGMENT_CACHE_SIZE>,
   user: &'mapper mut [u8],
 }
 

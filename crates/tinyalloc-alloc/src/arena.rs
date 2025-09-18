@@ -24,7 +24,6 @@ use tinyalloc_sys::{
 use crate::{
   classes::Class,
   config::{
-    CACHE_SIZE,
     SEGMENT_SIZE,
     WORD,
     align_slice,
@@ -45,12 +44,14 @@ pub enum ArenaError {
   Segment(SegmentError),
 }
 
+pub const ARENA_CACHE_SIZE: usize = 8;
+
 pub struct Arena<'mapper> {
   region: Region<'mapper>,
   bitmap: UnsafeCell<Bitmap<'mapper, usize>>,
   user: UnsafeCell<&'mapper mut [u8]>,
   segment_count: usize,
-  cache: UnsafeCell<Array<usize, CACHE_SIZE>>,
+  cache: UnsafeCell<Array<usize, ARENA_CACHE_SIZE>>,
   lock: Mutex<()>,
 }
 
