@@ -72,7 +72,12 @@ const fn cache_line() -> usize {
   32
 }
 
-#[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64", target_arch = "x86", target_arch = "arm")))]
+#[cfg(not(any(
+  target_arch = "x86_64",
+  target_arch = "aarch64",
+  target_arch = "x86",
+  target_arch = "arm"
+)))]
 const fn cache_line() -> usize {
   core::mem::size_of::<usize>() * 2
 }

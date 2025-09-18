@@ -188,11 +188,7 @@ impl Allocator {
     unsafe { ptr::write(trailer_start as *mut Trailer, trailer) };
   }
 
-  unsafe fn allocate(
-    size: usize,
-    align: usize,
-    zero_init: bool,
-  ) -> *mut u8 {
+  unsafe fn allocate(size: usize, align: usize, zero_init: bool) -> *mut u8 {
     if size == 0 {
       return ZERO_SIZE_PTR;
     }
@@ -297,8 +293,7 @@ pub unsafe extern "C" fn calloc(nmemb: usize, size: usize) -> *mut c_void {
   } else {
     MIN_ALIGN
   };
-  let ptr =
-    unsafe { Allocator::allocate(total_size, align, true) };
+  let ptr = unsafe { Allocator::allocate(total_size, align, true) };
   ptr as *mut c_void
 }
 
@@ -326,8 +321,7 @@ pub unsafe extern "C" fn aligned_alloc(
     return ptr::null_mut();
   }
 
-  let ptr =
-    unsafe { Allocator::allocate(size, alignment, false) };
+  let ptr = unsafe { Allocator::allocate(size, alignment, false) };
   ptr as *mut c_void
 }
 
@@ -363,8 +357,7 @@ pub unsafe extern "C" fn posix_memalign(
     return libc::EINVAL;
   }
 
-  let ptr =
-    unsafe { Allocator::allocate(size, alignment, false) };
+  let ptr = unsafe { Allocator::allocate(size, alignment, false) };
   if ptr.is_null() {
     unsafe {
       *memptr = ptr::null_mut();
@@ -405,8 +398,7 @@ pub unsafe extern "C" fn realloc(ptr: *mut c_void, size: usize) -> *mut c_void {
   let old_align = metadata.ualign as usize;
   let copy_size = old_size.min(size);
 
-  let new_ptr =
-    unsafe { Allocator::allocate(size, old_align, false) };
+  let new_ptr = unsafe { Allocator::allocate(size, old_align, false) };
   if new_ptr.is_null() {
     return ptr::null_mut();
   }

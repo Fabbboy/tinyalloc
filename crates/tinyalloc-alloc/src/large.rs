@@ -11,7 +11,10 @@ use tinyalloc_list::{
 use tinyalloc_sys::{
   MapError,
   region::Region,
-  size::{page_align_ptr, cache_line_size},
+  size::{
+    cache_line_size,
+    page_align_ptr,
+  },
 };
 
 use crate::config::align_up;
@@ -42,8 +45,9 @@ impl<'mapper> Large<'mapper> {
       .map_err(LargeError::MapError)?;
     region.activate().map_err(LargeError::MapError)?;
     let ptr = region.as_ptr();
-    let user =
-      unsafe { std::slice::from_raw_parts_mut(ptr.add(user_offset), size.get()) };
+    let user = unsafe {
+      std::slice::from_raw_parts_mut(ptr.add(user_offset), size.get())
+    };
 
     let large = Self {
       _region: region,

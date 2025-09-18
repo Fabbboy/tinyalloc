@@ -19,6 +19,7 @@ use tinyalloc_sys::{
   MapError,
   mapper::Protection,
   region::Region,
+  size::page_size,
 };
 
 use crate::{
@@ -85,25 +86,38 @@ impl<'mapper> Arena<'mapper> {
       return Err(ArenaError::Insufficient);
     }
 
-    let bitmap_bits = segments_possible;
-    let bitmap_bytes = usize::bytes(bitmap_bits);
-    let bitmap_words = usize::words(bitmap_bits);
+    let bitmap_bytes = usize::bytes(segments_possible);
+    if bitmap_bytes >= aligned_rest.len() {
+      return Err(ArenaError::Insufficient);
+    }
 
-    let (bitmap_slice, user_space) = aligned_rest.split_at_mut(bitmap_bytes);
+    let (bitmap_region, user_region) = aligned_rest.split_at_mut(bitmap_bytes);
+    let user_space = align_slice(user_region, page_size());
+    let segment_count = user_space.len() / SEGMENT_SIZE;
+    if segment_count == 0 {
+      return Err(ArenaError::Insufficient);
+    }
+
+    let bitmap_words = usize::words(segment_count);
+    let bitmap_bytes = bitmap_words * core::mem::size_of::<usize>();
+    if bitmap_bytes > bitmap_region.len() {
+      return Err(ArenaError::Insufficient);
+    }
+    let (bitmap_slice, _) = bitmap_region.split_at_mut(bitmap_bytes);
     let bitmap_storage = unsafe {
       core::slice::from_raw_parts_mut(
         bitmap_slice.as_mut_ptr() as *mut usize,
         bitmap_words,
       )
     };
-    let bitmap =
-      Bitmap::zero(bitmap_storage, bitmap_bits).map_err(ArenaError::Bitmap)?;
+    let bitmap = Bitmap::zero(bitmap_storage, segment_count)
+      .map_err(ArenaError::Bitmap)?;
 
     let arena = Self {
       region,
       bitmap: UnsafeCell::new(bitmap),
       user: UnsafeCell::new(user_space),
-      segment_count: segments_possible,
+      segment_count,
       cache: UnsafeCell::new(Array::new()),
       lock: Mutex::new(()),
     };

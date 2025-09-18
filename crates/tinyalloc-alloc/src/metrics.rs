@@ -1,5 +1,8 @@
 use std::{
-  sync::atomic::{AtomicU64, Ordering},
+  sync::atomic::{
+    AtomicU64,
+    Ordering,
+  },
   time::Instant,
 };
 
@@ -151,10 +154,18 @@ impl MetricId {
       MetricId::SegmentDealloc => "segment_dealloc",
       MetricId::SegmentDeallocSuccess => "segment_dealloc_success",
       MetricId::SegmentDeallocFail => "segment_dealloc_fail",
-      MetricId::SegmentStateTransitionFreeToPartial => "segment_free_to_partial",
-      MetricId::SegmentStateTransitionPartialToFull => "segment_partial_to_full",
-      MetricId::SegmentStateTransitionFullToPartial => "segment_full_to_partial",
-      MetricId::SegmentStateTransitionPartialToFree => "segment_partial_to_free",
+      MetricId::SegmentStateTransitionFreeToPartial => {
+        "segment_free_to_partial"
+      }
+      MetricId::SegmentStateTransitionPartialToFull => {
+        "segment_partial_to_full"
+      }
+      MetricId::SegmentStateTransitionFullToPartial => {
+        "segment_full_to_partial"
+      }
+      MetricId::SegmentStateTransitionPartialToFree => {
+        "segment_partial_to_free"
+      }
       MetricId::SegmentCacheHit => "segment_cache_hit",
       MetricId::SegmentCacheMiss => "segment_cache_miss",
       MetricId::SegmentPtrLookup => "segment_ptr_lookup",
@@ -174,7 +185,9 @@ impl MetricId {
       MetricId::QueueTrimSegmentsRemoved => "queue_trim_segments_removed",
       MetricId::QueueGetAvailable => "queue_get_available",
       MetricId::QueueGetAvailableFromFree => "queue_get_available_from_free",
-      MetricId::QueueGetAvailableFromPartial => "queue_get_available_from_partial",
+      MetricId::QueueGetAvailableFromPartial => {
+        "queue_get_available_from_partial"
+      }
       MetricId::QueueGetAvailableNone => "queue_get_available_none",
       MetricId::QueueAddSegment => "queue_add_segment",
       MetricId::QueueNewSegmentCreated => "queue_new_segment_created",
@@ -250,26 +263,106 @@ impl MetricId {
 }
 
 static METRICS: [AtomicU64; METRIC_COUNT] = [
-  AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
-  AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
-  AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
-  AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
-  AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
-  AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
-  AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
-  AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
-  AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
-  AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
-  AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
-  AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
-  AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
-  AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
-  AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
-  AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
-  AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
-  AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
-  AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
-  AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0), AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
+  AtomicU64::new(0),
 ];
 
 static START_TIME: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
@@ -320,7 +413,15 @@ pub fn print_summary() {
   println!("Collection period: {:.2}s", elapsed.as_secs_f64());
   println!();
 
-  let categories = ["Arena", "Segment", "Queue", "Heap", "Static", "SizeClass", "Error"];
+  let categories = [
+    "Arena",
+    "Segment",
+    "Queue",
+    "Heap",
+    "Static",
+    "SizeClass",
+    "Error",
+  ];
   let mut total_operations = 0u64;
 
   for category in categories {
@@ -360,11 +461,16 @@ pub fn print_summary() {
       0.0
     };
     println!("=== Summary ===");
-    println!("Total operations: {} ({:.1}/s)", total_operations, total_rate);
-    
+    println!(
+      "Total operations: {} ({:.1}/s)",
+      total_operations, total_rate
+    );
+
     print_derived_metrics();
   } else {
-    println!("No metrics recorded yet. Call start_summary() to begin collection.");
+    println!(
+      "No metrics recorded yet. Call start_summary() to begin collection."
+    );
   }
 }
 
@@ -389,58 +495,65 @@ fn print_derived_metrics() {
   );
 
   if arena_success_rate >= 0.0 {
-    println!("  Arena success rate:       {:.1}%", arena_success_rate * 100.0);
+    println!(
+      "  Arena success rate:       {:.1}%",
+      arena_success_rate * 100.0
+    );
   }
   if segment_success_rate >= 0.0 {
-    println!("  Segment success rate:     {:.1}%", segment_success_rate * 100.0);
+    println!(
+      "  Segment success rate:     {:.1}%",
+      segment_success_rate * 100.0
+    );
   }
   if queue_success_rate >= 0.0 {
-    println!("  Queue success rate:       {:.1}%", queue_success_rate * 100.0);
+    println!(
+      "  Queue success rate:       {:.1}%",
+      queue_success_rate * 100.0
+    );
   }
   if heap_success_rate >= 0.0 {
-    println!("  Heap success rate:        {:.1}%", heap_success_rate * 100.0);
+    println!(
+      "  Heap success rate:        {:.1}%",
+      heap_success_rate * 100.0
+    );
   }
 
-  let cache_hit_rate = calculate_hit_rate(
-    MetricId::ArenaCacheHit,
-    MetricId::ArenaCacheMiss,
-  );
-  let segment_cache_hit_rate = calculate_hit_rate(
-    MetricId::SegmentCacheHit,
-    MetricId::SegmentCacheMiss,
-  );
+  let cache_hit_rate =
+    calculate_hit_rate(MetricId::ArenaCacheHit, MetricId::ArenaCacheMiss);
+  let segment_cache_hit_rate =
+    calculate_hit_rate(MetricId::SegmentCacheHit, MetricId::SegmentCacheMiss);
 
   if cache_hit_rate >= 0.0 {
     println!("  Arena cache hit rate:     {:.1}%", cache_hit_rate * 100.0);
   }
   if segment_cache_hit_rate >= 0.0 {
-    println!("  Segment cache hit rate:   {:.1}%", segment_cache_hit_rate * 100.0);
+    println!(
+      "  Segment cache hit rate:   {:.1}%",
+      segment_cache_hit_rate * 100.0
+    );
   }
 
-  let small_vs_large = get_metric(MetricId::HeapAllocSmall) as f64 /
-    (get_metric(MetricId::HeapAllocSmall) + get_metric(MetricId::HeapAllocLarge)) as f64;
+  let small_vs_large = get_metric(MetricId::HeapAllocSmall) as f64
+    / (get_metric(MetricId::HeapAllocSmall)
+      + get_metric(MetricId::HeapAllocLarge)) as f64;
   if small_vs_large.is_finite() && small_vs_large >= 0.0 {
     println!("  Small allocation ratio:   {:.1}%", small_vs_large * 100.0);
   }
 }
 
-fn calculate_success_rate(success_metric: MetricId, total_metric: MetricId) -> f64 {
+fn calculate_success_rate(
+  success_metric: MetricId,
+  total_metric: MetricId,
+) -> f64 {
   let success = get_metric(success_metric) as f64;
   let total = get_metric(total_metric) as f64;
-  if total > 0.0 {
-    success / total
-  } else {
-    -1.0
-  }
+  if total > 0.0 { success / total } else { -1.0 }
 }
 
 fn calculate_hit_rate(hit_metric: MetricId, miss_metric: MetricId) -> f64 {
   let hits = get_metric(hit_metric) as f64;
   let misses = get_metric(miss_metric) as f64;
   let total = hits + misses;
-  if total > 0.0 {
-    hits / total
-  } else {
-    -1.0
-  }
+  if total > 0.0 { hits / total } else { -1.0 }
 }

@@ -74,7 +74,8 @@ impl<'mapper> Queue<'mapper> {
       if unsafe { segment.as_mut() }.dealloc(ptr) {
         if unsafe { segment.as_ref() }.is_empty() {
           // Remove from lists first, then deallocate
-          let _ = self.free_list.remove(segment) || self.full_list.remove(segment);
+          let _ =
+            self.free_list.remove(segment) || self.full_list.remove(segment);
           let _ = deallocate_segment(segment.cast());
         } else {
           self.update_state(segment);
@@ -103,7 +104,6 @@ impl<'mapper> Queue<'mapper> {
 
     self.displace(segment, new_state);
   }
-
 }
 
 impl<'mapper> Drop for Queue<'mapper> {
@@ -138,5 +138,4 @@ mod tests {
       "New queue should have no available segments"
     );
   }
-
 }
