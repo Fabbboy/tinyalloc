@@ -5,17 +5,26 @@ use std::{
 };
 
 use getset::CloneGetters;
-use tinyalloc_list::{HasLink, Link};
+use tinyalloc_list::{
+  HasLink,
+  Link,
+};
 
 use crate::{
   config::MAX_ALIGN,
   heap::Heap,
 };
 
+#[derive(Clone)]
+pub enum AllocationOwner<'mapper> {
+  Heap(NonNull<Heap<'mapper>>),
+  Mapper,
+}
+
 #[derive(CloneGetters)]
 pub struct Allocation<'mapper> {
   #[getset(get_clone = "pub")]
-  owned: NonNull<Heap<'mapper>>,
+  owned: AllocationOwner<'mapper>,
   #[getset(get_clone = "pub")]
   layout: Layout,
   #[getset(get_clone = "pub")]
@@ -27,7 +36,7 @@ pub struct Allocation<'mapper> {
 
 impl<'mapper> Allocation<'mapper> {
   pub fn new(
-    owned: NonNull<Heap<'mapper>>,
+    owned: AllocationOwner<'mapper>,
     layout: Layout,
     ptr: NonNull<u8>,
     user: NonNull<u8>,

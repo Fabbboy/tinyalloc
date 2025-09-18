@@ -1,14 +1,10 @@
 use std::{
-  alloc::Layout,
-  num::NonZeroUsize,
-  ptr::NonNull,
-  thread::{
+  alloc::Layout, num::NonZeroUsize, ptr::NonNull, sync::OnceLock, thread::{
     self,
     ThreadId,
-  },
+  }
 };
 
-use getset::CloneGetters;
 use spin::RwLock;
 use tinyalloc_list::List;
 
@@ -33,10 +29,8 @@ pub enum HeapError {
   InvalidPointer,
 }
 
-#[derive(CloneGetters)]
 pub struct Heap<'mapper> {
-  #[getset(get_clone = "pub")]
-  thread: ThreadId,
+  thread: OnceLock<ThreadId>,
   classes: [Queue<'mapper>; SIZES],
   large: List<Large<'mapper>>,
   _remote: RwLock<List<Allocation<'mapper>>>,
@@ -47,11 +41,15 @@ impl<'mapper> Heap<'mapper> {
     let classes: [Queue<'mapper>; SIZES] =
       class_init(|class| Queue::new(class));
     Self {
-      thread: thread::current().id(),
+      thread: OnceLock::new(),
       classes,
       large: List::new(),
       _remote: RwLock::new(List::new()),
     }
+  }
+
+  pub fn thread(&self) -> ThreadId {
+    *self.thread.get_or_init(|| thread::current().id())
   }
 
   pub fn allocate(
