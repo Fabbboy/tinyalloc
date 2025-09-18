@@ -101,10 +101,10 @@ impl<'mapper> Allocation<'mapper> {
     }
   }
 
-  pub unsafe fn map_range(&self) -> Option<&'mapper [u8]> {
+  pub unsafe fn map_range(&self) -> Option<NonNull<[u8]>> {
     match self.owned {
       AllocationOwner::Mapper(ref slice_ptr) => {
-        Some(unsafe { slice_ptr.as_ref() })
+        Some(*slice_ptr)
       }
       AllocationOwner::Heap(_) => None,
     }

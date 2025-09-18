@@ -35,6 +35,7 @@ use crate::init::{
 mod ffi;
 mod init;
 
+const MAX_RECURSION: usize = 16;
 thread_local! {
     static LOCAL_HEAP: UnsafeCell<Heap<'static>> = UnsafeCell::new(Heap::new());
     static RECURSION: Cell<usize> = Cell::new(0);
@@ -100,47 +101,68 @@ impl TinyAlloc {
     GLOBAL_MAPPER.unmap(ptr)
   }
 
-  pub fn recursion_guard<R>(&self, f: impl FnOnce() -> R) -> R {
-    RECURSION.with(|depth| {
-      depth.set(depth.get() + 1);
+  pub fn recursion_guard<R>(&self, f: impl FnOnce() -> R) -> Option<R> {
+    match RECURSION.try_with(|depth| {
+      let current = depth.get();
+      if current >= MAX_RECURSION {
+        return None;
+      }
+
+      depth.set(current + 1);
       let result = f();
-      depth.set(depth.get() - 1);
-      result
-    })
+      depth.set(current);
+      Some(result)
+    }) {
+      Ok(result) => result,
+      Err(_) => None, // TLS not available
+    }
+  }
+
+  fn write_allocation(
+    &self,
+    owner: AllocationOwner<'static>,
+    layout: Layout,
+    mem: NonNull<[u8]>,
+  ) -> *mut u8 {
+    unsafe {
+      let header_ptr = mem.as_ptr() as *mut Allocation;
+      let user_raw_ptr = Allocation::calc_user_ptr(header_ptr);
+      let alloc_ptr = header_ptr as *mut u8;
+
+      let allocation = Allocation::new(owner, layout, alloc_ptr, user_raw_ptr);
+      header_ptr.write(allocation);
+      user_raw_ptr
+    }
   }
 }
 
 unsafe impl GlobalAlloc for TinyAlloc {
   unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-    with_heap(|heap| {
-      let total_size = Allocation::total_size(layout);
-      let total_layout = unsafe {
-        Layout::from_size_align_unchecked(total_size, layout.align())
-      };
+    let total_size = Allocation::total_size(layout);
+    let total_layout = unsafe {
+      Layout::from_size_align_unchecked(total_size, layout.align())
+    };
 
-      let mut mem = match heap.allocate(total_layout) {
-        Ok(mem) => mem,
-        Err(_) => return std::ptr::null_mut(),
-      };
+    if let Some(ptr) = self.recursion_guard(|| {
+      with_heap(|heap| {
+        heap.allocate(total_layout).ok().map(|mem| {
+          let heap_ptr = heap as *mut Heap<'static>;
+          self.write_allocation(AllocationOwner::Heap(heap_ptr), total_layout, mem)
+        })
+      })
+    }).flatten() {
+      return ptr;
+    }
 
-      unsafe {
-        let header_ptr = mem.as_mut().as_mut_ptr() as *mut Allocation;
-        let user_raw_ptr = Allocation::calc_user_ptr(header_ptr);
+    let size = match NonZeroUsize::new(total_size) {
+      Some(size) => size,
+      None => return std::ptr::null_mut(),
+    };
 
-        let heap_ptr = heap as *mut Heap<'static>;
-        let alloc_ptr = header_ptr as *mut u8;
-
-        let allocation = Allocation::new(
-          AllocationOwner::Heap(heap_ptr),
-          total_layout,
-          alloc_ptr,
-          user_raw_ptr,
-        );
-
-        header_ptr.write(allocation);
-        user_raw_ptr
-      }
-    })
+    match self.os_alloc(size) {
+      Ok(os_mem) => self.write_allocation(AllocationOwner::Mapper(os_mem), total_layout, os_mem),
+      Err(_) => std::ptr::null_mut(),
+    }
   }
 
   unsafe fn dealloc(&self, ptr: *mut u8, _layout: Layout) {
@@ -150,6 +172,12 @@ unsafe impl GlobalAlloc for TinyAlloc {
     };
 
     let allocation_ref = unsafe { &*allocation };
+
+    if let Some(mapped_slice) = unsafe { allocation_ref.map_range() } { 
+      self.os_dealloc(mapped_slice);
+      return;
+    }
+
     let heap = match unsafe { allocation_ref.heap_ptr() } {
       Some(heap) => heap,
       None => return,
