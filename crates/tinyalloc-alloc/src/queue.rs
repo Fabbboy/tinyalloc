@@ -44,7 +44,7 @@ impl<'mapper> Queue<'mapper> {
     match mv {
       Move::Free => {
         self.free_list.push(segment);
-        self.trim_free_segments();
+        self.trim_segments();
       }
       Move::Partial => self.partial_list.push(segment),
       Move::Full => self.full_list.push(segment),
@@ -82,7 +82,7 @@ impl<'mapper> Queue<'mapper> {
   }
 
   pub fn deallocate(&mut self, ptr: NonNull<u8>) -> bool {
-    if let Some(mut segment) = self.find_segment_with_ptr(ptr) {
+    if let Some(mut segment) = self.segment_from_ptr(ptr) {
       if unsafe { segment.as_mut() }.dealloc(ptr) {
         self.update_state(segment);
         return true;
@@ -91,7 +91,7 @@ impl<'mapper> Queue<'mapper> {
     false
   }
 
-  fn find_segment_with_ptr(
+  fn segment_from_ptr(
     &self,
     ptr: NonNull<u8>,
   ) -> Option<NonNull<Segment<'mapper>>> {
@@ -112,7 +112,7 @@ impl<'mapper> Queue<'mapper> {
     self.displace(segment, new_state);
   }
 
-  fn trim_free_segments(&mut self) {
+  fn trim_segments(&mut self) {
     while self.free_list.count() > FREE_SEGMENT_LIMIT {
       let Some(segment) = self.free_list.pop_front() else {
         break;
