@@ -4,19 +4,19 @@ use std::{
     Layout,
   },
   cell::UnsafeCell,
-  mem,
   ptr::NonNull,
   sync::OnceLock,
   thread::{
     self,
-    ThreadId,
   },
 };
 
-use getset::CloneGetters;
 use spin::Mutex;
 use tinyalloc_alloc::{
-  config::{align_up, MAX_ALIGN},
+  allocation::{
+    Allocation,
+    AllocationOwner,
+  },
   heap::Heap,
 };
 
@@ -24,59 +24,13 @@ use crate::init::{
   is_td,
   td_register,
 };
+
 #[cfg(feature = "ffi")]
 mod ffi;
 mod init;
 
 thread_local! {
     static LOCAL_HEAP: UnsafeCell<Heap<'static>> = UnsafeCell::new(Heap::new());
-}
-
-#[derive(CloneGetters)]
-struct Header {
-  #[getset(get_clone = "pub")]
-  thread: ThreadId,
-  #[getset(get_clone = "pub")]
-  heap: NonNull<Heap<'static>>,
-}
-
-impl Header {
-  fn new(heap: &mut Heap<'static>) -> Self {
-    Self {
-      thread: heap.thread(),
-      heap: NonNull::new(heap as *mut Heap<'static>).unwrap(),
-    }
-  }
-
-  fn user_ptr(&self) -> *mut u8 {
-    let header_addr = self as *const Self as usize;
-    let user_addr = align_up(header_addr + mem::size_of::<Self>(), MAX_ALIGN);
-    user_addr as *mut u8
-  }
-
-  fn from_user(ptr: *mut u8) -> Option<&'static mut Self> {
-    if ptr.is_null() {
-      return None;
-    }
-
-    let user_addr = ptr as usize;
-    if user_addr < mem::size_of::<Self>() + MAX_ALIGN {
-      return None;
-    }
-
-    let max_header_end = user_addr - MAX_ALIGN + 1;
-    let header_start = max_header_end - mem::size_of::<Self>();
-    let header_ptr = header_start as *mut Self;
-
-    unsafe { header_ptr.as_mut() }
-  }
-
-  fn total_size(layout: Layout) -> usize {
-    let header_size = mem::size_of::<Self>();
-    let user_size = layout.size();
-    let padding = MAX_ALIGN - 1;
-    header_size + padding + user_size
-  }
 }
 
 struct BootstrapHeap {
@@ -128,7 +82,7 @@ pub struct TinyAlloc;
 unsafe impl GlobalAlloc for TinyAlloc {
   unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
     with_heap(|heap| {
-      let total_size = Header::total_size(layout);
+      let total_size = Allocation::total_size(layout);
       let total_layout = unsafe {
         Layout::from_size_align_unchecked(total_size, layout.align())
       };
@@ -139,28 +93,39 @@ unsafe impl GlobalAlloc for TinyAlloc {
       };
 
       unsafe {
-        let header_ptr = mem.as_mut().as_mut_ptr() as *mut Header;
-        let header = Header::new(heap);
-        header_ptr.write(header);
+        let header_ptr = mem.as_mut().as_mut_ptr() as *mut Allocation;
+        let user_ptr = NonNull::new_unchecked(Allocation::calc_user_ptr(header_ptr));
 
-        let header_ref = &*header_ptr;
-        header_ref.user_ptr()
+        let heap_ptr = NonNull::new_unchecked(heap as *mut Heap<'static>);
+        let alloc_ptr = NonNull::new_unchecked(header_ptr as *mut u8);
+
+        let allocation = Allocation::new(
+          AllocationOwner::Heap(heap_ptr),
+          total_layout,
+          alloc_ptr,
+          user_ptr,
+        );
+
+        header_ptr.write(allocation);
+        user_ptr.as_ptr()
       }
     })
   }
 
-  unsafe fn dealloc(&self, ptr: *mut u8, layout: Layout) {
-    let header = match Header::from_user(ptr) {
-      Some(header) => header,
+  unsafe fn dealloc(&self, ptr: *mut u8, _layout: Layout) {
+    let allocation = match Allocation::from(ptr) {
+      Some(allocation) => allocation,
       None => return,
     };
 
-    let heap_ptr = header.heap();
-    let header_ptr = header as *mut Header as *mut u8;
-    let total_size = Header::total_size(layout);
-    let total_layout = unsafe {
-      Layout::from_size_align_unchecked(total_size, layout.align())
+    let allocation_ref = unsafe { allocation.as_ref() };
+    let heap_ptr = match allocation_ref.heap_ptr() {
+      Some(heap_ptr) => heap_ptr,
+      None => return,
     };
+
+    let header_ptr = allocation.as_ptr() as *mut u8;
+    let total_layout = allocation_ref.full();
 
     if let Some(bootstrap) = BOOTSTRAP_HEAP.get() {
       if heap_ptr.as_ptr() as *const _ == bootstrap.heap.get() {
@@ -171,14 +136,16 @@ unsafe impl GlobalAlloc for TinyAlloc {
       }
     }
 
-    if header.thread() == thread::current().id() {
+    if allocation_ref.thread() == Some(thread::current().id()) {
       with_heap(|heap| unsafe {
         let _ = heap.deallocate(NonNull::new_unchecked(header_ptr), total_layout);
       })
     } else {
       unsafe {
-        let heap = &mut *heap_ptr.as_ptr();
-        let _ = heap.deallocate(NonNull::new_unchecked(header_ptr), total_layout);
+        let heap = &*heap_ptr.as_ptr();
+        let remote_list = heap.remote();
+        let mut remote_guard = remote_list.write();
+        remote_guard.push(allocation);
       }
     }
   }

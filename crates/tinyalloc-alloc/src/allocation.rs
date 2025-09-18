@@ -2,6 +2,7 @@ use std::{
   alloc::Layout,
   mem,
   ptr::NonNull,
+  thread::ThreadId,
 };
 
 use getset::CloneGetters;
@@ -11,7 +12,7 @@ use tinyalloc_list::{
 };
 
 use crate::{
-  config::MAX_ALIGN,
+  config::{align_up, MAX_ALIGN},
   heap::Heap,
 };
 
@@ -26,32 +27,36 @@ pub struct Allocation<'mapper> {
   #[getset(get_clone = "pub")]
   owned: AllocationOwner<'mapper>,
   #[getset(get_clone = "pub")]
-  layout: Layout,
+  full: Layout,
   #[getset(get_clone = "pub")]
-  ptr: NonNull<u8>,
+  alloc_ptr: NonNull<u8>,
   #[getset(get_clone = "pub")]
-  user: NonNull<u8>,
+  user_ptr: NonNull<u8>,
   link: Link<Allocation<'mapper>>,
 }
 
 impl<'mapper> Allocation<'mapper> {
   pub fn new(
     owned: AllocationOwner<'mapper>,
-    layout: Layout,
+    full: Layout,
     ptr: NonNull<u8>,
     user: NonNull<u8>,
   ) -> Self {
     Self {
       owned,
-      layout,
-      ptr,
-      user,
+      full,
+      alloc_ptr: ptr,
+      user_ptr: user,
       link: Link::new(),
     }
   }
 
-  pub fn from(user_ptr: NonNull<u8>) -> Option<NonNull<Self>> {
-    let user_addr = user_ptr.as_ptr() as usize;
+  pub fn from(ptr: *mut u8) -> Option<NonNull<Self>> {
+    if ptr.is_null() {
+      return None;
+    }
+
+    let user_addr = ptr as usize;
     if user_addr < mem::size_of::<Self>() + MAX_ALIGN {
       return None;
     }
@@ -59,10 +64,36 @@ impl<'mapper> Allocation<'mapper> {
     let max_header_end = user_addr - MAX_ALIGN + 1;
     let header_start = max_header_end - mem::size_of::<Self>();
     let header_ptr = header_start as *mut Self;
-    if header_ptr.is_null() {
-      return None;
+
+    NonNull::new(header_ptr)
+  }
+
+  pub fn get_user_ptr(&self) -> *mut u8 {
+    self.user_ptr().as_ptr()
+  }
+
+  pub fn total_size(user_layout: Layout) -> usize {
+    let header_size = mem::size_of::<Self>();
+    let user_size = user_layout.size();
+    let padding = MAX_ALIGN - 1;
+    header_size + padding + user_size
+  }
+
+  pub fn calc_user_ptr(header_ptr: *const Self) -> *mut u8 {
+    let header_addr = header_ptr as usize;
+    let user_addr = align_up(header_addr + mem::size_of::<Self>(), MAX_ALIGN);
+    user_addr as *mut u8
+  }
+
+  pub fn heap_ptr(&self) -> Option<NonNull<Heap<'mapper>>> {
+    match &self.owned {
+      AllocationOwner::Heap(heap_ptr) => Some(*heap_ptr),
+      AllocationOwner::Mapper => None,
     }
-    unsafe { header_ptr.as_mut() }.map(|h| unsafe { NonNull::new_unchecked(h) })
+  }
+
+  pub fn thread(&self) -> Option<ThreadId> {
+    self.heap_ptr().map(|heap_ptr| unsafe { heap_ptr.as_ref().thread() })
   }
 }
 

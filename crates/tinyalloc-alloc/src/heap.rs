@@ -5,6 +5,7 @@ use std::{
   }
 };
 
+use getset::Getters;
 use spin::RwLock;
 use tinyalloc_list::List;
 
@@ -29,11 +30,13 @@ pub enum HeapError {
   InvalidPointer,
 }
 
+#[derive(Getters)]
 pub struct Heap<'mapper> {
   thread: OnceLock<ThreadId>,
   classes: [Queue<'mapper>; SIZES],
   large: List<Large<'mapper>>,
-  _remote: RwLock<List<Allocation<'mapper>>>,
+  #[getset(get = "pub")]
+  remote: RwLock<List<Allocation<'mapper>>>,
 }
 
 impl<'mapper> Heap<'mapper> {
@@ -44,7 +47,7 @@ impl<'mapper> Heap<'mapper> {
       thread: OnceLock::new(),
       classes,
       large: List::new(),
-      _remote: RwLock::new(List::new()),
+      remote: RwLock::new(List::new()),
     }
   }
 
