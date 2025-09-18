@@ -2,9 +2,14 @@ use std::{
   alloc::{
     GlobalAlloc,
     Layout,
-  }, cell::UnsafeCell, num::NonZeroUsize, ptr::NonNull, sync::OnceLock, thread::{
+  },
+  cell::{Cell, UnsafeCell},
+  num::NonZeroUsize,
+  ptr::NonNull,
+  sync::OnceLock,
+  thread::{
     self,
-  }
+  },
 };
 
 use spin::Mutex;
@@ -15,7 +20,11 @@ use tinyalloc_alloc::{
   },
   heap::Heap,
 };
-use tinyalloc_sys::{mapper::Protection, MapError, GLOBAL_MAPPER};
+use tinyalloc_sys::{
+  GLOBAL_MAPPER,
+  MapError,
+  mapper::Protection,
+};
 
 use crate::init::{
   is_td,
@@ -28,6 +37,7 @@ mod init;
 
 thread_local! {
     static LOCAL_HEAP: UnsafeCell<Heap<'static>> = UnsafeCell::new(Heap::new());
+    static RECURSION: Cell<usize> = Cell::new(0);
 }
 
 struct BootstrapHeap {
@@ -76,15 +86,27 @@ fn with_heap<R>(f: impl FnOnce(&mut Heap<'static>) -> R) -> R {
 
 pub struct TinyAlloc;
 
-impl TinyAlloc{
-  pub unsafe fn os_alloc(&self, size: NonZeroUsize) -> Result<NonNull<[u8]>, MapError> {
+impl TinyAlloc {
+  pub fn os_alloc(
+    &self,
+    size: NonZeroUsize,
+  ) -> Result<NonNull<[u8]>, MapError> {
     let mapped = GLOBAL_MAPPER.map(size)?;
     GLOBAL_MAPPER.protect(mapped, Protection::Read | Protection::Write)?;
     Ok(mapped)
   }
 
-  pub unsafe fn os_dealloc(&self, ptr: NonNull<[u8]>)  {
+  pub fn os_dealloc(&self, ptr: NonNull<[u8]>) {
     GLOBAL_MAPPER.unmap(ptr)
+  }
+
+  pub fn recursion_guard<R>(&self, f: impl FnOnce() -> R) -> R {
+    RECURSION.with(|depth| {
+      depth.set(depth.get() + 1);
+      let result = f();
+      depth.set(depth.get() - 1);
+      result
+    })
   }
 }
 
