@@ -4,9 +4,11 @@ use tinyalloc_list::List;
 
 use crate::{
   classes::Class,
+  config::FREE_SEGMENT_LIMIT,
   segment::Segment,
   static_::{
     allocate_segment,
+    deallocate_segment,
     segment_from_ptr,
   },
 };
@@ -40,7 +42,10 @@ impl<'mapper> Queue<'mapper> {
       || self.full_list.remove(segment);
 
     match mv {
-      Move::Free => self.free_list.push(segment),
+      Move::Free => {
+        self.free_list.push(segment);
+        self.trim_free_segments();
+      }
       Move::Partial => self.partial_list.push(segment),
       Move::Full => self.full_list.push(segment),
     }
@@ -106,6 +111,19 @@ impl<'mapper> Queue<'mapper> {
 
     self.displace(segment, new_state);
   }
+
+  fn trim_free_segments(&mut self) {
+    while self.free_list.count() > FREE_SEGMENT_LIMIT {
+      let Some(segment) = self.free_list.pop_front() else {
+        break;
+      };
+
+      if let Err(_) = deallocate_segment(segment.cast()) {
+        self.free_list.push(segment);
+        break;
+      }
+    }
+  }
 }
 
 impl<'mapper> Drop for Queue<'mapper> {
@@ -125,7 +143,14 @@ impl<'mapper> Drop for Queue<'mapper> {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::classes::CLASSES;
+  use crate::{
+    classes::CLASSES,
+    config::FREE_SEGMENT_LIMIT,
+    static_::{
+      allocate_segment,
+      deallocate_segment,
+    },
+  };
 
   #[test]
   fn queue_basic_functionality() {
@@ -136,5 +161,26 @@ mod tests {
       !queue.has_available(),
       "New queue should have no available segments"
     );
+  }
+
+  #[test]
+  fn trims_free_segments_when_threshold_exceeded() {
+    let class = &CLASSES[0];
+    let mut queue = Queue::new(class);
+
+    for _ in 0..(FREE_SEGMENT_LIMIT + 5) {
+      let segment =
+        allocate_segment(class).expect("segment allocation should succeed");
+      queue.displace(segment.cast(), Move::Free);
+    }
+
+    assert!(
+      queue.free_list.count() <= FREE_SEGMENT_LIMIT,
+      "free list should not exceed configured limit"
+    );
+
+    for segment in queue.free_list.drain() {
+      let _ = deallocate_segment(segment.cast());
+    }
   }
 }
