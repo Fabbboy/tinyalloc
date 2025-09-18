@@ -1,7 +1,5 @@
 use std::{
-  alloc::Layout,
-  mem,
-  thread::ThreadId,
+  alloc::Layout, mem, ptr::NonNull, thread::ThreadId
 };
 
 use getset::CloneGetters;
@@ -23,7 +21,7 @@ const ALLOCATION_CANARY: u64 = 0xDEADBEEFCAFEBABE;
 #[derive(Clone)]
 pub enum AllocationOwner<'mapper> {
   Heap(*mut Heap<'mapper>),
-  Mapper,
+  Mapper(NonNull<[u8]>),
 }
 
 #[derive(CloneGetters)]
@@ -99,7 +97,16 @@ impl<'mapper> Allocation<'mapper> {
   pub unsafe fn heap_ptr(&self) -> Option<&Heap<'mapper>> {
     match self.owned {
       AllocationOwner::Heap(heap_ptr) =>  Some(unsafe { &*heap_ptr }),
-      AllocationOwner::Mapper => None,
+      AllocationOwner::Mapper(_) => None,
+    }
+  }
+
+  pub unsafe fn map_range(&self) -> Option<&'mapper [u8]> {
+    match self.owned {
+      AllocationOwner::Mapper(ref slice_ptr) => {
+        Some(unsafe { slice_ptr.as_ref() })
+      }
+      AllocationOwner::Heap(_) => None,
     }
   }
 
