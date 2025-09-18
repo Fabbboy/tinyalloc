@@ -64,7 +64,7 @@ impl<'mapper> Queue<'mapper> {
   pub fn allocate(&mut self) -> Option<NonNull<u8>> {
     if let Some(mut segment) = self.get_available() {
       if let Some(ptr) = unsafe { segment.as_mut() }.alloc() {
-        self.update_segment_state(segment);
+        self.update_state(segment);
         return Some(ptr);
       }
     }
@@ -73,7 +73,7 @@ impl<'mapper> Queue<'mapper> {
     self.add_segment(new_segment);
 
     let ptr = unsafe { new_segment.as_mut() }.alloc()?;
-    self.update_segment_state(new_segment);
+    self.update_state(new_segment);
     Some(ptr)
   }
 
@@ -84,7 +84,7 @@ impl<'mapper> Queue<'mapper> {
   pub fn deallocate(&mut self, ptr: NonNull<u8>) -> bool {
     if let Some(mut segment) = self.find_segment_with_ptr(ptr) {
       if unsafe { segment.as_mut() }.dealloc(ptr) {
-        self.update_segment_state(segment);
+        self.update_state(segment);
         return true;
       }
     }
@@ -98,7 +98,7 @@ impl<'mapper> Queue<'mapper> {
     segment_from_ptr(ptr).map(|segment| segment.cast())
   }
 
-  fn update_segment_state(&mut self, segment: NonNull<Segment<'mapper>>) {
+  fn update_state(&mut self, segment: NonNull<Segment<'mapper>>) {
     let segment_ref = unsafe { segment.as_ref() };
 
     let new_state = if segment_ref.is_empty() {
