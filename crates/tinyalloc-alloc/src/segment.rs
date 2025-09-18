@@ -1,5 +1,6 @@
 use std::ptr::NonNull;
 
+use tinyalloc_array::Array;
 use tinyalloc_bitmap::{
   Bitmap,
   BitmapError,
@@ -14,13 +15,17 @@ use crate::{
     Class,
     Segmentation,
   },
-  config::align_slice,
+  config::{
+    CACHE_SIZE,
+    align_slice,
+  },
 };
 
 pub struct Segment<'mapper> {
   class: &'static Class,
   link: Link<Segment<'mapper>>,
   bitmap: Bitmap<'mapper, usize>,
+  cache: Array<usize, CACHE_SIZE>,
   user: &'mapper mut [u8],
 }
 
@@ -63,6 +68,7 @@ impl<'mapper> Segment<'mapper> {
           class,
           link: Link::new(),
           bitmap,
+          cache: Array::new(),
           user: user_aligned,
         },
       );
@@ -121,7 +127,11 @@ impl<'mapper> Segment<'mapper> {
   }
 
   pub fn alloc(&mut self) -> Option<NonNull<u8>> {
-    let bit_index = self.bitmap.find_first_clear()?;
+    let bit_index = if let Some(cached_index) = self.cache.pop() {
+      cached_index
+    } else {
+      self.bitmap.find_first_clear()?
+    };
     self.bitmap.set(bit_index).ok()?;
     self.ptr_from_index(bit_index)
   }
@@ -131,6 +141,8 @@ impl<'mapper> Segment<'mapper> {
       Some(index) => index,
       None => return false,
     };
+
+    let _ = self.cache.push(bit_index); // we dont care if it doesn't fit 
     self.bitmap.clear(bit_index).is_ok()
   }
 }
@@ -288,7 +300,10 @@ mod tests {
     );
 
     let ptr3 = segment.alloc().expect("Should be able to reallocate");
-    assert_eq!(ptr1, ptr3, "Should reuse first slot");
+    assert_eq!(
+      ptr2, ptr3,
+      "Should reuse most recently deallocated slot (cache LIFO)"
+    );
   }
 
   #[test]
