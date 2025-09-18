@@ -1,7 +1,6 @@
 use std::{
   alloc::Layout,
   mem,
-  ptr::NonNull,
   thread::ThreadId,
 };
 
@@ -19,6 +18,8 @@ use crate::{
   heap::Heap,
 };
 
+const ALLOCATION_CANARY: u64 = 0xDEADBEEFCAFEBABE;
+
 #[derive(Clone)]
 pub enum AllocationOwner<'mapper> {
   Heap(*mut Heap<'mapper>),
@@ -35,6 +36,7 @@ pub struct Allocation<'mapper> {
   alloc_ptr: *mut u8,
   #[getset(get_clone = "pub")]
   user_ptr: *mut u8,
+  canary: u64,
   link: Link<Allocation<'mapper>>,
 }
 
@@ -50,11 +52,12 @@ impl<'mapper> Allocation<'mapper> {
       full,
       alloc_ptr,
       user_ptr,
+      canary: ALLOCATION_CANARY,
       link: Link::new(),
     }
   }
 
-  pub fn from(ptr: *mut u8) -> Option<NonNull<Self>> {
+  pub fn from(ptr: *mut u8) -> Option<*mut Self> {
     if ptr.is_null() {
       return None;
     }
@@ -68,7 +71,16 @@ impl<'mapper> Allocation<'mapper> {
     let header_start = max_header_end - mem::size_of::<Self>();
     let header_ptr = header_start as *mut Self;
 
-    NonNull::new(header_ptr)
+    if header_ptr.is_null() {
+      return None;
+    }
+ 
+    let allocation = unsafe { &*header_ptr };
+    if allocation.canary != ALLOCATION_CANARY {
+      return None;
+    }
+
+    Some(header_ptr)
   }
 
   pub fn total_size(user_layout: Layout) -> usize {

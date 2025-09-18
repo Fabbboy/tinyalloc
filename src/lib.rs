@@ -118,13 +118,13 @@ unsafe impl GlobalAlloc for TinyAlloc {
       None => return,
     };
 
-    let allocation_ref = unsafe { allocation.as_ref() };
+    let allocation_ref = unsafe { &*allocation };
     let heap = match unsafe { allocation_ref.heap_ptr() } {
       Some(heap) => heap,
       None => return,
     };
 
-    let header_ptr = allocation.as_ptr() as *mut u8;
+    let header_ptr = allocation as *mut u8;
     let total_layout = allocation_ref.full();
 
     if let Some(bootstrap) = BOOTSTRAP_HEAP.get() {
@@ -145,7 +145,9 @@ unsafe impl GlobalAlloc for TinyAlloc {
     } else {
       let remote_list = heap.remote();
       let mut remote_guard = remote_list.write();
-      remote_guard.push(allocation);
+      if let Some(allocation_nn) = NonNull::new(allocation) {
+        remote_guard.push(allocation_nn);
+      }
     }
   }
 }
