@@ -3,10 +3,7 @@ use std::{
     GlobalAlloc,
     Layout,
   },
-  cell::{
-    Cell,
-    UnsafeCell,
-  },
+  cell::UnsafeCell,
   num::NonZeroUsize,
   ptr::NonNull,
   sync::OnceLock,
@@ -38,10 +35,8 @@ use crate::init::{
 mod ffi;
 mod init;
 
-const MAX_RECURSION: usize = 16;
 thread_local! {
     static LOCAL_HEAP: UnsafeCell<Heap<'static>> = UnsafeCell::new(Heap::new());
-    static RECURSION: Cell<usize> = Cell::new(0);
 }
 
 struct BootstrapHeap {
@@ -104,23 +99,6 @@ impl TinyAlloc {
     GLOBAL_MAPPER.unmap(ptr)
   }
 
-  pub fn recursion_guard<R>(&self, f: impl FnOnce() -> R) -> Option<R> {
-    match RECURSION.try_with(|depth| {
-      let current = depth.get();
-      if current >= MAX_RECURSION {
-        return None;
-      }
-
-      depth.set(current + 1);
-      let result = f();
-      depth.set(current);
-      Some(result)
-    }) {
-      Ok(result) => result,
-      Err(_) => None,
-    }
-  }
-
   fn write_allocation(
     &self,
     owner: AllocationOwner<'static>,
@@ -145,21 +123,16 @@ unsafe impl GlobalAlloc for TinyAlloc {
     let total_layout =
       unsafe { Layout::from_size_align_unchecked(total_size, layout.align()) };
 
-    if let Some(ptr) = self
-      .recursion_guard(|| {
-        with_heap(|heap| {
-          heap.allocate(total_layout).ok().map(|mem| {
-            let heap_ptr = heap as *mut Heap<'static>;
-            self.write_allocation(
-              AllocationOwner::Heap(heap_ptr),
-              total_layout,
-              mem,
-            )
-          })
-        })
+    if let Some(ptr) = with_heap(|heap| {
+      heap.allocate(total_layout).ok().map(|mem| {
+        let heap_ptr = heap as *mut Heap<'static>;
+        self.write_allocation(
+          AllocationOwner::Heap(heap_ptr),
+          total_layout,
+          mem,
+        )
       })
-      .flatten()
-    {
+    }) {
       return ptr;
     }
 
