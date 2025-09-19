@@ -13,7 +13,9 @@ use crate::{
   },
 };
 
-pub enum Move {
+#[derive(PartialEq, Clone, Default)]
+pub enum Position {
+  #[default]
   Free,
   Full,
 }
@@ -33,12 +35,31 @@ impl Queue {
     }
   }
 
-  pub fn displace(&mut self, segment: NonNull<Segment>, mv: Move) {
-    let _ = self.free_list.remove(segment) || self.full_list.remove(segment);
+  pub fn displace(&mut self, mut segment: NonNull<Segment>, mv: Position) {
+    let segment_ref = unsafe { segment.as_mut() };
+    let current_position = segment_ref.current().clone();
+    if current_position == mv {
+      return;
+    }
+
+    match current_position {
+      Position::Free => {
+        let _ = self.free_list.remove(segment);
+      }
+      Position::Full => {
+        let _ = self.full_list.remove(segment);
+      }
+    }
 
     match mv {
-      Move::Free => self.free_list.push(segment),
-      Move::Full => self.full_list.push(segment),
+      Position::Free => {
+        self.free_list.push(segment);
+        segment_ref.set_current(Position::Free);
+      }
+      Position::Full => {
+        self.full_list.push(segment);
+        segment_ref.set_current(Position::Full);
+      }
     }
   }
 
@@ -91,10 +112,7 @@ impl Queue {
     true
   }
 
-  fn segment_from_ptr(
-    &self,
-    ptr: NonNull<u8>,
-  ) -> Option<NonNull<Segment>> {
+  fn segment_from_ptr(&self, ptr: NonNull<u8>) -> Option<NonNull<Segment>> {
     segment_from_ptr(ptr).map(|segment| segment.cast())
   }
 
@@ -102,9 +120,9 @@ impl Queue {
     let segment_ref = unsafe { segment.as_ref() };
 
     let new_state = if segment_ref.is_full() {
-      Move::Full
+      Position::Full
     } else {
-      Move::Free
+      Position::Free
     };
 
     self.displace(segment, new_state);

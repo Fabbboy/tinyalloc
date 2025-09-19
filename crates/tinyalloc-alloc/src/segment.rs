@@ -1,5 +1,6 @@
 use std::ptr::NonNull;
 
+use getset::{Getters, Setters};
 use tinyalloc_array::Array;
 use tinyalloc_bitmap::{
   Bitmap,
@@ -15,14 +16,17 @@ use crate::{
     Class,
     Segmentation,
   },
-  config::align_slice,
+  config::align_slice, queue::Position,
 };
 
 pub const SEGMENT_CACHE_SIZE: usize = 12;
 
+#[derive(Getters, Setters)]
 pub struct Segment {
   class: &'static Class,
   link: Link<Segment>,
+  #[getset(set = "pub", get = "pub")]
+  current: Position,
   bitmap: Bitmap<'static, usize>,
   cache: Array<usize, SEGMENT_CACHE_SIZE>,
   user: &'static mut [u8],
@@ -67,6 +71,7 @@ impl Segment {
           class,
           link: Link::new(),
           bitmap,
+          current: Position::default(),
           cache: Array::new(),
           user: user_aligned,
         },
@@ -76,7 +81,7 @@ impl Segment {
   }
 
   pub fn is_full(&self) -> bool {
-    self.bitmap.find_fc().is_none()
+    !self.bitmap.is_clear()
   }
 
   pub fn is_empty(&self) -> bool {
@@ -126,12 +131,12 @@ impl Segment {
   }
 
   pub fn alloc(&mut self) -> Option<NonNull<u8>> {
-        let bit_index = if let Some(cached_index) = self.cache.pop() {
+    let bit_index = if let Some(cached_index) = self.cache.pop() {
       cached_index
     } else {
       if !self.bitmap.one_clear() {
         return None;
-      } 
+      }
       self.bitmap.find_fc()?
     };
     self.bitmap.set(bit_index).ok()?;
@@ -144,7 +149,7 @@ impl Segment {
       None => return false,
     };
 
-    let _ = self.cache.push(bit_index); // we dont care if it doesn't fit 
+    let _ = self.cache.push(bit_index);
     self.bitmap.clear(bit_index).is_ok()
   }
 }
@@ -182,8 +187,10 @@ mod tests {
   fn segment_smallest_class_utilization() {
     let mut buffer = vec![0u8; SEGMENT_SIZE];
     let smallest_class = &CLASSES[0];
-    let segment_ptr = Segment::new(smallest_class, unsafe { core::mem::transmute(&mut buffer[..]) })
-      .expect("segment must initialize for smallest class");
+    let segment_ptr = Segment::new(smallest_class, unsafe {
+      core::mem::transmute(&mut buffer[..])
+    })
+    .expect("segment must initialize for smallest class");
     let segment = unsafe { segment_ptr.as_ref() };
 
     let user_space = segment.user.len();
@@ -216,8 +223,9 @@ mod tests {
 
     for (i, class) in CLASSES.iter().enumerate() {
       let mut buffer = vec![0u8; SEGMENT_SIZE];
-      let segment_ptr = Segment::new(class, unsafe { core::mem::transmute(&mut buffer[..]) })
-        .expect("segment must initialize for class");
+      let segment_ptr =
+        Segment::new(class, unsafe { core::mem::transmute(&mut buffer[..]) })
+          .expect("segment must initialize for class");
       let segment = unsafe { segment_ptr.as_ref() };
 
       let user_space = segment.user.len();
@@ -274,7 +282,8 @@ mod tests {
     let mut buffer = vec![0u8; SEGMENT_SIZE];
     let class = &CLASSES[0];
     let mut segment_ptr =
-      Segment::new(class, unsafe { core::mem::transmute(&mut buffer[..]) }).expect("segment must initialize");
+      Segment::new(class, unsafe { core::mem::transmute(&mut buffer[..]) })
+        .expect("segment must initialize");
     let segment = unsafe { segment_ptr.as_mut() };
 
     let ptr1 = segment.alloc().expect("Should allocate first object");
@@ -312,8 +321,9 @@ mod tests {
   fn segment_bitmap_sizing_correctness() {
     for class in CLASSES.iter() {
       let mut buffer = vec![0u8; SEGMENT_SIZE];
-      let segment_ptr = Segment::new(class, unsafe { core::mem::transmute(&mut buffer[..]) })
-        .expect("segment must initialize for bitmap sizing");
+      let segment_ptr =
+        Segment::new(class, unsafe { core::mem::transmute(&mut buffer[..]) })
+          .expect("segment must initialize for bitmap sizing");
       let segment = unsafe { segment_ptr.as_ref() };
 
       let max_objects = segment.user.len() / class.size.0;
