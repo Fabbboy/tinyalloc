@@ -49,9 +49,6 @@ impl Queue {
 
     let segment_ref = unsafe { segment.as_mut() };
     let current_position = segment_ref.current().clone();
-    if current_position == mv {
-      return;
-    }
 
     match current_position {
       Position::Free => {
