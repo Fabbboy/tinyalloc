@@ -2,17 +2,23 @@ use std::array;
 
 use tinyalloc_bitmap::numeric::Bits;
 
-use crate::{config::{
-  LARGE_ALIGN_RATIO,
-  LARGE_SC_LIMIT,
-  MEDIUM_ALIGN_LIMIT,
-  MEDIUM_SC_LIMIT,
-  MIN_ALIGN,
-  MIN_SIZE,
-  SIZES,
-  SMALL_ALIGN_LIMIT,
-  SMALL_SC_LIMIT, 
-}, helper::{align_slice, align_up}};
+use crate::{
+  config::{
+    LARGE_ALIGN_RATIO,
+    LARGE_SC_LIMIT,
+    MEDIUM_ALIGN_LIMIT,
+    MEDIUM_SC_LIMIT,
+    MIN_ALIGN,
+    MIN_SIZE,
+    SIZES,
+    SMALL_ALIGN_LIMIT,
+    SMALL_SC_LIMIT,
+  },
+  helper::{
+    align_slice,
+    align_up,
+  },
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Size(pub usize);
@@ -123,14 +129,38 @@ pub const fn find_class(size: usize, align: usize) -> Option<&'static Class> {
     return None;
   }
 
-  let mut i = 0;
-  while i < SIZES {
-    let class = &CLASSES[i];
-    if size <= class.size.0 && align <= class.align.0 {
+  if align <= MIN_ALIGN && size <= CLASSES[7].size.0 {
+    let rounded = (size + MIN_ALIGN - 1) / MIN_ALIGN;
+    let index = rounded - 1;
+    return Some(&CLASSES[index]);
+  }
+
+  let mut low = 0;
+  let mut high = SIZES;
+
+  while low < high {
+    let mid = (low + high) / 2;
+    let class = &CLASSES[mid];
+    if size <= class.size.0 {
+      high = mid;
+    } else {
+      low = mid + 1;
+    }
+  }
+
+  if low == SIZES {
+    return None;
+  }
+
+  let mut index = low;
+  while index < SIZES {
+    let class = &CLASSES[index];
+    if align <= class.align.0 {
       return Some(class);
     }
-    i += 1;
+    index += 1;
   }
+
   None
 }
 
