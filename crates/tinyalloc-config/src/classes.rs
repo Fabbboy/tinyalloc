@@ -4,15 +4,7 @@ use tinyalloc_bitmap::numeric::Bits;
 
 use crate::{
   config::{
-    LARGE_ALIGN_RATIO,
-    LARGE_SC_LIMIT,
-    MEDIUM_ALIGN_LIMIT,
-    MEDIUM_SC_LIMIT,
-    MIN_ALIGN,
-    MIN_SIZE,
-    SIZES,
-    SMALL_ALIGN_LIMIT,
-    SMALL_SC_LIMIT,
+    LARGE_ALIGN_RATIO, LARGE_SC_LIMIT, MEDIUM_ALIGN_LIMIT, MEDIUM_SC_LIMIT, MIN_ALIGN, MIN_SIZE, SIZES, SMALL_ALIGN_CLASSES, SMALL_ALIGN_LIMIT, SMALL_RATIO, SMALL_SC_LIMIT
   },
   helper::{
     align_slice,
@@ -122,9 +114,7 @@ const fn classes() -> [Class; SIZES] {
 }
 
 pub static CLASSES: [Class; SIZES] = classes();
-
-const SMALL_MIN_ALIGN_CLASSES: usize = SMALL_ALIGN_LIMIT / MIN_ALIGN;
-const SMALL_SC_RATIO: usize = SMALL_SC_LIMIT / SMALL_ALIGN_LIMIT;
+ 
 
 #[inline(always)]
 pub const fn find_class(size: usize, align: usize) -> Option<&'static Class> {
@@ -132,7 +122,7 @@ pub const fn find_class(size: usize, align: usize) -> Option<&'static Class> {
     return None;
   }
 
-  if size <= CLASSES[SMALL_MIN_ALIGN_CLASSES - 1].size.0 {
+  if size <= CLASSES[SMALL_ALIGN_CLASSES - 1].size.0 {
     if align <= MIN_ALIGN {
       let rounded = (size + MIN_ALIGN - 1) / MIN_ALIGN;
       let index = rounded - 1;
@@ -140,20 +130,20 @@ pub const fn find_class(size: usize, align: usize) -> Option<&'static Class> {
     }
 
     if align <= SMALL_ALIGN_LIMIT {
-      return Some(&CLASSES[SMALL_MIN_ALIGN_CLASSES]);
+      return Some(&CLASSES[SMALL_ALIGN_CLASSES]);
     }
   }
 
   if align <= SMALL_ALIGN_LIMIT && size <= SMALL_SC_LIMIT {
-    if SMALL_SC_RATIO > 1 {
+    if SMALL_RATIO > 1 {
       let mut multiple = (size + SMALL_ALIGN_LIMIT - 1) / SMALL_ALIGN_LIMIT;
       if multiple < 2 {
         multiple = 2;
       }
-      if multiple > SMALL_SC_RATIO {
-        multiple = SMALL_SC_RATIO;
+      if multiple > SMALL_RATIO {
+        multiple = SMALL_RATIO;
       }
-      let index = SMALL_MIN_ALIGN_CLASSES + (multiple - 2);
+      let index = SMALL_ALIGN_CLASSES + (multiple - 2);
       return Some(&CLASSES[index]);
     }
   }
