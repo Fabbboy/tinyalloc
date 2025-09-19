@@ -170,7 +170,7 @@ where
     self.used = self.bits;
   }
 
-  pub fn find_first_set(&self) -> Option<usize> {
+  pub fn find_fs(&self) -> Option<usize> {
     for (word_index, &word) in self.store.iter().enumerate() {
       if word != T::zero() {
         let bit_offset = word.trailing_zeros() as usize;
@@ -183,7 +183,7 @@ where
     None
   }
 
-  pub fn find_first_clear(&self) -> Option<usize> {
+  pub fn find_fc(&self) -> Option<usize> {
     for (word_index, &word) in self.store.iter().enumerate() {
       let inverted = word ^ T::max();
       if inverted != T::zero() {
@@ -200,5 +200,10 @@ where
   #[inline]
   pub fn is_clear(&self) -> bool {
     self.used == 0
+  }
+
+  #[inline]
+  pub fn one_clear(&self) -> bool {
+    self.used < self.bits
   }
 }

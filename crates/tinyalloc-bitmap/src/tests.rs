@@ -80,21 +80,21 @@ fn test_search_operations() {
   let bits = storage.len() * u32::BITS as usize;
   let mut bitmap = Bitmap::zero(&mut storage, bits).unwrap();
 
-  assert_eq!(bitmap.find_first_set(), None);
-  assert_eq!(bitmap.find_first_clear(), Some(0));
+  assert_eq!(bitmap.find_fs(), None);
+  assert_eq!(bitmap.find_fc(), Some(0));
 
   bitmap.set(5).unwrap();
   bitmap.set(35).unwrap();
 
-  assert_eq!(bitmap.find_first_set(), Some(5));
-  assert_eq!(bitmap.find_first_clear(), Some(0));
+  assert_eq!(bitmap.find_fs(), Some(5));
+  assert_eq!(bitmap.find_fc(), Some(0));
 
   bitmap.set(0).unwrap();
-  assert_eq!(bitmap.find_first_clear(), Some(1));
+  assert_eq!(bitmap.find_fc(), Some(1));
 
   bitmap.set_all();
-  assert_eq!(bitmap.find_first_clear(), None);
-  assert_eq!(bitmap.find_first_set(), Some(0));
+  assert_eq!(bitmap.find_fc(), None);
+  assert_eq!(bitmap.find_fs(), Some(0));
 }
 
 #[test]
@@ -137,7 +137,7 @@ fn test_partial_word_handling() {
   }
 
   bitmap.set(31).unwrap();
-  assert_eq!(bitmap.find_first_set(), Some(31));
+  assert_eq!(bitmap.find_fs(), Some(31));
 }
 
 #[test]
@@ -155,7 +155,7 @@ fn test_different_word_types() {
   let mut bitmap16 = Bitmap::zero(&mut storage16, bits16).unwrap();
   bitmap16.set(9).unwrap();
   assert!(bitmap16.get(9).unwrap());
-  assert_eq!(bitmap16.find_first_set(), Some(9));
+  assert_eq!(bitmap16.find_fs(), Some(9));
 }
 
 #[test]
@@ -166,14 +166,14 @@ fn test_zero_and_one_constructors() {
   let bits = storage.len() * u32::BITS as usize;
   let bitmap_zero = Bitmap::zero(&mut storage, bits).unwrap();
   assert!(bitmap_zero.is_clear());
-  assert_eq!(bitmap_zero.find_first_set(), None);
-  assert_eq!(bitmap_zero.find_first_clear(), Some(0));
+  assert_eq!(bitmap_zero.find_fs(), None);
+  assert_eq!(bitmap_zero.find_fc(), Some(0));
 
   // Test one constructor
   let mut storage2: [u32; 2] = [0; 2];
   let bits2 = storage2.len() * u32::BITS as usize;
   let bitmap_one = Bitmap::one(&mut storage2, bits2).unwrap();
   assert!(!bitmap_one.is_clear());
-  assert_eq!(bitmap_one.find_first_set(), Some(0));
-  assert_eq!(bitmap_one.find_first_clear(), None);
+  assert_eq!(bitmap_one.find_fs(), Some(0));
+  assert_eq!(bitmap_one.find_fc(), None);
 }

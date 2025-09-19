@@ -143,7 +143,7 @@ impl Arena {
     let segment_index = if let Some(cached_index) = cache.pop() {
       cached_index
     } else {
-      let free_bit = bitmap.find_first_clear();
+      let free_bit = bitmap.find_fc();
       match free_bit {
         Some(index) => index,
         None => return Err(ArenaError::Insufficient),
@@ -224,7 +224,7 @@ impl Arena {
     let _guard = self.lock.lock();
     let bitmap = unsafe { &*self.bitmap.get() };
     let cache = unsafe { &*self.cache.get() };
-    !cache.is_empty() || bitmap.find_first_clear().is_some()
+    !cache.is_empty() || bitmap.one_clear()
   }
 
   pub fn user_start(&self) -> *const u8 {
@@ -243,7 +243,7 @@ impl Drop for Arena {
     let _guard = self.lock.lock();
     let bitmap = unsafe { &mut *self.bitmap.get() };
 
-    while let Some(segment_index) = bitmap.find_first_set() {
+    while let Some(segment_index) = bitmap.find_fs() {
       let _ = bitmap.clear(segment_index);
     }
   }

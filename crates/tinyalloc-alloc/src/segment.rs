@@ -76,7 +76,7 @@ impl Segment {
   }
 
   pub fn is_full(&self) -> bool {
-    self.bitmap.find_first_clear().is_none()
+    self.bitmap.find_fc().is_none()
   }
 
   pub fn is_empty(&self) -> bool {
@@ -126,10 +126,13 @@ impl Segment {
   }
 
   pub fn alloc(&mut self) -> Option<NonNull<u8>> {
-    let bit_index = if let Some(cached_index) = self.cache.pop() {
+        let bit_index = if let Some(cached_index) = self.cache.pop() {
       cached_index
     } else {
-      self.bitmap.find_first_clear()?
+      if !self.bitmap.one_clear() {
+        return None;
+      } 
+      self.bitmap.find_fc()?
     };
     self.bitmap.set(bit_index).ok()?;
     self.ptr_from_index(bit_index)
@@ -158,7 +161,7 @@ impl HasLink<Segment> for Segment {
 
 impl Drop for Segment {
   fn drop(&mut self) {
-    while let Some(index) = self.bitmap.find_first_set() {
+    while let Some(index) = self.bitmap.find_fs() {
       let _ = self.bitmap.clear(index);
     }
   }
