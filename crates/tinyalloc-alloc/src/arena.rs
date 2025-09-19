@@ -51,7 +51,7 @@ pub struct Arena {
   region: Region,
   bitmap: UnsafeCell<Bitmap<'static, usize>>,
   user: UnsafeCell<&'static mut [u8]>,
-  segment_count: usize,
+  max_segments: usize,
   cache: UnsafeCell<Array<usize, ARENA_CACHE_SIZE>>,
   lock: Mutex<()>,
 }
@@ -117,7 +117,7 @@ impl Arena {
       region,
       bitmap: UnsafeCell::new(bitmap),
       user: UnsafeCell::new(user_space),
-      segment_count,
+      max_segments: segment_count,
       cache: UnsafeCell::new(Array::new()),
       lock: Mutex::new(()),
     };
@@ -198,7 +198,7 @@ impl Arena {
       unsafe { segment_ptr.offset_from(user_start) } as usize;
     let segment_index = segment_offset / SEGMENT_SIZE;
 
-    if segment_index >= self.segment_count {
+    if segment_index >= self.max_segments {
       return Err(ArenaError::Insufficient);
     }
 
