@@ -775,6 +775,10 @@ version = "0.1.0"
 [[package]]
 name = "tinyalloc-config"
 version = "0.1.0"
+dependencies = [
+ "tinyalloc-bitmap",
+ "tinyalloc-sys",
+]
 
 [[package]]
 name = "tinyalloc-list"

@@ -4,6 +4,7 @@ use std::{
 };
 
 use getset::Getters;
+use tinyalloc_config::config::align_up;
 use tinyalloc_list::{
   HasLink,
   Link,
@@ -16,8 +17,6 @@ use tinyalloc_sys::{
     page_align_ptr,
   },
 };
-
-use crate::config::align_up;
 
 #[derive(Debug)]
 pub enum LargeError {

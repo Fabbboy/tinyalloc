@@ -6,25 +6,19 @@ use std::sync::atomic::{
 
 use spin::RwLock;
 use tinyalloc_array::Array;
+use tinyalloc_config::{classes::Class, config::{ARENA_GROWTH, ARENA_INITIAL_SIZE, ARENA_LIMIT, ARENA_STEP, SEGMENT_SIZE}};
 
 use crate::{
   arena::{
     Arena,
     ArenaError,
   },
-  config::{
-    ARENA_GROWTH,
-    ARENA_INITIAL_SIZE,
-    ARENA_LIMIT,
-    ARENA_STEP,
-  },
+ 
 };
 
 use std::ptr::NonNull;
 
-use crate::{
-  classes::Class,
-  config::SEGMENT_SIZE,
+use crate::{ 
   segment::Segment,
 };
 

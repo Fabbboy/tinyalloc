@@ -1,7 +1,5 @@
 pub mod allocation;
 pub mod arena;
-pub mod classes;
-pub mod config;
 pub mod heap;
 pub mod large;
 pub mod metrics;

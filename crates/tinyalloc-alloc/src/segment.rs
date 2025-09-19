@@ -1,23 +1,27 @@
 use std::ptr::NonNull;
 
-use getset::{Getters, Setters};
+use getset::{
+  Getters,
+  Setters,
+};
 use tinyalloc_array::Array;
 use tinyalloc_bitmap::{
   Bitmap,
   BitmapError,
+};
+use tinyalloc_config::{
+  classes::{
+    Class,
+    Segmentation,
+  },
+  config::align_slice,
 };
 use tinyalloc_list::{
   HasLink,
   Link,
 };
 
-use crate::{
-  classes::{
-    Class,
-    Segmentation,
-  },
-  config::align_slice, queue::Position,
-};
+use crate::queue::Position;
 
 pub const SEGMENT_CACHE_SIZE: usize = 12;
 
@@ -174,14 +178,9 @@ impl Drop for Segment {
 
 #[cfg(test)]
 mod tests {
-  use super::*;
-  use crate::{
-    classes::CLASSES,
-    config::{
-      SEGMENT_SIZE,
-      SIZES,
-    },
-  };
+  use tinyalloc_config::{classes::CLASSES, config::{SEGMENT_SIZE, SIZES}};
+
+use super::*;
 
   #[test]
   fn segment_smallest_class_utilization() {

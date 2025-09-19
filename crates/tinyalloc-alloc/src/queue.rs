@@ -1,10 +1,9 @@
 use std::ptr::NonNull;
 
+use tinyalloc_config::{classes::Class, config::QUEUE_THRESHOLD};
 use tinyalloc_list::List;
 
-use crate::{
-  classes::Class,
-  config::QUEUE_THRESHOLD,
+use crate::{ 
   segment::Segment,
   static_::{
     allocate_segment,
@@ -142,8 +141,9 @@ impl Drop for Queue {
 
 #[cfg(test)]
 mod tests {
-  use super::*;
-  use crate::classes::CLASSES;
+  use tinyalloc_config::classes::CLASSES;
+
+use super::*; 
 
   #[test]
   fn queue_basic_functionality() {

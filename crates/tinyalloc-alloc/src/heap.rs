@@ -11,22 +11,12 @@ use std::{
 
 use getset::Getters;
 use spin::RwLock;
+use tinyalloc_config::{classes::{class_init, find_class}, config::{LARGE_SC_LIMIT, REMOTE_BATCH_SIZE, REMOTE_CHECK_FREQUENCY, REMOTE_MAX_BATCH, SIZES}};
 use tinyalloc_list::List;
 
 use crate::{
   allocation::Allocation,
   arena::ArenaError,
-  classes::{
-    class_init,
-    find_class,
-  },
-  config::{
-    LARGE_SC_LIMIT,
-    REMOTE_BATCH_SIZE,
-    REMOTE_CHECK_FREQUENCY,
-    REMOTE_MAX_BATCH,
-    SIZES,
-  },
   large::{
     Large,
     LargeError,
@@ -54,8 +44,7 @@ pub struct Heap {
 
 impl Heap {
   pub fn new() -> Self {
-    let classes: [Queue; SIZES] =
-      class_init(|class| Queue::new(class));
+    let classes: [Queue; SIZES] = class_init(|class| Queue::new(class));
     Self {
       thread: OnceLock::new(),
       classes,

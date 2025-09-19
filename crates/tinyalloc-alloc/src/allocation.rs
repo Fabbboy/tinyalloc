@@ -6,16 +6,14 @@ use std::{
 };
 
 use getset::CloneGetters;
+use tinyalloc_config::config::{align_up, MAX_ALIGN};
 use tinyalloc_list::{
   HasLink,
   Link,
 };
 
 use crate::{
-  config::{
-    MAX_ALIGN,
-    align_up,
-  },
+
   heap::Heap,
 };
 
