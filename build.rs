@@ -1,12 +1,12 @@
 use cbindgen::{
   Config,
+  Error,
   Language,
 };
 
 extern crate cbindgen;
 
-fn main() {
-  let crate_path = env!("CARGO_MANIFEST_DIR");
+fn generate_header(crate_path: &'static str) -> Result<(), Error> {
   let output_file = format!("{}/tinyalloc.h", crate_path);
 
   let config = Config {
@@ -20,7 +20,14 @@ fn main() {
     ..Default::default()
   };
 
-  cbindgen::generate_with_config(crate_path, config)
-    .expect("Unable to generate bindings")
+  cbindgen::generate_with_config(crate_path, config)?
     .write_to_file(output_file);
+
+  Ok(())
+}
+
+fn main() {
+  let crate_path = env!("CARGO_MANIFEST_DIR");
+   
+  generate_header(crate_path).expect("Unable to generate bindings");
 }
