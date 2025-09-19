@@ -86,7 +86,7 @@ fn with_heap<R>(f: impl FnOnce(&mut Heap) -> R) -> R {
 pub struct TinyAlloc;
 
 impl TinyAlloc {
-  pub fn os_alloc(
+  fn os_alloc(
     &self,
     size: NonZeroUsize,
   ) -> Result<NonNull<[u8]>, MapError> {
@@ -95,7 +95,7 @@ impl TinyAlloc {
     Ok(mapped)
   }
 
-  pub fn os_dealloc(&self, ptr: NonNull<[u8]>) {
+   fn os_dealloc(&self, ptr: NonNull<[u8]>) {
     GLOBAL_MAPPER.unmap(ptr)
   }
 
