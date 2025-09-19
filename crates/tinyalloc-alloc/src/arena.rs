@@ -47,16 +47,16 @@ pub enum ArenaError {
 
 pub const ARENA_CACHE_SIZE: usize = 8;
 
-pub struct Arena<'mapper> {
-  region: Region<'mapper>,
-  bitmap: UnsafeCell<Bitmap<'mapper, usize>>,
-  user: UnsafeCell<&'mapper mut [u8]>,
+pub struct Arena {
+  region: Region,
+  bitmap: UnsafeCell<Bitmap<'static, usize>>,
+  user: UnsafeCell<&'static mut [u8]>,
   segment_count: usize,
   cache: UnsafeCell<Array<usize, ARENA_CACHE_SIZE>>,
   lock: Mutex<()>,
 }
 
-impl<'mapper> Arena<'mapper> {
+impl Arena {
   pub fn new(size: usize) -> Result<NonNull<Self>, ArenaError> {
     let nonz = NonZeroUsize::new(size).ok_or(ArenaError::SizeIsZero)?;
     let region = Region::new(nonz).map_err(ArenaError::MapError)?;
@@ -133,7 +133,7 @@ impl<'mapper> Arena<'mapper> {
   pub fn allocate(
     &self,
     class: &'static Class,
-  ) -> Result<NonNull<Segment<'mapper>>, ArenaError> {
+  ) -> Result<NonNull<Segment>, ArenaError> {
     let _guard = self.lock.lock();
 
     let bitmap = unsafe { &mut *self.bitmap.get() };
@@ -179,7 +179,7 @@ impl<'mapper> Arena<'mapper> {
 
   pub fn deallocate(
     &self,
-    segment: NonNull<Segment<'mapper>>,
+    segment: NonNull<Segment>,
   ) -> Result<(), ArenaError> {
     let _guard = self.lock.lock();
 
@@ -238,7 +238,7 @@ impl<'mapper> Arena<'mapper> {
   }
 }
 
-impl<'mapper> Drop for Arena<'mapper> {
+impl Drop for Arena {
   fn drop(&mut self) {
     let _guard = self.lock.lock();
     let bitmap = unsafe { &mut *self.bitmap.get() };

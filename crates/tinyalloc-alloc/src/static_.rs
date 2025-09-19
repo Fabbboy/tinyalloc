@@ -28,17 +28,17 @@ use crate::{
   segment::Segment,
 };
 
-static ARENAS: RwLock<Array<AtomicPtr<Arena<'static>>, ARENA_LIMIT>> =
+static ARENAS: RwLock<Array<AtomicPtr<Arena>, ARENA_LIMIT>> =
   RwLock::new(Array::new());
 static NEXT_ARENA_SIZE: AtomicUsize = AtomicUsize::new(ARENA_INITIAL_SIZE);
 
-fn create_arena() -> Result<NonNull<Arena<'static>>, ArenaError> {
+fn create_arena() -> Result<NonNull<Arena>, ArenaError> {
   let size = NEXT_ARENA_SIZE.load(Ordering::Relaxed);
   let arena = Arena::new(size)?;
   Ok(arena)
 }
 
-fn add_arena(arena: NonNull<Arena<'static>>) -> Result<(), ArenaError> {
+fn add_arena(arena: NonNull<Arena>) -> Result<(), ArenaError> {
   let mut arenas = ARENAS.write();
   let arena_count = arenas.len();
 
@@ -59,7 +59,7 @@ fn add_arena(arena: NonNull<Arena<'static>>) -> Result<(), ArenaError> {
 
 pub fn allocate_segment(
   class: &'static Class,
-) -> Result<NonNull<Segment<'static>>, ArenaError> {
+) -> Result<NonNull<Segment>, ArenaError> {
   let arenas = ARENAS.read();
 
   for i in 0..arenas.len() {
@@ -83,9 +83,7 @@ pub fn allocate_segment(
   arena.allocate(class)
 }
 
-pub fn deallocate_segment(
-  segment: NonNull<Segment<'static>>,
-) -> Result<(), ArenaError> {
+pub fn deallocate_segment(segment: NonNull<Segment>) -> Result<(), ArenaError> {
   let arenas = ARENAS.read();
   let segment_ptr = segment.as_ptr() as *const u8;
 
@@ -105,7 +103,7 @@ pub fn deallocate_segment(
   Err(ArenaError::Insufficient)
 }
 
-pub fn segment_from_ptr(ptr: NonNull<u8>) -> Option<NonNull<Segment<'static>>> {
+pub fn segment_from_ptr(ptr: NonNull<u8>) -> Option<NonNull<Segment>> {
   let arenas = ARENAS.read();
   let addr = ptr.as_ptr() as usize;
 
@@ -125,7 +123,7 @@ pub fn segment_from_ptr(ptr: NonNull<u8>) -> Option<NonNull<Segment<'static>>> {
     let offset = addr - start;
     let segment_index = offset / SEGMENT_SIZE;
     let segment_base = start + (segment_index * SEGMENT_SIZE);
-    let segment_ptr = segment_base as *mut Segment<'static>;
+    let segment_ptr = segment_base as *mut Segment;
     if let Some(segment_nn) = NonNull::new(segment_ptr) {
       if unsafe { segment_nn.as_ref() }.contains_ptr(ptr) {
         return Some(segment_nn);

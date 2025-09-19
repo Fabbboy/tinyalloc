@@ -36,11 +36,11 @@ mod ffi;
 mod init;
 
 thread_local! {
-    static LOCAL_HEAP: UnsafeCell<Heap<'static>> = UnsafeCell::new(Heap::new());
+    static LOCAL_HEAP: UnsafeCell<Heap> = UnsafeCell::new(Heap::new());
 }
 
 struct BootstrapHeap {
-  heap: UnsafeCell<Heap<'static>>,
+  heap: UnsafeCell<Heap>,
   lock: Mutex<()>,
 }
 
@@ -55,7 +55,7 @@ impl BootstrapHeap {
     }
   }
 
-  fn with<R>(&self, f: impl FnOnce(&mut Heap<'static>) -> R) -> R {
+  fn with<R>(&self, f: impl FnOnce(&mut Heap) -> R) -> R {
     let _guard = self.lock.lock();
     let heap = unsafe { &mut *self.heap.get() };
     f(heap)
@@ -64,14 +64,14 @@ impl BootstrapHeap {
 
 static BOOTSTRAP_HEAP: OnceLock<BootstrapHeap> = OnceLock::new();
 
-fn with_heap<R>(f: impl FnOnce(&mut Heap<'static>) -> R) -> R {
+fn with_heap<R>(f: impl FnOnce(&mut Heap) -> R) -> R {
   td_register();
   if is_td() {
     let bootstrap = BOOTSTRAP_HEAP.get_or_init(BootstrapHeap::new);
     return bootstrap.with(f);
   }
 
-  match LOCAL_HEAP.try_with(|heap| heap.get() as *mut Heap<'static>) {
+  match LOCAL_HEAP.try_with(|heap| heap.get() as *mut Heap) {
     Ok(ptr) => {
       let heap = unsafe { &mut *ptr };
       f(heap)
@@ -101,7 +101,7 @@ impl TinyAlloc {
 
   fn write_allocation(
     &self,
-    owner: AllocationOwner<'static>,
+    owner: AllocationOwner,
     layout: Layout,
     mem: NonNull<[u8]>,
   ) -> *mut u8 {
@@ -125,7 +125,7 @@ unsafe impl GlobalAlloc for TinyAlloc {
 
     if let Some(ptr) = with_heap(|heap| {
       heap.allocate(total_layout).ok().map(|mem| {
-        let heap_ptr = heap as *mut Heap<'static>;
+        let heap_ptr = heap as *mut Heap;
         self.write_allocation(
           AllocationOwner::Heap(heap_ptr),
           total_layout,

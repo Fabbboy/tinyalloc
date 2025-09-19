@@ -26,13 +26,13 @@ pub enum LargeError {
 }
 
 #[derive(Getters)]
-pub struct Large<'mapper> {
-  _region: Region<'mapper>,
-  pub user: &'mapper mut [u8],
-  link: Link<Large<'mapper>>,
+pub struct Large {
+  _region: Region,
+  pub user: &'static mut [u8],
+  link: Link<Large>,
 }
 
-impl<'mapper> Large<'mapper> {
+impl Large {
   pub fn new(size: NonZeroUsize) -> Result<NonNull<Self>, LargeError> {
     let self_size = core::mem::size_of::<Self>();
     let cache_line = cache_line_size();
@@ -85,12 +85,12 @@ impl<'mapper> Large<'mapper> {
   }
 }
 
-impl<'mapper> HasLink<Large<'mapper>> for Large<'mapper> {
-  fn link(&self) -> &Link<Large<'mapper>> {
+impl HasLink<Large> for Large {
+  fn link(&self) -> &Link<Large> {
     &self.link
   }
 
-  fn link_mut(&mut self) -> &mut Link<Large<'mapper>> {
+  fn link_mut(&mut self) -> &mut Link<Large> {
     &mut self.link
   }
 }

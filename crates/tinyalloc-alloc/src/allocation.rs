@@ -22,15 +22,15 @@ use crate::{
 const ALLOCATION_CANARY: u64 = 0xDEADBEEFCAFEBABE;
 
 #[derive(Clone)]
-pub enum AllocationOwner<'mapper> {
-  Heap(*mut Heap<'mapper>),
+pub enum AllocationOwner {
+  Heap(*mut Heap),
   Mapper(NonNull<[u8]>),
 }
 
 #[derive(CloneGetters)]
-pub struct Allocation<'mapper> {
+pub struct Allocation {
   #[getset(get_clone = "pub")]
-  owned: AllocationOwner<'mapper>,
+  owned: AllocationOwner,
   #[getset(get_clone = "pub")]
   full: Layout,
   #[getset(get_clone = "pub")]
@@ -38,12 +38,12 @@ pub struct Allocation<'mapper> {
   #[getset(get_clone = "pub")]
   user_ptr: *mut u8,
   canary: u64,
-  link: Link<Allocation<'mapper>>,
+  link: Link<Allocation>,
 }
 
-impl<'mapper> Allocation<'mapper> {
+impl Allocation {
   pub fn new(
-    owned: AllocationOwner<'mapper>,
+    owned: AllocationOwner,
     full: Layout,
     alloc_ptr: *mut u8,
     user_ptr: *mut u8,
@@ -110,7 +110,7 @@ impl<'mapper> Allocation<'mapper> {
     user_addr as *mut u8
   }
 
-  pub unsafe fn heap_ptr(&self) -> Option<&Heap<'mapper>> {
+  pub unsafe fn heap_ptr(&self) -> Option<&Heap> {
     match self.owned {
       AllocationOwner::Heap(heap_ptr) => Some(unsafe { &*heap_ptr }),
       AllocationOwner::Mapper(_) => None,
@@ -132,7 +132,7 @@ impl<'mapper> Allocation<'mapper> {
   }
 }
 
-impl<'mapper> HasLink<Allocation<'mapper>> for Allocation<'mapper> {
+impl HasLink<Allocation> for Allocation {
   fn link(&self) -> &Link<Self> {
     &self.link
   }

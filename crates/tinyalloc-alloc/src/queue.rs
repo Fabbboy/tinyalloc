@@ -18,14 +18,14 @@ pub enum Move {
   Full,
 }
 
-pub struct Queue<'mapper> {
+pub struct Queue {
   class: &'static Class,
-  free_list: List<Segment<'mapper>>,
-  full_list: List<Segment<'mapper>>,
+  free_list: List<Segment>,
+  full_list: List<Segment>,
 }
 
-impl<'mapper> Queue<'mapper> {
-  pub fn new(class: &'static Class) -> Queue<'mapper> {
+impl Queue {
+  pub fn new(class: &'static Class) -> Queue {
     Queue {
       class,
       free_list: List::new(),
@@ -33,7 +33,7 @@ impl<'mapper> Queue<'mapper> {
     }
   }
 
-  pub fn displace(&mut self, segment: NonNull<Segment<'mapper>>, mv: Move) {
+  pub fn displace(&mut self, segment: NonNull<Segment>, mv: Move) {
     let _ = self.free_list.remove(segment) || self.full_list.remove(segment);
 
     match mv {
@@ -46,7 +46,7 @@ impl<'mapper> Queue<'mapper> {
     self.free_list.head().is_some()
   }
 
-  pub fn get_available(&mut self) -> Option<NonNull<Segment<'mapper>>> {
+  pub fn get_available(&mut self) -> Option<NonNull<Segment>> {
     self.free_list.pop()
   }
 
@@ -66,7 +66,7 @@ impl<'mapper> Queue<'mapper> {
     Some(ptr)
   }
 
-  pub fn add_segment(&mut self, segment: NonNull<Segment<'mapper>>) {
+  pub fn add_segment(&mut self, segment: NonNull<Segment>) {
     self.free_list.push(segment);
   }
 
@@ -94,11 +94,11 @@ impl<'mapper> Queue<'mapper> {
   fn segment_from_ptr(
     &self,
     ptr: NonNull<u8>,
-  ) -> Option<NonNull<Segment<'mapper>>> {
+  ) -> Option<NonNull<Segment>> {
     segment_from_ptr(ptr).map(|segment| segment.cast())
   }
 
-  fn update_state(&mut self, segment: NonNull<Segment<'mapper>>) {
+  fn update_state(&mut self, segment: NonNull<Segment>) {
     let segment_ref = unsafe { segment.as_ref() };
 
     let new_state = if segment_ref.is_full() {
@@ -111,7 +111,7 @@ impl<'mapper> Queue<'mapper> {
   }
 }
 
-impl<'mapper> Drop for Queue<'mapper> {
+impl Drop for Queue {
   fn drop(&mut self) {
     for segment in self.free_list.drain() {
       let _ = segment;

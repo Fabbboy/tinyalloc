@@ -20,12 +20,12 @@ use crate::{
 
 pub const SEGMENT_CACHE_SIZE: usize = 12;
 
-pub struct Segment<'mapper> {
+pub struct Segment {
   class: &'static Class,
-  link: Link<Segment<'mapper>>,
-  bitmap: Bitmap<'mapper, usize>,
+  link: Link<Segment>,
+  bitmap: Bitmap<'static, usize>,
   cache: Array<usize, SEGMENT_CACHE_SIZE>,
-  user: &'mapper mut [u8],
+  user: &'static mut [u8],
 }
 
 #[derive(Debug)]
@@ -40,10 +40,10 @@ impl From<BitmapError> for SegmentError {
   }
 }
 
-impl<'mapper> Segment<'mapper> {
+impl Segment {
   pub fn new(
     class: &'static Class,
-    slice: &'mapper mut [u8],
+    slice: &'static mut [u8],
   ) -> Result<NonNull<Self>, SegmentError> {
     let self_size = core::mem::size_of::<Self>();
     let (segment_slice, rest) = slice.split_at_mut(self_size);
@@ -146,17 +146,17 @@ impl<'mapper> Segment<'mapper> {
   }
 }
 
-impl<'mapper> HasLink<Segment<'mapper>> for Segment<'mapper> {
-  fn link(&self) -> &Link<Segment<'mapper>> {
+impl HasLink<Segment> for Segment {
+  fn link(&self) -> &Link<Segment> {
     &self.link
   }
 
-  fn link_mut(&mut self) -> &mut Link<Segment<'mapper>> {
+  fn link_mut(&mut self) -> &mut Link<Segment> {
     &mut self.link
   }
 }
 
-impl<'mapper> Drop for Segment<'mapper> {
+impl Drop for Segment {
   fn drop(&mut self) {
     while let Some(index) = self.bitmap.find_first_set() {
       let _ = self.bitmap.clear(index);
@@ -179,7 +179,7 @@ mod tests {
   fn segment_smallest_class_utilization() {
     let mut buffer = vec![0u8; SEGMENT_SIZE];
     let smallest_class = &CLASSES[0];
-    let segment_ptr = Segment::new(smallest_class, &mut buffer)
+    let segment_ptr = Segment::new(smallest_class, unsafe { core::mem::transmute(&mut buffer[..]) })
       .expect("segment must initialize for smallest class");
     let segment = unsafe { segment_ptr.as_ref() };
 
@@ -213,7 +213,7 @@ mod tests {
 
     for (i, class) in CLASSES.iter().enumerate() {
       let mut buffer = vec![0u8; SEGMENT_SIZE];
-      let segment_ptr = Segment::new(class, &mut buffer)
+      let segment_ptr = Segment::new(class, unsafe { core::mem::transmute(&mut buffer[..]) })
         .expect("segment must initialize for class");
       let segment = unsafe { segment_ptr.as_ref() };
 
@@ -271,7 +271,7 @@ mod tests {
     let mut buffer = vec![0u8; SEGMENT_SIZE];
     let class = &CLASSES[0];
     let mut segment_ptr =
-      Segment::new(class, &mut buffer).expect("segment must initialize");
+      Segment::new(class, unsafe { core::mem::transmute(&mut buffer[..]) }).expect("segment must initialize");
     let segment = unsafe { segment_ptr.as_mut() };
 
     let ptr1 = segment.alloc().expect("Should allocate first object");
@@ -309,7 +309,7 @@ mod tests {
   fn segment_bitmap_sizing_correctness() {
     for class in CLASSES.iter() {
       let mut buffer = vec![0u8; SEGMENT_SIZE];
-      let segment_ptr = Segment::new(class, &mut buffer)
+      let segment_ptr = Segment::new(class, unsafe { core::mem::transmute(&mut buffer[..]) })
         .expect("segment must initialize for bitmap sizing");
       let segment = unsafe { segment_ptr.as_ref() };
 

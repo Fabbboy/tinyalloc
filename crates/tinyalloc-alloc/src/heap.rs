@@ -43,18 +43,18 @@ pub enum HeapError {
 }
 
 #[derive(Getters)]
-pub struct Heap<'mapper> {
+pub struct Heap {
   thread: OnceLock<ThreadId>,
-  classes: [Queue<'mapper>; SIZES],
-  large: List<Large<'mapper>>,
+  classes: [Queue; SIZES],
+  large: List<Large>,
   #[getset(get = "pub")]
-  remote: RwLock<List<Allocation<'mapper>>>,
+  remote: RwLock<List<Allocation>>,
   operations: usize,
 }
 
-impl<'mapper> Heap<'mapper> {
+impl Heap {
   pub fn new() -> Self {
-    let classes: [Queue<'mapper>; SIZES] =
+    let classes: [Queue; SIZES] =
       class_init(|class| Queue::new(class));
     Self {
       thread: OnceLock::new(),
@@ -211,7 +211,7 @@ impl<'mapper> Heap<'mapper> {
 
   fn extract_info(
     &self,
-    allocation_nn: NonNull<Allocation<'mapper>>,
+    allocation_nn: NonNull<Allocation>,
   ) -> (NonNull<u8>, Layout) {
     let allocation_ref = unsafe { allocation_nn.as_ref() };
     let header_ptr =
@@ -239,7 +239,7 @@ impl<'mapper> Heap<'mapper> {
   }
 }
 
-impl<'mapper> Drop for Heap<'mapper> {
+impl Drop for Heap {
   fn drop(&mut self) {
     let mut guard = self.remote.write();
     while let Some(allocation) = guard.pop() {

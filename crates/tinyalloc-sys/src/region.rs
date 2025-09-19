@@ -16,14 +16,14 @@ use crate::{
 };
 
 #[derive(Getters)]
-pub struct Region<'mapper> {
+pub struct Region {
   #[getset(get = "pub")]
   data: NonNull<[u8]>,
-  mapper: &'mapper dyn Mapper,
+  mapper: &'static dyn Mapper,
   activate: bool,
 }
 
-impl<'mapper> Region<'mapper> {
+impl Region {
   pub fn new(size: NonZeroUsize) -> Result<Self, MapError> {
     let data = GLOBAL_MAPPER.map(size)?;
     Ok(Self {
@@ -79,7 +79,7 @@ impl<'mapper> Region<'mapper> {
   }
 }
 
-impl<'mapper> Drop for Region<'mapper> {
+impl Drop for Region {
   fn drop(&mut self) {
     self.mapper.unmap(self.data);
   }
