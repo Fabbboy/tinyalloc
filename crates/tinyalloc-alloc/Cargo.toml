@@ -8,6 +8,7 @@ tinyalloc-sys = { workspace = true }
 tinyalloc-list = { workspace = true }
 tinyalloc-bitmap = { workspace = true }
 tinyalloc-array = { workspace = true }
+tinyalloc-config = { workspace = true }
 
 getset = { workspace = true }
 enumset = { workspace = true }

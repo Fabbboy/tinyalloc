@@ -746,6 +746,7 @@ dependencies = [
  "libc",
  "spin",
  "tinyalloc-alloc",
+ "tinyalloc-config",
  "tinyalloc-sys",
 ]
 
@@ -758,6 +759,7 @@ dependencies = [
  "spin",
  "tinyalloc-array",
  "tinyalloc-bitmap",
+ "tinyalloc-config",
  "tinyalloc-list",
  "tinyalloc-sys",
 ]
@@ -768,6 +770,10 @@ version = "0.1.0"
 
 [[package]]
 name = "tinyalloc-bitmap"
+version = "0.1.0"
+
+[[package]]
+name = "tinyalloc-config"
 version = "0.1.0"
 
 [[package]]

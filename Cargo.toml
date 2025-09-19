@@ -10,6 +10,7 @@ members = [
   "crates/tinyalloc-alloc",
   "crates/tinyalloc-array",
   "crates/tinyalloc-bitmap",
+  "crates/tinyalloc-config",
   "crates/tinyalloc-list",
   "crates/tinyalloc-sys",
 ]
@@ -27,6 +28,7 @@ tinyalloc-array = { path = "crates/tinyalloc-array" }
 tinyalloc-bitmap = { path = "crates/tinyalloc-bitmap" }
 tinyalloc-list = { path = "crates/tinyalloc-list" }
 tinyalloc-sys = { path = "crates/tinyalloc-sys" }
+tinyalloc-config = { path = "crates/tinyalloc-config" }
 
 [lib]
 crate-type = ["cdylib", "staticlib", "rlib"]
@@ -38,6 +40,7 @@ lto = true
 
 [build-dependencies]
 cbindgen = "0.29.0"
+tinyalloc-config = { workspace = true }
 
 [dev-dependencies]
 libc = { workspace = true }
