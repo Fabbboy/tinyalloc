@@ -28,6 +28,7 @@ use tinyalloc_list::{
 use crate::queue::Position;
 
 pub const SEGMENT_CACHE_SIZE: usize = 12;
+pub const SEGMENT_CACHE_PREFETCH: usize = 8;
 
 #[derive(Getters, Setters)]
 pub struct Segment {
@@ -53,6 +54,22 @@ impl From<BitmapError> for SegmentError {
 }
 
 impl Segment {
+  fn prefetch_cache(&mut self, start_bit: usize) {
+    let prefetch_count = SEGMENT_CACHE_PREFETCH.min(SEGMENT_CACHE_SIZE - self.cache.len());
+    let mut current_bit = start_bit + 1;
+    let mut prefetched = 0;
+
+    while prefetched < prefetch_count && current_bit < self.bitmap.bits() {
+      if let Ok(false) = self.bitmap.get(current_bit) {
+        if self.cache.push(current_bit).is_ok() {
+          prefetched += 1;
+        }
+      } else {
+        break;
+      }
+      current_bit += 1;
+    }
+  }
   pub fn new(
     class: &'static Class,
     slice: &'static mut [u8],
@@ -151,7 +168,9 @@ impl Segment {
       if !self.bitmap.one_clear() {
         return None;
       }
-      self.bitmap.find_fc()?
+      let first_free = self.bitmap.find_fc()?;
+      self.prefetch_cache(first_free);
+      first_free
     };
 
     metric!(MetricId::SegmentBitmapSet);
