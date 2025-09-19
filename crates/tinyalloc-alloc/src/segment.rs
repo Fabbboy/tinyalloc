@@ -85,7 +85,7 @@ impl Segment {
   }
 
   pub fn is_full(&self) -> bool {
-    !self.bitmap.is_clear()
+    !self.bitmap.one_clear()
   }
 
   pub fn is_empty(&self) -> bool {
