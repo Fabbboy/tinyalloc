@@ -15,7 +15,11 @@ use tinyalloc_config::{
     Segmentation,
   },
   helper::align_slice,
+  metric,
 };
+
+#[cfg(feature = "metrics")]
+use tinyalloc_config::metrics::MetricId;
 use tinyalloc_list::{
   HasLink,
   Link,
@@ -53,6 +57,8 @@ impl Segment {
     class: &'static Class,
     slice: &'static mut [u8],
   ) -> Result<NonNull<Self>, SegmentError> {
+    metric!(MetricId::SegmentNew);
+
     let self_size = core::mem::size_of::<Self>();
     let (segment_slice, rest) = slice.split_at_mut(self_size);
 
@@ -63,6 +69,7 @@ impl Segment {
     let user_aligned = align_slice(bitmap_rest, class.align.0);
     let object_capacity = user_aligned.len() / class.size.0;
     if object_capacity == 0 {
+      metric!(MetricId::SegmentNewFail);
       return Err(SegmentError::InsufficientCapacity { class_id: class.id });
     }
     let bitmap = Bitmap::zero(bitmap_slice, object_capacity)?;
@@ -80,6 +87,7 @@ impl Segment {
           user: user_aligned,
         },
       );
+      metric!(MetricId::SegmentNewSuccess);
       Ok(NonNull::new_unchecked(segment_ptr))
     }
   }
@@ -136,13 +144,17 @@ impl Segment {
 
   pub fn alloc(&mut self) -> Option<NonNull<u8>> {
     let bit_index = if let Some(cached_index) = self.cache.pop() {
+      metric!(MetricId::SegmentCacheHit);
       cached_index
     } else {
+      metric!(MetricId::SegmentCacheMiss);
       if !self.bitmap.one_clear() {
         return None;
       }
       self.bitmap.find_fc()?
     };
+
+    metric!(MetricId::SegmentBitmapSet);
     self.bitmap.set(bit_index).ok()?;
     self.ptr_from_index(bit_index)
   }
@@ -154,6 +166,7 @@ impl Segment {
     };
 
     let _ = self.cache.push(bit_index);
+    metric!(MetricId::SegmentBitmapClear);
     self.bitmap.clear(bit_index).is_ok()
   }
 }

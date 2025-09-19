@@ -11,7 +11,14 @@ use std::{
 
 use getset::Getters;
 use spin::RwLock;
-use tinyalloc_config::{classes::{class_init, find_class}, config::{LARGE_SC_LIMIT, REMOTE_BATCH_SIZE, REMOTE_CHECK_FREQUENCY, REMOTE_MAX_BATCH, SIZES}};
+use tinyalloc_config::{
+  classes::{class_init, find_class},
+  config::{LARGE_SC_LIMIT, REMOTE_BATCH_SIZE, REMOTE_CHECK_FREQUENCY, REMOTE_MAX_BATCH, SIZES},
+  metric,
+};
+
+#[cfg(feature = "metrics")]
+use tinyalloc_config::metrics::MetricId;
 use tinyalloc_list::List;
 
 use crate::{
@@ -62,32 +69,62 @@ impl Heap {
     &mut self,
     layout: Layout,
   ) -> Result<NonNull<[u8]>, HeapError> {
+    metric!(MetricId::HeapAllocate);
+    metric!(MetricId::HeapOperationsCounter);
+
     self.operations = self.operations.wrapping_add(1);
     self.free_remote()?;
 
     let size = layout.size();
 
     if size == 0 {
+      metric!(MetricId::HeapInvalidSize);
+      metric!(MetricId::HeapAllocateFail);
       return Err(HeapError::InvalidSize);
     }
 
-    if size > LARGE_SC_LIMIT {
-      return self.alloc_large(layout);
-    }
+    let result = if size > LARGE_SC_LIMIT {
+      metric!(MetricId::HeapAllocLarge);
+      self.alloc_large(layout)
+    } else {
+      metric!(MetricId::HeapAllocSmall);
+      self.alloc_small(layout)
+    };
 
-    self.alloc_small(layout)
+    match result {
+      Ok(ptr) => {
+        metric!(MetricId::HeapAllocateSuccess);
+        Ok(ptr)
+      }
+      Err(e) => {
+        metric!(MetricId::HeapAllocateFail);
+        Err(e)
+      }
+    }
   }
   fn alloc_small(
     &mut self,
     layout: Layout,
   ) -> Result<NonNull<[u8]>, HeapError> {
+    metric!(MetricId::HeapClassLookup);
     let class = find_class(layout.size(), layout.align())
-      .ok_or(HeapError::InvalidSize)?;
+      .ok_or_else(|| {
+        metric!(MetricId::HeapClassLookupFail);
+        HeapError::InvalidSize
+      })?;
+
+    metric!(MetricId::HeapClassLookupSuccess);
     let queue = &mut self.classes[class.id];
 
+    metric!(MetricId::QueueAllocate);
     let ptr = queue
       .allocate()
-      .ok_or(HeapError::Arena(ArenaError::Insufficient))?;
+      .ok_or_else(|| {
+        metric!(MetricId::QueueAllocateFail);
+        HeapError::Arena(ArenaError::Insufficient)
+      })?;
+
+    metric!(MetricId::QueueAllocateSuccess);
 
     let slice =
       unsafe { core::slice::from_raw_parts_mut(ptr.as_ptr(), layout.size()) };
@@ -113,10 +150,23 @@ impl Heap {
     ptr: NonNull<u8>,
     layout: Layout,
   ) -> Result<(), HeapError> {
+    metric!(MetricId::HeapDeallocate);
+    metric!(MetricId::HeapOperationsCounter);
+
     self.operations = self.operations.wrapping_add(1);
     self.free_remote()?;
 
-    self.deallocate_internal(ptr, layout)
+    let result = self.deallocate_internal(ptr, layout);
+    match result {
+      Ok(()) => {
+        metric!(MetricId::HeapDeallocateSuccess);
+        Ok(())
+      }
+      Err(e) => {
+        metric!(MetricId::HeapDeallocateFail);
+        Err(e)
+      }
+    }
   }
 
   fn dealloc_small(
@@ -124,13 +174,23 @@ impl Heap {
     ptr: NonNull<u8>,
     layout: Layout,
   ) -> Result<(), HeapError> {
+    metric!(MetricId::HeapClassLookup);
     let class = find_class(layout.size(), layout.align())
-      .ok_or(HeapError::InvalidSize)?;
+      .ok_or_else(|| {
+        metric!(MetricId::HeapClassLookupFail);
+        HeapError::InvalidSize
+      })?;
 
+    metric!(MetricId::HeapClassLookupSuccess);
     let queue = &mut self.classes[class.id];
+
+    metric!(MetricId::QueueDeallocate);
     if queue.deallocate(ptr) {
+      metric!(MetricId::QueueDeallocateSuccess);
       Ok(())
     } else {
+      metric!(MetricId::QueueDeallocateFail);
+      metric!(MetricId::HeapInvalidPointer);
       Err(HeapError::InvalidPointer)
     }
   }
@@ -148,10 +208,14 @@ impl Heap {
   }
 
   fn free_remote(&mut self) -> Result<(), HeapError> {
+    metric!(MetricId::HeapRemoteProcessing);
+
     if !self.should_free_remote()? {
+      metric!(MetricId::HeapRemoteSkipped);
       return Ok(());
     }
 
+    metric!(MetricId::HeapRemoteBatched);
     self.free_remote_batched()
   }
 
@@ -217,13 +281,16 @@ impl Heap {
     let size = layout.size();
 
     if size == 0 {
+      metric!(MetricId::HeapInvalidSize);
       return Err(HeapError::InvalidSize);
     }
 
     if size > LARGE_SC_LIMIT {
+      metric!(MetricId::HeapDeallocLarge);
       return self.dealloc_large(ptr);
     }
 
+    metric!(MetricId::HeapDeallocSmall);
     self.dealloc_small(ptr, layout)
   }
 }

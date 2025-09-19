@@ -1,11 +1,10 @@
+#[cfg(feature = "metrics")]
 use std::{
-  sync::atomic::{
-    AtomicU64,
-    Ordering,
-  },
+  sync::{atomic::{AtomicU64, Ordering}, OnceLock},
   time::Instant,
 };
 
+#[cfg(feature = "metrics")]
 const METRIC_COUNT: usize = 100;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -262,6 +261,7 @@ impl MetricId {
   }
 }
 
+#[cfg(feature = "metrics")]
 static METRICS: [AtomicU64; METRIC_COUNT] = [
   AtomicU64::new(0),
   AtomicU64::new(0),
@@ -365,22 +365,30 @@ static METRICS: [AtomicU64; METRIC_COUNT] = [
   AtomicU64::new(0),
 ];
 
-static START_TIME: std::sync::OnceLock<Instant> = std::sync::OnceLock::new();
+#[cfg(feature = "metrics")]
+static START_TIME: OnceLock<Instant> = OnceLock::new();
 
 #[macro_export]
 macro_rules! metric {
   ($id:expr) => {
+    #[cfg(feature = "metrics")]
     $crate::metrics::record_metric($id)
   };
   ($id:expr, $count:expr) => {
+    #[cfg(feature = "metrics")]
     $crate::metrics::record_metric_count($id, $count)
   };
 }
 
+#[cfg(feature = "metrics")]
 pub fn record_metric(id: MetricId) {
   record_metric_count(id, 1);
 }
 
+#[cfg(not(feature = "metrics"))]
+pub fn record_metric(_id: MetricId) {}
+
+#[cfg(feature = "metrics")]
 pub fn record_metric_count(id: MetricId, count: u64) {
   let index = id as usize;
   if index < METRIC_COUNT {
@@ -388,6 +396,10 @@ pub fn record_metric_count(id: MetricId, count: u64) {
   }
 }
 
+#[cfg(not(feature = "metrics"))]
+pub fn record_metric_count(_id: MetricId, _count: u64) {}
+
+#[cfg(feature = "metrics")]
 pub fn get_metric(id: MetricId) -> u64 {
   let index = id as usize;
   if index < METRIC_COUNT {
@@ -397,14 +409,26 @@ pub fn get_metric(id: MetricId) -> u64 {
   }
 }
 
+#[cfg(not(feature = "metrics"))]
+pub fn get_metric(_id: MetricId) -> u64 {
+  0
+}
+
+#[cfg(feature = "metrics")]
 pub fn start_summary() {
   for metric in &METRICS {
     metric.store(0, Ordering::Relaxed);
   }
-  START_TIME.set(Instant::now()).ok();
+  let _ = START_TIME.set(Instant::now());
   println!("Metrics collection started. All counters reset to zero.");
 }
 
+#[cfg(not(feature = "metrics"))]
+pub fn start_summary() {
+  println!("Metrics not enabled. Compile with --features metrics to enable.");
+}
+
+#[cfg(feature = "metrics")]
 pub fn print_summary() {
   let start_time = START_TIME.get().copied().unwrap_or_else(Instant::now);
   let elapsed = start_time.elapsed();
@@ -474,6 +498,12 @@ pub fn print_summary() {
   }
 }
 
+#[cfg(not(feature = "metrics"))]
+pub fn print_summary() {
+  println!("Metrics not enabled. Compile with --features metrics to enable.");
+}
+
+#[cfg(feature = "metrics")]
 fn print_derived_metrics() {
   println!("\n=== Derived Metrics ===");
 
@@ -542,6 +572,7 @@ fn print_derived_metrics() {
   }
 }
 
+#[cfg(feature = "metrics")]
 fn calculate_success_rate(
   success_metric: MetricId,
   total_metric: MetricId,
@@ -551,6 +582,7 @@ fn calculate_success_rate(
   if total > 0.0 { success / total } else { -1.0 }
 }
 
+#[cfg(feature = "metrics")]
 fn calculate_hit_rate(hit_metric: MetricId, miss_metric: MetricId) -> f64 {
   let hits = get_metric(hit_metric) as f64;
   let misses = get_metric(miss_metric) as f64;

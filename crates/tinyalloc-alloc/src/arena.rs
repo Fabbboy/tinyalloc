@@ -25,7 +25,11 @@ use tinyalloc_config::{
     align_slice,
     align_up,
   },
+  metric,
 };
+
+#[cfg(feature = "metrics")]
+use tinyalloc_config::metrics::MetricId;
 use tinyalloc_sys::{
   MapError,
   mapper::Protection,
@@ -60,6 +64,8 @@ pub struct Arena {
 
 impl Arena {
   pub fn new(size: usize) -> Result<NonNull<Self>, ArenaError> {
+    metric!(MetricId::ArenaNew);
+
     let nonz = NonZeroUsize::new(size).ok_or(ArenaError::SizeIsZero)?;
     let region = Region::new(nonz).map_err(ArenaError::MapError)?;
 
@@ -136,6 +142,8 @@ impl Arena {
     &self,
     class: &'static Class,
   ) -> Result<NonNull<Segment>, ArenaError> {
+    metric!(MetricId::ArenaAllocate);
+
     let _guard = self.lock.lock();
 
     let bitmap = unsafe { &mut *self.bitmap.get() };
@@ -143,12 +151,17 @@ impl Arena {
     let cache = unsafe { &mut *self.cache.get() };
 
     let segment_index = if let Some(cached_index) = cache.pop() {
+      metric!(MetricId::ArenaCacheHit);
       cached_index
     } else {
+      metric!(MetricId::ArenaCacheMiss);
       let free_bit = bitmap.find_fc();
       match free_bit {
         Some(index) => index,
-        None => return Err(ArenaError::Insufficient),
+        None => {
+          metric!(MetricId::ArenaAllocateFail);
+          return Err(ArenaError::Insufficient);
+        }
       }
     };
 
@@ -172,10 +185,14 @@ impl Arena {
       )
       .map_err(ArenaError::MapError)?;
 
+    metric!(MetricId::ArenaSegmentActivation);
     let segment =
       Segment::new(class, segment_slice).map_err(ArenaError::Segment)?;
+
+    metric!(MetricId::ArenaBitmapOperations);
     let _ = bitmap.set(segment_index);
 
+    metric!(MetricId::ArenaAllocateSuccess);
     Ok(segment)
   }
 
@@ -183,6 +200,8 @@ impl Arena {
     &self,
     segment: NonNull<Segment>,
   ) -> Result<(), ArenaError> {
+    metric!(MetricId::ArenaDeallocate);
+
     let _guard = self.lock.lock();
 
     let bitmap = unsafe { &mut *self.bitmap.get() };
@@ -205,6 +224,7 @@ impl Arena {
     }
 
     if !bitmap.get(segment_index).unwrap_or(false) {
+      metric!(MetricId::ArenaDeallocateFail);
       return Err(ArenaError::Insufficient);
     }
 
@@ -212,21 +232,35 @@ impl Arena {
       unsafe { slice::from_raw_parts_mut(segment_ptr, SEGMENT_SIZE) };
     let segment_range = NonNull::new(segment_slice as *mut [u8]).unwrap();
 
+    metric!(MetricId::ArenaSegmentDeactivation);
     self
       .region
       .partial(segment_range, enum_set!())
       .map_err(ArenaError::MapError)?;
+
     let _ = cache.push(segment_index);
+    metric!(MetricId::ArenaBitmapOperations);
     let _ = bitmap.clear(segment_index);
 
+    metric!(MetricId::ArenaDeallocateSuccess);
     Ok(())
   }
 
   pub fn has_space(&self) -> bool {
-    let _guard = self.lock.lock();
+    metric!(MetricId::ArenaHasSpace);
+
+    // LOCKLESS - safe because read-only operation
     let bitmap = unsafe { &*self.bitmap.get() };
     let cache = unsafe { &*self.cache.get() };
-    !cache.is_empty() || bitmap.one_clear()
+    let has_space = !cache.is_empty() || bitmap.one_clear();
+
+    if has_space {
+      metric!(MetricId::ArenaHasSpaceTrue);
+    } else {
+      metric!(MetricId::ArenaHasSpaceFalse);
+    }
+
+    has_space
   }
 
   pub fn user_start(&self) -> *const u8 {

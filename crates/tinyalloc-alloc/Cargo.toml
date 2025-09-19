@@ -13,3 +13,7 @@ tinyalloc-config = { workspace = true }
 getset = { workspace = true }
 enumset = { workspace = true }
 spin = { workspace = true }
+
+[features]
+default = []
+metrics = ["tinyalloc-config/metrics"]

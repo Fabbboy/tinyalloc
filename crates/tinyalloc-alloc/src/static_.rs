@@ -6,7 +6,14 @@ use std::sync::atomic::{
 
 use spin::RwLock;
 use tinyalloc_array::Array;
-use tinyalloc_config::{classes::Class, config::{ARENA_GROWTH, ARENA_INITIAL_SIZE, ARENA_LIMIT, ARENA_STEP, SEGMENT_SIZE}};
+use tinyalloc_config::{
+  classes::Class,
+  config::{ARENA_GROWTH, ARENA_INITIAL_SIZE, ARENA_LIMIT, ARENA_STEP, SEGMENT_SIZE},
+  metric,
+};
+
+#[cfg(feature = "metrics")]
+use tinyalloc_config::metrics::MetricId;
 
 use crate::{
   arena::{
@@ -27,16 +34,27 @@ static ARENAS: RwLock<Array<AtomicPtr<Arena>, ARENA_LIMIT>> =
 static NEXT_ARENA_SIZE: AtomicUsize = AtomicUsize::new(ARENA_INITIAL_SIZE);
 
 fn create_arena() -> Result<NonNull<Arena>, ArenaError> {
+  metric!(MetricId::StaticCreateArena);
   let size = NEXT_ARENA_SIZE.load(Ordering::Relaxed);
-  let arena = Arena::new(size)?;
-  Ok(arena)
+  match Arena::new(size) {
+    Ok(arena) => {
+      metric!(MetricId::StaticCreateArenaSuccess);
+      Ok(arena)
+    }
+    Err(e) => {
+      metric!(MetricId::StaticCreateArenaFail);
+      Err(e)
+    }
+  }
 }
 
 fn add_arena(arena: NonNull<Arena>) -> Result<(), ArenaError> {
+  metric!(MetricId::StaticAddArena);
   let mut arenas = ARENAS.write();
   let arena_count = arenas.len();
 
   if arena_count > 0 && arena_count % ARENA_STEP == 0 {
+    metric!(MetricId::StaticArenaGrowth);
     let current_size = NEXT_ARENA_SIZE.load(Ordering::Relaxed);
     let next_size = current_size
       .checked_mul(ARENA_GROWTH)
@@ -45,10 +63,16 @@ fn add_arena(arena: NonNull<Arena>) -> Result<(), ArenaError> {
   }
 
   let atomic_ptr = AtomicPtr::new(arena.as_ptr());
-  arenas
-    .push(atomic_ptr)
-    .map_err(|_| ArenaError::Insufficient)?;
-  Ok(())
+  match arenas.push(atomic_ptr) {
+    Ok(()) => {
+      metric!(MetricId::StaticAddArenaSuccess);
+      Ok(())
+    }
+    Err(_) => {
+      metric!(MetricId::StaticAddArenaFail);
+      Err(ArenaError::Insufficient)
+    }
+  }
 }
 
 pub fn allocate_segment(
@@ -98,6 +122,7 @@ pub fn deallocate_segment(segment: NonNull<Segment>) -> Result<(), ArenaError> {
 }
 
 pub fn segment_from_ptr(ptr: NonNull<u8>) -> Option<NonNull<Segment>> {
+  metric!(MetricId::StaticSegmentLookup);
   let arenas = ARENAS.read();
   let addr = ptr.as_ptr() as usize;
 
@@ -120,10 +145,12 @@ pub fn segment_from_ptr(ptr: NonNull<u8>) -> Option<NonNull<Segment>> {
     let segment_ptr = segment_base as *mut Segment;
     if let Some(segment_nn) = NonNull::new(segment_ptr) {
       if unsafe { segment_nn.as_ref() }.contains_ptr(ptr) {
+        metric!(MetricId::StaticSegmentLookupSuccess);
         return Some(segment_nn);
       }
     }
   }
 
+  metric!(MetricId::StaticSegmentLookupFail);
   None
 }

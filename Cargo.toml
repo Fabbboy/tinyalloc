@@ -47,6 +47,7 @@ criterion = { workspace = true }
 
 [dependencies]
 tinyalloc-alloc = { workspace = true }
+tinyalloc-config = { workspace = true }
 spin = { workspace = true }
 tinyalloc-sys = { workspace = true }
 libc = { workspace = true, optional = true }
@@ -54,6 +55,7 @@ libc = { workspace = true, optional = true }
 [features]
 default = []
 ffi = ["libc"]
+metrics = ["tinyalloc-alloc/metrics", "tinyalloc-config/metrics"]
 
 [[bench]]
 name = "bench_sample"
