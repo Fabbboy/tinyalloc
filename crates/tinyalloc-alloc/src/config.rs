@@ -38,6 +38,8 @@ pub const REMOTE_BATCH_SIZE: usize = 32;
 pub const REMOTE_CHECK_FREQUENCY: usize = 16;
 pub const REMOTE_MAX_BATCH: usize = 64;
 
+pub const QUEUE_THRESHOLD: usize = 12;
+
 pub const fn align_up(size: usize, align: usize) -> usize {
   if align <= 1 {
     return size;

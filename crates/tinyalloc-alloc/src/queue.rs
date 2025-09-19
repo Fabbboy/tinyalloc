@@ -4,6 +4,7 @@ use tinyalloc_list::List;
 
 use crate::{
   classes::Class,
+  config::QUEUE_THRESHOLD,
   segment::Segment,
   static_::{
     allocate_segment,
@@ -70,19 +71,24 @@ impl<'mapper> Queue<'mapper> {
   }
 
   pub fn deallocate(&mut self, ptr: NonNull<u8>) -> bool {
-    if let Some(mut segment) = self.segment_from_ptr(ptr) {
-      if unsafe { segment.as_mut() }.dealloc(ptr) {
-        if unsafe { segment.as_ref() }.is_empty() {
-          // Remove from lists first, then deallocate
-          let _ =
-            self.free_list.remove(segment) || self.full_list.remove(segment);
-          let _ = deallocate_segment(segment.cast());
-        } else {
-          self.update_state(segment);
-        }
-        return true;
-      }
+    let segment = match self.segment_from_ptr(ptr) {
+      Some(mut segment) => unsafe { segment.as_mut() },
+      None => return false,
+    };
+
+    if !segment.dealloc(ptr) {
+      return false;
     }
+
+    if self.free_list.count() > QUEUE_THRESHOLD {
+      let segment_ptr = NonNull::from(segment);
+      let _ = self.free_list.remove(segment_ptr);
+      let _ = self.full_list.remove(segment_ptr);
+      let _ = deallocate_segment(segment_ptr.cast());
+    } else {
+      self.update_state(NonNull::from(segment));
+    }
+
     false
   }
 
@@ -120,13 +126,7 @@ impl<'mapper> Drop for Queue<'mapper> {
 #[cfg(test)]
 mod tests {
   use super::*;
-  use crate::{
-    classes::CLASSES,
-    static_::{
-      allocate_segment,
-      deallocate_segment,
-    },
-  };
+  use crate::classes::CLASSES;
 
   #[test]
   fn queue_basic_functionality() {
