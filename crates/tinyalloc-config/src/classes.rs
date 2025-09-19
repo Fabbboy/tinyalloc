@@ -2,7 +2,7 @@ use std::array;
 
 use tinyalloc_bitmap::numeric::Bits;
 
-use crate::config::{
+use crate::{config::{
   LARGE_ALIGN_RATIO,
   LARGE_SC_LIMIT,
   MEDIUM_ALIGN_LIMIT,
@@ -11,10 +11,8 @@ use crate::config::{
   MIN_SIZE,
   SIZES,
   SMALL_ALIGN_LIMIT,
-  SMALL_SC_LIMIT,
-  align_slice,
-  align_up,
-};
+  SMALL_SC_LIMIT, 
+}, helper::{align_slice, align_up}};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Size(pub usize);

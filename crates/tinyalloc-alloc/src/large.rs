@@ -4,7 +4,7 @@ use std::{
 };
 
 use getset::Getters;
-use tinyalloc_config::config::align_up;
+use tinyalloc_config::helper::align_up;
 use tinyalloc_list::{
   HasLink,
   Link,

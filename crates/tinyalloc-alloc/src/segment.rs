@@ -14,7 +14,7 @@ use tinyalloc_config::{
     Class,
     Segmentation,
   },
-  config::align_slice,
+  helper::align_slice,
 };
 use tinyalloc_list::{
   HasLink,
@@ -178,9 +178,15 @@ impl Drop for Segment {
 
 #[cfg(test)]
 mod tests {
-  use tinyalloc_config::{classes::CLASSES, config::{SEGMENT_SIZE, SIZES}};
+  use tinyalloc_config::{
+    classes::CLASSES,
+    config::{
+      SEGMENT_SIZE,
+      SIZES,
+    },
+  };
 
-use super::*;
+  use super::*;
 
   #[test]
   fn segment_smallest_class_utilization() {

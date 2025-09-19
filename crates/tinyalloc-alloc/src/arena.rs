@@ -15,7 +15,17 @@ use tinyalloc_bitmap::{
   numeric::Bits,
 };
 
-use tinyalloc_config::{classes::Class, config::{align_slice, align_up, SEGMENT_SIZE, WORD}};
+use tinyalloc_config::{
+  classes::Class,
+  config::{
+    SEGMENT_SIZE,
+    WORD,
+  },
+  helper::{
+    align_slice,
+    align_up,
+  },
+};
 use tinyalloc_sys::{
   MapError,
   mapper::Protection,
@@ -23,12 +33,9 @@ use tinyalloc_sys::{
   size::page_size,
 };
 
-use crate::{
- 
-  segment::{
-    Segment,
-    SegmentError,
-  },
+use crate::segment::{
+  Segment,
+  SegmentError,
 };
 
 #[derive(Debug)]
@@ -248,10 +255,10 @@ impl Drop for Arena {
 mod tests {
   use tinyalloc_config::config::ARENA_INITIAL_SIZE;
 
-use super::*;
+  use super::*;
 
   #[test]
-  fn test_arena_construction() { 
+  fn test_arena_construction() {
     let arena_result = Arena::new(ARENA_INITIAL_SIZE);
     assert!(arena_result.is_ok());
   }

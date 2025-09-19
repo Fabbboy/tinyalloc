@@ -40,7 +40,6 @@ lto = true
 
 [build-dependencies]
 cbindgen = "0.29.0"
-tinyalloc-config = { workspace = true }
 
 [dev-dependencies]
 libc = { workspace = true }

@@ -1,13 +1,14 @@
+use std::path::Path;
+
 use cbindgen::{
   Config,
-  Error,
+  Error as BindError,
   Language,
 };
 
-extern crate cbindgen;
 
-fn generate_header(crate_path: &'static str) -> Result<(), Error> {
-  let output_file = format!("{}/tinyalloc.h", crate_path);
+fn generate_header(crate_path: &'static str) -> Result<(), BindError> {
+  let output_file = Path::new(crate_path).join("tinyalloc.h");
 
   let config = Config {
     language: Language::C,
@@ -28,6 +29,9 @@ fn generate_header(crate_path: &'static str) -> Result<(), Error> {
 
 fn main() {
   let crate_path = env!("CARGO_MANIFEST_DIR");
-   
+
   generate_header(crate_path).expect("Unable to generate bindings");
+
+  println!("cargo:rerun-if-changed=build.rs");
+  println!("cargo:rerun-if-changed=src/ffi.rs");
 }

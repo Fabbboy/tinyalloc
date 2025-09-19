@@ -746,7 +746,6 @@ dependencies = [
  "libc",
  "spin",
  "tinyalloc-alloc",
- "tinyalloc-config",
  "tinyalloc-sys",
 ]
 

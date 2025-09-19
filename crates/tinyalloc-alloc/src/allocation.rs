@@ -6,16 +6,13 @@ use std::{
 };
 
 use getset::CloneGetters;
-use tinyalloc_config::config::{align_up, MAX_ALIGN};
+use tinyalloc_config::helper::{align_up, MAX_ALIGN};
 use tinyalloc_list::{
   HasLink,
   Link,
 };
 
-use crate::{
-
-  heap::Heap,
-};
+use crate::heap::Heap;
 
 const ALLOCATION_CANARY: u64 = 0xDEADBEEFCAFEBABE;
 
