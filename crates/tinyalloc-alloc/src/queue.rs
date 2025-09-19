@@ -80,16 +80,15 @@ impl<'mapper> Queue<'mapper> {
       return false;
     }
 
-    if self.free_list.count() > QUEUE_THRESHOLD {
+    if segment.is_empty() && self.free_list.count() > QUEUE_THRESHOLD {
       let segment_ptr = NonNull::from(segment);
       let _ = self.free_list.remove(segment_ptr);
-      let _ = self.full_list.remove(segment_ptr);
       let _ = deallocate_segment(segment_ptr.cast());
     } else {
       self.update_state(NonNull::from(segment));
     }
 
-    false
+    true
   }
 
   fn segment_from_ptr(
